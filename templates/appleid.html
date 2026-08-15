@@ -1,0 +1,647 @@
+{# Limooo - Flask Web Application
+
+Copyright (C) 2026 Limooo <https://limooo.cn/>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
+
+{% extends "base.html" %}
+
+{% block title %}Limooo - Apple ID{% endblock %}
+
+{% block nav_links %}
+<div class="global-nav hidden md:flex items-center">
+    <a href="{{ home_url }}" class="nav-link{% if page == 'home' %} active{% endif %}">
+        <span data-i18n="nav_home">{{ _('nav_home') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+    <a href="{{ services_url }}" class="nav-link{% if page == 'services' %} active{% endif %}">
+        <span data-i18n="nav_services">{{ _('nav_services') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+    <a href="{{ contact_url }}" class="nav-link{% if page == 'contact' %} active{% endif %}">
+        <span data-i18n="nav_contact">{{ _('nav_contact') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+    <a href="https://visitor.limooo.cn" class="nav-link">
+        <span data-i18n="nav_visitor">{{ _('nav_visitor') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+    <a href="https://appleid.limooo.cn" class="nav-link active">
+        <span data-i18n="nav_appleid">{{ _('nav_appleid') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+</div>
+<span class="nav-divider hidden md:block"></span>
+{% endblock %}
+
+{% block style_page %}
+        /* ═══════════════════════════════════════════════════════════════
+           Apple ID 页面样式（导航栏 / 主题菜单 / 全局基础样式见 base.html）
+           ═══════════════════════════════════════════════════════════════ */
+
+        /* base 的 html,body 为 overflow:hidden,本页需纵向滚动 */
+        html, body { overflow-y: auto; height: auto; min-height: 100%; }
+
+        .nav-title { font-size:24px;font-weight:700;letter-spacing: calc(-0.02em*var(--ls-scale));white-space:nowrap; }
+        .nav-title span { opacity:0.3;font-weight:400; }
+        @media (max-width:640px) { .nav-title { font-size:18px; } }
+
+        /* Dashboard */
+        #dashboard { max-width:800px;margin:0 auto;padding:110px 20px 80px; } /* padding-top 让出 fixed 导航栏高度(100px) */
+        #dashboard.hidden { display:none !important; }
+        .search-bar { margin-bottom:20px;display:flex;align-items:center;gap:10px; }
+        .search-bar input { flex:1;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel-bg);color:var(--text);font-size:14px;outline:none;box-sizing:border-box; }
+        .search-bar input:focus { border-color:var(--accent); }
+        .search-bar .search-actions { display:flex;gap:10px;flex-shrink:0; }
+
+        /* Account card — drag handle */
+        .account-card {
+            background:var(--panel-bg);border:1px solid var(--line);border-radius:var(--radius);
+            padding:12px 16px;margin-bottom:6px;
+            display:flex;align-items:center;gap:10px;
+            cursor:grab;transition:border-color 0.2s,opacity 0.2s;
+        }
+        .account-card:active { cursor:grabbing; }
+        .account-card:hover { border-color:var(--highlight); }
+        .account-card.dragging { opacity:0.4; }
+        .account-card.drag-over { border-color:var(--accent); }
+        .drag-handle { opacity:0.2;cursor:grab;flex-shrink:0;display:flex;padding:4px; }
+        .drag-handle:active { cursor:grabbing; }
+
+        .account-body { flex:1;min-width:0; }
+        .account-row { display:flex;align-items:center;gap:6px;margin-bottom:2px; }
+        .account-email { font-size:14px;font-weight:500; }
+        .account-pw { font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;letter-spacing: calc(0.08em*var(--ls-scale));opacity:0.45;min-width:40px; }
+
+        .account-notes { font-size:11px;opacity:0.25; }
+
+        .account-actions { display:flex;gap:2px;flex-shrink:0; }
+
+        /* ── 通用按钮（原 login.html） ── */
+        .btn { padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:none;cursor:pointer;letter-spacing: calc(0.02em*var(--ls-scale));color:white;transition:opacity 0.2s,transform 0.15s var(--ease-out); }
+        .btn:active { transform:scale(0.96); }
+        .btn-primary { background:var(--accent);color:white; }
+        .btn-primary:hover { opacity:0.9; }
+        .btn-outline { background:transparent;border:1px solid var(--line);color:var(--text); }
+        .btn-outline:hover { background:var(--highlight); }
+        .btn-danger { background:#f43f5e;color:white; }
+        .btn-danger:hover { opacity:0.8; }
+        .btn-sm { padding:4px 12px;font-size:11px; }
+        .icon-btn {
+            background:none;border:none;color:var(--text);opacity:0.35;
+            cursor:pointer;padding:5px;border-radius:var(--radius-sm);display:flex;
+            transition:opacity 0.2s,background 0.2s;
+        }
+        .icon-btn:hover { opacity:0.8;background:var(--highlight); }
+        .icon-btn.danger:hover { opacity:1;background:rgba(255,71,87,0.12);color:#ff4757; }
+        .icon-btn.active { opacity:0.7;color:var(--accent); }
+
+        .empty-state { text-align:center;padding:60px 20px;opacity:0.3; }
+        .empty-state .big-icon { font-size:48px;margin-bottom:12px; }
+
+        .modal-overlay { position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center; }
+        .modal-overlay.hidden { display:none !important; }
+        .modal { background:var(--panel-bg);border:1px solid var(--line);border-radius:var(--radius-lg);padding:32px;width:90%;max-width:440px; }
+        .modal h2 { font-size:20px;font-weight:700;margin-bottom:4px; }
+        .modal .desc { font-size:13px;opacity:0.4;margin-bottom:24px; }
+        .modal label { display:block;font-size:12px;font-weight:600;opacity:0.5;margin-bottom:4px;text-transform:uppercase;letter-spacing: calc(0.1em*var(--ls-scale)); }
+        .modal input,.modal textarea { width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--highlight);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:16px; }
+        .modal input:focus,.modal textarea:focus { border-color:var(--accent); }
+        /* 密码输入 + 小眼睛：按钮覆盖在输入框右侧 */
+        .pw-field { position:relative; }
+        /* 输入框本身不带 margin-bottom;间距由容器承担,避免容器高度被 margin 撑高导致眼睛 top:50% 偏下 */
+        .pw-field input { padding-right:38px; margin-bottom:0; }
+        .email-field { display:flex; align-items:center; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--highlight); margin-bottom:16px; overflow:hidden; }
+        .email-field input { flex:1; min-width:0; border:none; background:transparent; margin-bottom:0; }
+        .email-field:focus-within { border-color:var(--accent); }
+        .email-domain { flex-shrink:0; padding:10px 12px; border-left:1px solid var(--line); font-size:14px; opacity:0.5; white-space:nowrap; background:var(--panel-bg); }
+        .pw-field { margin-bottom:16px; }
+        /* 密文/明文切换完全由 JS 接管(见 toggleFieldPw / renderFieldPw) */
+        .pw-eye {
+            position:absolute; top:50%; right:0; width:34px;
+            transform:translateY(-50%);
+            display:flex; align-items:center; justify-content:center;
+            background:none; border:none; color:var(--text); opacity:0.45; cursor:pointer;
+            transition:opacity 0.2s var(--ease-out);
+        }
+        .pw-eye:hover { opacity:1; }
+        .modal textarea { resize:vertical;min-height:60px;font-family:inherit; }
+        .modal-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:8px; }
+        .toast { position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:300;background:var(--panel-bg);border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 20px;font-size:13px;font-weight:500;opacity:0;transition:opacity 0.3s var(--ease-out);pointer-events:none; }
+        .toast.show { opacity:1; }
+        .loading-dots { display:flex;align-items:center;justify-content:center;gap:6px;padding:40px; }
+        .loading-dots span { width:6px;height:6px;border-radius:50%;background:var(--text);opacity:0.2;animation:bounce 1.4s ease-in-out infinite; }
+        .loading-dots span:nth-child(2) { animation-delay:0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay:0.4s; }
+        @keyframes bounce { 0%,80%,100%{opacity:0.2;transform:scale(1)} 40%{opacity:1;transform:scale(1.6)} }
+        .count-badge { font-size:12px;opacity:0.3;margin-bottom:16px; }
+        .global-footer.hidden { display:none !important; }
+        @media (max-width:640px) { #dashboard { padding:80px 12px 80px; } .search-bar { flex-wrap:wrap; } .search-actions { width:100%; } .search-actions .btn { flex:1;text-align:center; } }
+{% endblock %}
+
+{% block nav_logo %}
+<h1 class="nav-title">Apple ID <span>Manager</span></h1>
+{% endblock %}
+
+{% block nav_dropdown %}
+<div class="theme-toggle">
+    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+    </button>
+    <div id="navLinksDropdown" class="theme-menu">
+        <div class="theme-option" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
+        <div class="theme-option" data-i18n="nav_visitor" onclick="navigateTo('https://visitor.limooo.cn')">{{ _('nav_visitor') }}</div>
+        <div class="theme-option selected" data-i18n="nav_appleid" onclick="navigateTo('https://appleid.limooo.cn')">{{ _('nav_appleid') }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="dashboard" class="hidden">
+    <div class="search-bar">
+        <input type="text" id="search" placeholder="{{ _('search_placeholder') }}" oninput="renderList()" autocomplete="off" data-i18n-attr="placeholder:search_placeholder">
+        <div class="search-actions">
+            <button class="btn btn-primary" onclick="openAddModal()" data-i18n="add">{{ _('add') }}</button>
+            <button class="btn btn-danger" onclick="handleLogout()" data-i18n="logout">{{ _('logout') }}</button>
+        </div>
+    </div>
+    <div class="count-badge" id="count-badge"></div>
+    <div id="account-list"><div class="loading-dots"><span></span><span></span><span></span></div></div>
+</div>
+
+<div class="modal-overlay hidden" id="modal">
+    <div class="modal">
+        <h2 id="modal-title">{{ _('modal_add_title') }}</h2>
+        <p class="desc" id="modal-desc">{{ _('modal_add_desc') }}</p>
+        <label data-i18n="label_email">{{ _('label_email') }}</label>
+        <div class="email-field">
+            <input type="text" id="field-email" placeholder="{{ _('email_prefix_placeholder') }}" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:email_prefix_placeholder">
+            <span class="email-domain">@appleid.limooo.cn</span>
+        </div>
+        <label data-i18n="label_password">{{ _('label_password') }}</label>
+        <div class="pw-field">
+            <input type="text" id="field-password" placeholder="{{ _('pw_placeholder') }}" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:pw_placeholder">
+            <button type="button" class="pw-eye" id="field-password-eye" onclick="toggleFieldPw()" title="{{ _('show_password') }}" aria-label="{{ _('show_password') }}" data-i18n-attr="title,aria-label:show_password">
+                <svg id="field-password-eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg id="field-password-eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+        <label data-i18n="label_notes">{{ _('label_notes') }}</label>
+        <textarea id="field-notes" placeholder="{{ _('notes_placeholder') }}" spellcheck="false" data-i18n-attr="placeholder:notes_placeholder"></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeModal()" data-i18n="cancel">{{ _('cancel') }}</button>
+            <button class="btn btn-primary" id="modal-save-btn" onclick="saveAccount()" data-i18n="save">{{ _('save') }}</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="delete-modal">
+    <div class="modal">
+        <h2 data-i18n="delete_title">{{ _('delete_title') }}</h2>
+        <p class="desc" id="delete-desc">{{ _('delete_desc') }}</p>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeDeleteModal()" data-i18n="cancel">{{ _('cancel') }}</button>
+            <button class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDelete()" data-i18n="delete">{{ _('delete') }}</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block footer %}
+<footer class="global-footer hidden" id="global-footer">
+    <div class="footer-text">LIMOOO</div>
+</footer>
+{% endblock %}
+
+{% block page_scripts %}
+let accounts = [];
+let pwVisible = {};
+let pwAutoHideTimer = null;
+let currentRole = 'viewer'; // 'admin' 可写 / 'viewer' 只读
+const PW_VISIBLE_MS = 30000; // 明文密码最多在内存保留 30 秒
+
+function clearAllPw() {
+    if (Object.keys(pwVisible).length) { pwVisible = {}; renderList(); }
+}
+
+function schedulePwAutoHide() {
+    if (pwAutoHideTimer) clearTimeout(pwAutoHideTimer);
+    pwAutoHideTimer = setTimeout(clearAllPw, PW_VISIBLE_MS);
+}
+
+// 切换到后台/锁屏时立即清空明文，防止驻留内存
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        if (pwAutoHideTimer) { clearTimeout(pwAutoHideTimer); pwAutoHideTimer = null; }
+        clearAllPw();
+    }
+});
+
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) initDashboard();
+});
+
+// 前端切换语言后重渲染:弹层标题/描述 + 账号列表
+document.addEventListener('languagechange', function() {
+    var modal = document.getElementById('modal');
+    if (!modal.classList.contains('hidden')) {
+        document.getElementById('modal-title').textContent = editingId ? t('modal_edit_title') : t('modal_add_title');
+        document.getElementById('modal-desc').textContent = editingId ? t('modal_edit_desc') : t('modal_add_desc');
+    }
+    var dmodal = document.getElementById('delete-modal');
+    if (!dmodal.classList.contains('hidden')) {
+        var target = accounts.find(function(a) { return a.id === deleteTargetId; });
+        if (target) document.getElementById('delete-desc').textContent = t('delete_confirm', { email: target.email });
+    }
+    renderList();
+});
+
+// 页面能加载说明后端已放行（已登录），直接初始化；API 401 时才跳登录
+function initDashboard() {
+    fetch('/api/auth/status').then(r => r.json()).then(data => {
+        currentRole = data.role || 'viewer';
+        showDashboard();
+    }).catch(() => showDashboard());
+}
+
+function showDashboard() {
+    var dash = document.getElementById('dashboard');
+    dash.classList.remove('hidden');
+    document.getElementById('global-footer').style.display = 'none';
+    if (currentRole !== 'admin') {
+        // 只读账户:隐藏添加按钮(写操作按钮一并隐藏,无提示)
+        var addBtn = document.querySelector('.search-actions .btn-primary');
+        if (addBtn) addBtn.style.display = 'none';
+    }
+    loadAccounts();
+}
+
+function handleLogout() {
+    var next = encodeURIComponent(location.href);
+    location.href = '/logout?next=' + next;
+}
+
+// ── Drag & Drop Sort ─────────────────────────────────
+
+let dragSrcId = null;
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+function performDrop(targetId) {
+    if (!dragSrcId || dragSrcId === targetId) return;
+    const fromIdx = accounts.findIndex(a => a.id == dragSrcId);
+    const toIdx = accounts.findIndex(a => a.id == targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = accounts.splice(fromIdx, 1);
+    const newToIdx = accounts.findIndex(a => a.id == targetId);
+    accounts.splice(newToIdx, 0, moved);
+    renderList();
+    saveOrder();
+}
+
+function clearDragState() {
+    document.querySelectorAll('.account-card').forEach(c => c.classList.remove('dragging', 'drag-over'));
+    dragSrcId = null;
+}
+
+function hitCardAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    return el ? el.closest('.account-card') : null;
+}
+
+function initDrag() {
+    document.querySelectorAll('.account-card').forEach(card => {
+        if (isTouchDevice) {
+            // 移动端：原生 HTML5 DnD 支持不完整，改用 touch 事件
+            const handle = card.querySelector('.drag-handle');
+            if (!handle) return;
+            handle.addEventListener('touchstart', function(e) {
+                dragSrcId = card.dataset.id;
+                card.classList.add('dragging');
+            }, { passive: true });
+            handle.addEventListener('touchmove', function(e) {
+                e.preventDefault(); // 阻止页面滚动
+                const t = e.touches[0];
+                const target = hitCardAt(t.clientX, t.clientY);
+                document.querySelectorAll('.account-card').forEach(c => c.classList.remove('drag-over'));
+                if (target && target !== card) target.classList.add('drag-over');
+            }, { passive: false });
+            handle.addEventListener('touchend', function(e) {
+                const t = e.changedTouches[0];
+                const target = hitCardAt(t.clientX, t.clientY);
+                const targetId = target ? target.dataset.id : null;
+                performDrop(targetId); // 需在 clearDragState 前执行，此时 dragSrcId 仍有效
+                clearDragState();
+            }, { passive: true });
+            // 拖拽中途被系统打断（来电/弹窗）时清理状态
+            handle.addEventListener('touchcancel', clearDragState, { passive: true });
+        } else {
+            card.setAttribute('draggable', 'true');
+            card.addEventListener('dragstart', function(e) {
+                dragSrcId = this.dataset.id;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            card.addEventListener('dragend', clearDragState);
+            card.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                document.querySelectorAll('.account-card').forEach(c => c.classList.remove('drag-over'));
+                if (this.dataset.id !== dragSrcId) this.classList.add('drag-over');
+            });
+            card.addEventListener('dragleave', function() {
+                this.classList.remove('drag-over');
+            });
+            card.addEventListener('drop', function(e) {
+                e.preventDefault();
+                performDrop(this.dataset.id);
+            });
+        }
+    });
+}
+
+async function saveOrder() {
+    var order = accounts.map(function(a) { return a.id; });
+    try {
+        await fetch('/api/appleid/reorder', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: order })
+        });
+    } catch(e) {}
+}
+
+// ── CRUD ─────────────────────────────────────────────
+
+async function loadAccounts() {
+    const container = document.getElementById('account-list');
+    container.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+    try {
+        const resp = await fetch('/api/appleid/accounts');
+        if (resp.status === 401) { window.location.href = '/login?next=' + encodeURIComponent(location.href); return; }
+        accounts = await resp.json();
+        pwVisible = {};
+        renderList();
+    } catch(e) { container.innerHTML = '<div class="empty-state">' + esc(t('load_failed')) + '</div>'; }
+}
+
+function renderList() {
+    const container = document.getElementById('account-list');
+    const search = document.getElementById('search').value.toLowerCase().trim();
+    let filtered = search ? accounts.filter(a => a.email.toLowerCase().includes(search) || a.notes.toLowerCase().includes(search)) : accounts;
+
+    document.getElementById('count-badge').textContent = t('appleid_count', { count: filtered.length });
+    if (!filtered.length) { container.innerHTML = '<div class="empty-state"><div class="big-icon">🔑</div>' + esc(t('appleid_empty')) + '</div>'; return; }
+    container.innerHTML = filtered.map(a => {
+        const pwShown = (pwVisible[a.id] !== undefined);
+        const isAdmin = currentRole === 'admin';
+        return `
+        <div class="account-card" data-id="${a.id}">
+            ${isAdmin ? `<div class="drag-handle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="9" x2="18" y2="9"/><line x1="6" y1="15" x2="18" y2="15"/></svg>
+            </div>` : ''}
+            <div class="account-body">
+                <div class="account-row">
+                    <span class="account-email">${esc(a.email)}</span>
+                    <button class="icon-btn" onclick="copyEmail(${a.id})" title="${t('copy_email')}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    </button>
+                </div>
+                <div class="account-row">
+                    <span class="account-pw">${pwShown ? esc(pwVisible[a.id]) : esc(a.password)}</span>
+                    <button class="icon-btn ${pwShown ? 'active' : ''}" onclick="togglePw(${a.id})" title="${pwShown ? t('hide_password') : t('show_password')}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${pwShown
+                            ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+                            : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
+                        </svg>
+                    </button>
+                    <button class="icon-btn" onclick="copyPw(${a.id})" title="${t('copy_pw')}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    </button>
+                </div>
+                ${a.notes ? '<div class="account-notes">' + esc(a.notes) + '</div>' : ''}
+            </div>
+            ${isAdmin ? `<div class="account-actions">
+                <button class="icon-btn" onclick="openEditModal(${a.id})" title="${t('edit')}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="icon-btn danger" onclick="deleteAccount(${a.id})" title="${t('delete')}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </button>
+            </div>` : ''}
+        </div>`;
+    }).join('');
+    if (currentRole === 'admin') setTimeout(initDrag, 0);
+}
+
+async function revealPw(id) {
+    if (pwVisible[id] !== undefined) return pwVisible[id];
+    try {
+        const resp = await fetch('/api/appleid/accounts/' + id + '/reveal', { method: 'POST' });
+        if (!resp.ok) { toast(t('toast_pw_fetch_failed')); return null; }
+        const data = await resp.json();
+        return data.password;
+    } catch(e) { toast(t('toast_pw_fetch_failed')); return null; }
+}
+
+/* 弹窗密码输入框:小眼睛切换明文/密文。
+   输入框始终 type="text"(不用原生 password,避免浏览器密文样式不一致),
+   密文状态显示与密码等长的圆点串,真实密码存于 data-real */
+let fieldPwHidden = true;
+
+function renderFieldPw() {
+    var input = document.getElementById('field-password');
+    var real = input.dataset.real || '';
+    if (fieldPwHidden) {
+        input.value = real ? '·'.repeat(real.length) : '';
+    } else {
+        input.value = real;
+    }
+    document.getElementById('field-password-eye-open').style.display = fieldPwHidden ? 'none' : 'block';
+    document.getElementById('field-password-eye-closed').style.display = fieldPwHidden ? 'block' : 'none';
+}
+
+function toggleFieldPw() {
+    fieldPwHidden = !fieldPwHidden;
+    renderFieldPw();
+}
+
+/* 用户输入时更新真实值并重绘圆点 */
+document.getElementById('field-password').addEventListener('input', function() {
+    this.dataset.real = this.value;
+    if (fieldPwHidden) renderFieldPw();
+});
+
+async function togglePw(id) {
+    if (pwVisible[id] !== undefined) {
+        delete pwVisible[id];
+        renderList();
+        return;
+    }
+    const pw = await revealPw(id);
+    if (pw === null) return;
+    pwVisible[id] = pw;
+    renderList();
+    schedulePwAutoHide();
+}
+
+async function copyPw(id) {
+    const pw = await revealPw(id);
+    if (!pw) return;
+    try { await navigator.clipboard.writeText(pw); toast(t('toast_copy_pw')); }
+    catch(e) { toast(t('toast_copy_failed')); }
+    if (pwVisible[id] !== undefined) {
+        delete pwVisible[id];
+        renderList();
+    }
+}
+
+async function copyEmail(id) {
+    const a = accounts.find(x => x.id === id);
+    if (!a) return;
+    try { await navigator.clipboard.writeText(a.email); toast(t('toast_copy_email')); }
+    catch(e) { toast(t('toast_copy_failed')); }
+}
+
+let deleteTargetId = null;
+
+function deleteAccount(id) {
+    const a = accounts.find(x => x.id === id);
+    if (a) document.getElementById('delete-desc').textContent = t('delete_confirm', { email: a.email });
+    deleteTargetId = id;
+    document.getElementById('delete-modal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden');
+    deleteTargetId = null;
+}
+
+async function confirmDelete() {
+    if (deleteTargetId === null) return;
+    const id = deleteTargetId;
+    const resp = await fetch('/api/appleid/accounts/' + id, { method: 'DELETE' });
+    closeDeleteModal();
+    if (!resp.ok) { toast(t('toast_delete_failed')); return; }
+    accounts = accounts.filter(a => a.id !== id);
+    delete pwVisible[id];
+    renderList();
+    toast(t('toast_deleted'));
+}
+
+// ── Modal ───────────────────────────────────────────
+
+let editingId = null;
+
+function openAddModal() {
+    editingId = null;
+    document.getElementById('modal-title').textContent = t('modal_add_title');
+    document.getElementById('field-email').value = '';
+    document.getElementById('field-notes').value = '';
+    document.getElementById('field-email').style.display = 'block';
+    // 密码:真实值清空,密文状态
+    var pwInput = document.getElementById('field-password');
+    pwInput.dataset.real = '';
+    fieldPwHidden = true;
+    renderFieldPw();
+    document.getElementById('modal').classList.remove('hidden');
+}
+
+function openEditModal(id) {
+    const a = accounts.find(x => x.id === id);
+    if (!a) return;
+    editingId = id;
+    document.getElementById('modal-title').textContent = t('modal_edit_title');
+    document.getElementById('modal-desc').textContent = t('modal_edit_desc');
+    document.getElementById('field-email').value = a.email.split('@')[0];
+    document.getElementById('field-notes').value = a.notes || '';
+    document.getElementById('field-email').style.display = 'block';
+    // 密码:列表 API 返回的是掩码值,需通过 reveal 接口取真实密码,
+    // 预填为密文状态(圆点),修改时保存到 dataset.original 判断是否变更
+    var pwInput = document.getElementById('field-password');
+    pwInput.dataset.real = '';
+    pwInput.dataset.original = '';
+    fieldPwHidden = true;
+    renderFieldPw();
+    document.getElementById('modal').classList.remove('hidden');
+    revealPw(id).then(function(realPw) {
+        if (realPw) {
+            pwInput.dataset.real = realPw;
+            pwInput.dataset.original = realPw;
+            renderFieldPw();
+        }
+    });
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    // 重置密码字段状态,避免下次打开残留明文/圆点
+    fieldPwHidden = true;
+    document.getElementById('field-password').dataset.real = '';
+    document.getElementById('field-password').dataset.original = '';
+    renderFieldPw();
+}
+
+async function saveAccount() {
+    const email = document.getElementById('field-email').value.trim().split('@')[0] + '@appleid.limooo.cn';
+    const password = (document.getElementById('field-password').dataset.real || '').trim();
+    const notes = document.getElementById('field-notes').value.trim();
+    if (!password) { toast(t('toast_enter_pw')); return; }
+    const btn = document.getElementById('modal-save-btn');
+    btn.disabled = true;
+    try {
+        if (editingId) {
+            const origPw = document.getElementById('field-password').dataset.original || '';
+            const pwChanged = password !== origPw;
+            const resp = await fetch('/api/appleid/accounts/' + editingId, {
+                method:'PUT',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email, password, notes, password_changed: pwChanged})
+            });
+            if (!resp.ok) { toast(t('toast_update_failed')); btn.disabled = false; return; }
+        } else {
+            if (!email) { toast(t('toast_enter_email')); btn.disabled = false; return; }
+            const resp = await fetch('/api/appleid/accounts', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email, password, notes})
+            });
+            if (!resp.ok) { toast(t('toast_add_failed')); btn.disabled = false; return; }
+        }
+        closeModal();
+        await loadAccounts();
+        toast(editingId ? t('toast_updated') : t('toast_added'));
+    } catch(e) { toast(t('toast_op_failed')); }
+    btn.disabled = false;
+}
+
+document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('delete-modal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeModal(); closeDeleteModal(); }
+    if (e.key === 'Enter' && !document.getElementById('modal').classList.contains('hidden') && document.activeElement.tagName !== 'TEXTAREA') saveAccount();
+});
+
+function toast(msg) { var el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); setTimeout(function(){ el.classList.remove('show'); }, 2000); }
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+initDashboard();
+{% endblock %}

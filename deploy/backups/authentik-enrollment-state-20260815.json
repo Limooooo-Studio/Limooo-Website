@@ -1,0 +1,182 @@
+[
+{
+  "model": "authentik_flows.flow",
+  "pk": "e4cd6f99-5b79-40a2-8d1e-5d06ecfa8f9b",
+  "fields": {
+    "policybindingmodel_ptr": "37bed0e8-8663-4692-8c3d-41e702f80be9",
+    "name": "Sign up",
+    "slug": "enrollment",
+    "title": "Create an account",
+    "layout": "stacked",
+    "designation": "enrollment",
+    "background": "",
+    "compatibility_mode": false,
+    "denied_action": "message_continue",
+    "authentication": "none"
+  }
+},
+{
+  "model": "authentik_flows.flowstagebinding",
+  "pk": "6fb43cb1-ccd6-4177-8784-f49982b5ae8c",
+  "fields": {
+    "policybindingmodel_ptr": "fa1cfc65-3a68-4da8-b946-c2e1827ee8fb",
+    "target": "e4cd6f99-5b79-40a2-8d1e-5d06ecfa8f9b",
+    "stage": "a09ee76e-9215-4136-992a-c5d8244772b6",
+    "evaluate_on_plan": false,
+    "re_evaluate_policies": true,
+    "invalid_response_action": "retry",
+    "order": 10
+  }
+},
+{
+  "model": "authentik_flows.flowstagebinding",
+  "pk": "d0a0ce0a-20ac-41a0-9737-c6a589d88b44",
+  "fields": {
+    "policybindingmodel_ptr": "6cd0d182-2845-4fcb-bdfe-a66935ab1a0b",
+    "target": "e4cd6f99-5b79-40a2-8d1e-5d06ecfa8f9b",
+    "stage": "6e97e239-90da-4c4f-b4b1-bf86ab287b92",
+    "evaluate_on_plan": false,
+    "re_evaluate_policies": true,
+    "invalid_response_action": "retry",
+    "order": 20
+  }
+},
+{
+  "model": "authentik_stages_prompt.promptstage",
+  "pk": "a09ee76e-9215-4136-992a-c5d8244772b6",
+  "fields": {
+    "fields": [
+      "7164ec9b-ba2c-44ad-9b83-727f907e5b9b",
+      "03aae1d3-9fbd-4dfc-bf29-d6a62c2b39ff",
+      "ab3c4ce9-c471-4fe6-aaa3-bd68e2d8daa8",
+      "e53b731f-64c1-4e95-98d2-2f39660eafc4",
+      "e1436dec-701b-4487-9162-9b64de3f7a68"
+    ],
+    "validation_policies": [
+      "f8c23f06-5586-43b8-9598-2caf51a8c57f",
+      "9a2766f6-bbab-4fc8-b9bc-742adda39383"
+    ]
+  }
+},
+{
+  "model": "authentik_stages_prompt.prompt",
+  "pk": "e53b731f-64c1-4e95-98d2-2f39660eafc4",
+  "fields": {
+    "name": "enrollment-username",
+    "field_key": "username",
+    "label": "Username",
+    "type": "username",
+    "required": true,
+    "placeholder": "Limooo ID (letters & numbers only)",
+    "initial_value": "",
+    "sub_text": "Your unique identifier for Createch Identity.<br>Use only English letters (A–Z, a–z) and numbers (0–9).",
+    "order": 0,
+    "placeholder_expression": false,
+    "initial_value_expression": false
+  }
+},
+{
+  "model": "authentik_stages_prompt.prompt",
+  "pk": "7164ec9b-ba2c-44ad-9b83-727f907e5b9b",
+  "fields": {
+    "name": "enrollment-nickname",
+    "field_key": "name",
+    "label": "Nickname",
+    "type": "text",
+    "required": true,
+    "placeholder": "Your display name",
+    "initial_value": "",
+    "sub_text": "This is the name shown to other users.<br>You may use English, Chinese, or numbers.",
+    "order": 1,
+    "placeholder_expression": false,
+    "initial_value_expression": false
+  }
+},
+{
+  "model": "authentik_stages_prompt.prompt",
+  "pk": "e1436dec-701b-4487-9162-9b64de3f7a68",
+  "fields": {
+    "name": "enrollment-email",
+    "field_key": "email",
+    "label": "Email",
+    "type": "email",
+    "required": true,
+    "placeholder": "Your Limooo internal Email",
+    "initial_value": "",
+    "sub_text": "",
+    "order": 2,
+    "placeholder_expression": false,
+    "initial_value_expression": false
+  }
+},
+{
+  "model": "authentik_stages_prompt.prompt",
+  "pk": "ab3c4ce9-c471-4fe6-aaa3-bd68e2d8daa8",
+  "fields": {
+    "name": "password",
+    "field_key": "password",
+    "label": "Password",
+    "type": "password",
+    "required": true,
+    "placeholder": "Password",
+    "initial_value": "",
+    "sub_text": "",
+    "order": 3,
+    "placeholder_expression": false,
+    "initial_value_expression": false
+  }
+},
+{
+  "model": "authentik_stages_prompt.prompt",
+  "pk": "03aae1d3-9fbd-4dfc-bf29-d6a62c2b39ff",
+  "fields": {
+    "name": "enrollment-password-repeat",
+    "field_key": "password_repeat",
+    "label": "Password (repeat)",
+    "type": "password",
+    "required": true,
+    "placeholder": "Password (repeat)",
+    "initial_value": "",
+    "sub_text": "",
+    "order": 4,
+    "placeholder_expression": false,
+    "initial_value_expression": false
+  }
+},
+{
+  "model": "authentik_policies_expression.expressionpolicy",
+  "pk": "649f745b-1022-4362-b994-b42e365e1596",
+  "fields": {
+    "expression": "context[\"user_type\"] = \"external\"\nreturn True"
+  }
+},
+{
+  "model": "authentik_policies_expression.expressionpolicy",
+  "pk": "f8c23f06-5586-43b8-9598-2caf51a8c57f",
+  "fields": {
+    "expression": "username = context.get(\"prompt_data\", {}).get(\"username\", \"\")\nif not regex_match(username, r\"^[A-Za-z0-9]+$\"):\n    ak_message(\"Username may only contain English letters and numbers.\")\n    return False\nreturn True\n"
+  }
+},
+{
+  "model": "authentik_policies_expression.expressionpolicy",
+  "pk": "9a2766f6-bbab-4fc8-b9bc-742adda39383",
+  "fields": {
+    "expression": "email = context.get(\"prompt_data\", {}).get(\"email\", \"\")\nif not email.lower().endswith(\"@limooo.cn\"):\n    ak_message(\"Email must be a Limooo internal address (@limooo.cn).\")\n    return False\nreturn True\n"
+  }
+},
+{
+  "model": "authentik_policies.policybinding",
+  "pk": "8ed56d90-c179-4809-975e-8ce0c60ec2b3",
+  "fields": {
+    "enabled": true,
+    "policy": "649f745b-1022-4362-b994-b42e365e1596",
+    "group": null,
+    "user": null,
+    "target": "6cd0d182-2845-4fcb-bdfe-a66935ab1a0b",
+    "negate": false,
+    "timeout": 30,
+    "failure_result": false,
+    "order": 0
+  }
+}
+]

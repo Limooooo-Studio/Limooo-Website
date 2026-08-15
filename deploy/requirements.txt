@@ -1,0 +1,90 @@
+# Limooo - Flask Web Application
+#
+# Copyright (C) 2026 Limooo <https://limooo.cn/>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# ═══════════════════════════════════════════════════════════════
+# limooo.cn Python 依赖清单
+#
+# 用法：
+#   pip install -r requirements.txt
+#
+# 说明：
+#   此清单包含了所有曾考虑使用的依赖，但实际生产环境只需要其中一部分。
+#   标记了每个包的实际使用状态，方便后续清理。
+# ═══════════════════════════════════════════════════════════════
+
+# ── [在用] Web 框架 ────────────────────────────────────
+flask                   # WSGI 框架，app.py 的核心
+
+# ── [在用] 加密 ─────────────────────────────────────
+cryptography            # Fernet（Apple ID 密码加密）+ 公钥签名验证
+
+# ── [在用] GeoIP 地理位置 ──────────────────────────
+geoip2                  # MaxMind GeoLite2 数据库查询
+
+# ── [在用] 网络请求 ────────────────────────────────
+certifi                 # SSL 根证书（systemd 环境下的 urllib 兼容）
+httpx                   # HTTP 客户端（备用）
+requests                # HTTP 客户端（备用）
+aiohttp                 # 异步 HTTP 客户端（备用）
+
+# ── [部分在用] 工具库 ────────────────────────────
+click                   # CLI 工具（部分依赖间接使用）
+pydantic                # 数据验证（当前未直接使用，保留以备后续）
+
+# ====== 以下为可选/历史依赖，实际未部署使用 ======
+
+# ── [未用] 备用 Web 框架 ─────────────────────────────
+# fastapi               # ASGI 框架备选
+# uvicorn[standard]     # ASGI 服务器
+
+# ── [未用] 数据库 ──────────────────────────────────
+# sqlalchemy            # ORM
+# asyncpg               # PostgreSQL 异步驱动
+# psycopg2-binary       # PostgreSQL 同步驱动
+# pymongo               # MongoDB
+# redis                 # Redis 缓存/队列
+
+# ── [在用] Microsoft Entra ID 认证 ──────────────
+msal                    # Microsoft Authentication Library (OAuth2)
+
+# ── [未用] 认证 ──────────────────────────────────
+# python-jose[cryptography]     # JWT
+# passlib[bcrypt]               # 密码哈希
+# pyjwt                         # JWT 备选
+# python-multipart              # 文件上传 / form 数据
+
+# ── [未用] 任务队列 ──────────────────────────────
+# celery                # 分布式任务队列
+# schedule              # 轻量定时任务
+
+# ── [未用] 异步工具 ──────────────────────────────
+# websockets            # WebSocket 支持
+
+# ── [未用] 配置管理 ──────────────────────────────
+# python-dotenv         # .env 文件加载
+# watchfiles            # 开发时热重载
+
+# ── [未用] 图像处理 ──────────────────────────────
+# pillow                # 图片处理
+
+# ── [未用] 测试 ────────────────────────────────
+# pytest                # 测试框架
+# pytest-asyncio        # 异步测试支持
+
+# ── [未用] 其他 ──────────────────────────────
+# pydantic-settings     # 设置管理
+# gunicorn              # WSGI 服务器（远程部署使用，本地开发不安装）

@@ -1,0 +1,443 @@
+{# Limooo - Flask Web Application
+
+Copyright (C) 2026 Limooo <https://limooo.cn/>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
+
+{% extends "base.html" %}
+
+{% block title %}Limooo{% endblock %}
+
+{% block style_page %}
+/* ═══════════════════════════════════════════════════════════════
+   首页专用样式：页面层叠切换、闪光灯动画、作品展示网格
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 页面层叠容器（home / portfolio 两个页面叠加，通过 transform 切换） ── */
+.page-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: var(--bg) !important;
+    display: flex; flex-direction: column;
+    transition: transform 500ms var(--ease-out), opacity 500ms var(--ease-out);
+}
+
+#portfolio {
+    z-index: 10; opacity: 0; visibility: hidden; overflow-y: auto;
+}
+
+/* ── 入场 / 出场动画状态（配合 JS 控制） ── */
+.reveal-item.exit-up {
+    opacity: 0 !important; transform: translateY(-60px) !important;
+}
+.reveal-item.from-top {
+    transform: translateY(-60px) !important; opacity: 0 !important; transition: none !important;
+}
+.portfolio-exit {
+    transform: translateY(30px); opacity: 0 !important;
+}
+
+/* ── 作品展示卡片（两行三列 + 相框包边） ── */
+.work-box {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--line); border-radius: var(--radius-lg);
+    padding: 10px; /* 包边：图片四周留白，卡片边框包裹 */
+    opacity: 0; transform: translateY(20px);
+    transition: transform 0.6s var(--ease-out), opacity 0.6s var(--ease-out);
+    will-change: transform, opacity; backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+}
+.work-box.show { opacity: 1; transform: translateY(0); }
+.work-box { cursor: pointer; }
+.work-box-label {
+    font-size: 10px; font-weight: 600; letter-spacing: calc(0.2em*var(--ls-scale)); opacity: 0.2;
+}
+/* hover 提示：底部 15% 区域渐变 + 文字，覆盖在图片之上（包边之内） */
+.work-box-hint {
+    position: absolute; left: 10px; right: 10px; bottom: 10px;
+    height: 15%; /* 占卡片高度 15% */
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: calc(0.3em*var(--ls-scale)); text-transform: uppercase;
+    color: var(--text);
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+    opacity: 0; transition: opacity 300ms var(--ease-out);
+    pointer-events: none; z-index: 2;
+}
+@media (hover: hover) and (pointer: fine) {
+    .work-box:hover .work-box-hint { opacity: 1; }
+}
+/* 裁剪层：固定圆角（外层 16 − 内边距 10），不随 hover 变化 */
+.work-frame {
+    width: 100%; height: 100%;
+    border-radius: calc(var(--radius-lg) - 10px);
+    overflow: hidden;
+}
+.work-img {
+    display: block; width: 100%; height: 100%;
+    object-fit: cover;
+}
+/* ── 标题字重 ── */
+h1 { font-weight: 600 !important; }
+
+/* ── 首页主标题 ── */
+.hero-title { color: var(--text); }
+
+/* ── 导航 logo 按页面状态显示/隐藏（瞬间切换，不用 transition） ── */
+#nav-logo.is-hidden { opacity: 0; pointer-events: none; }
+
+/* ── 英雄标题 ── */
+#hero-title {
+    position: fixed; top: 50%; left: 50%;
+    z-index: 150; /* 高于导航栏(100)，飞行动画不被 nav 背景遮挡 */
+    opacity: 0;
+    transform: translate(-50%, -40px);
+    transition: opacity 200ms ease-out, transform 267ms var(--ease-out);
+    white-space: nowrap;
+}
+#hero-title.visible { opacity: 1; transform: translate(-50%, -50%); }
+#hero-title.flying { transition: transform 267ms var(--ease-out); }
+.hero-closed { pointer-events: none; }
+.hero-closed .bracket:nth-of-type(1) { transform: translateX(-16px); opacity: 0; }
+.hero-closed .bracket:nth-of-type(2) { transform: translateX(16px); opacity: 0; }
+.bracket { display: inline-block; font-family: "PingFang SC", "Hiragino Sans", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-weight: inherit; transition: transform 233ms var(--ease-out), opacity 167ms ease-out; }
+
+/* ── 滚动指示器 ── */
+.scroll-hint {
+    position: absolute; bottom: 80px; left: 0; right: 0; margin: 0 auto; width: fit-content;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    pointer-events: none;
+}
+.scroll-hint-inner {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    animation: scroll-bob 2.4s var(--ease-in-out) infinite;
+}
+.scroll-hint span {
+    font-size: 12px; letter-spacing: calc(0.12em*var(--ls-scale)); text-transform: uppercase; font-weight: 600;
+}
+@keyframes scroll-bob {
+    0%, 100% { transform: translateY(0); opacity: 0.25; }
+    50% { transform: translateY(6px); opacity: 0.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .scroll-hint-inner { animation: none; }
+}
+{% endblock %}
+
+{% block nav_dropdown %}
+<div class="theme-toggle nav-mobile-menu">
+    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+    </button>
+    <div id="navLinksDropdown" class="theme-menu">
+        <div class="theme-option selected" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block flash %}{% endblock %}
+
+{% block content %}
+<h1 id="hero-title" class="hero-title text-4xl md:text-7xl tracking-[0.05em] uppercase"><span class="bracket">「</span>LIMOOO<span class="bracket">」</span></h1>
+<!-- ═══ 首屏（home） ═══ -->
+<div id="home-screen" class="page-layer">
+    <section class="flex-grow flex flex-col justify-center items-center text-center px-6"></section>
+    <div class="scroll-hint reveal-item">
+        <div class="scroll-hint-inner">
+            <span data-i18n="scroll_down">{{ _('scroll_down') }}</span>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:35px;height:35px;"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 作品展示（portfolio） ═══ -->
+<div id="portfolio" class="page-layer">
+    <section class="flex flex-col items-center px-6 pt-32 pb-40">
+        <p id="port-title" class="portfolio-title reveal-item text-[10px] uppercase tracking-[calc(0.4em*var(--ls-scale))] opacity-50 mb-12 font-bold" data-i18n="portfolio_title">{{ _('portfolio_title') }}</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-6xl px-4">
+            <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
+                <div class="work-frame">
+                    <img class="work-img" src="static/portfolio/IMG_0203.webp" alt="{{ _('alt_outdoor_shot', num='01') }}" loading="lazy" data-i18n-attr="alt:alt_outdoor_shot;num=01">
+                </div>
+                <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
+            </div>
+            <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
+                <div class="work-frame">
+                    <img class="work-img" src="static/portfolio/IMG_0146.webp" alt="{{ _('alt_outdoor_shot', num='02') }}" loading="lazy" data-i18n-attr="alt:alt_outdoor_shot;num=02">
+                </div>
+                <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
+            </div>
+            <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
+                <div class="work-frame">
+                    <img class="work-img" src="static/portfolio/IMG_0130.webp" alt="{{ _('alt_outdoor_shot', num='03') }}" loading="lazy" data-i18n-attr="alt:alt_outdoor_shot;num=03">
+                </div>
+                <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
+            </div>
+            <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
+                <div class="work-frame">
+                    <img class="work-img" src="static/portfolio/IMG_0244.webp" alt="{{ _('alt_outdoor_shot', num='04') }}" loading="lazy" data-i18n-attr="alt:alt_outdoor_shot;num=04">
+                </div>
+                <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
+            </div>
+            <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
+                <div class="work-frame">
+                    <img class="work-img" src="static/portfolio/IMG_0115.webp" alt="{{ _('alt_outdoor_shot', num='05') }}" loading="lazy" data-i18n-attr="alt:alt_outdoor_shot;num=05">
+                </div>
+                <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
+            </div>
+            <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
+                <div class="work-frame">
+                    <img class="work-img" src="static/portfolio/IMG_0179.webp" alt="{{ _('alt_outdoor_shot', num='06') }}" loading="lazy" data-i18n-attr="alt:alt_outdoor_shot;num=06">
+                </div>
+                <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
+            </div>
+        </div>
+        {% include "_footer.html" %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+/* ═══════════════════════════════════════════════════════════════
+   首页滚动切换动画
+   - 滚轮 / 触摸下滑 → 切换到作品展示页（portfolio）
+   - 滚轮 / 触摸上滑 → 返回首屏（home）
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 动画时序常量 ── */
+var ANIM_DELAY = { initialReveal: 200, homeExit: 250, portfolioReveal: 300, staggerStep: 150, reverseExit: 250 };
+var SWIPE_THRESHOLD = 60;
+var WHEEL_THRESHOLD = 30;
+
+var homeScreen = document.getElementById('home-screen');
+var portfolioScreen = document.getElementById('portfolio');
+var portfolioTitle = document.getElementById('port-title');
+var homeRevealItems = homeScreen.querySelectorAll('.reveal-item');
+var workBoxes = document.querySelectorAll('.work-box');
+var heroTitle = document.getElementById('hero-title');
+var navLogo = document.getElementById('nav-logo');
+
+/* nav-logo 永久隐藏，由 hero-title 取代 */
+if (navLogo) navLogo.classList.add('is-hidden');
+
+heroTitle.addEventListener('click', function() { if (!isOnHome) reverseToHome(); });
+
+var isOnHome = true;
+var isTransitioning = false;
+var animSeq = 0; // 动画序列号：新动画启动时自增，旧动画的 pending 定时器据此失效
+var touchStartY = 0;
+
+/*
+ * 下滑: 「」渐出(233ms) → fly 到 nav 位置(200ms) → 淡出 → nav-logo 显示
+ * 上滑: nav-logo 隐藏 → fly 回中心 + 括号恢复
+ */
+
+function morphHeroToNav() {
+    if (!heroTitle) return;
+    var seq = animSeq;
+    // 「」渐出
+    heroTitle.classList.add('hero-closed');
+    // 233ms 后飞向左上角
+    setTimeout(function() {
+        if (seq !== animSeq) return;
+        var navRect = navLogo.getBoundingClientRect();
+        var vw = window.innerWidth, vh = window.innerHeight;
+        var scale = window.innerWidth >= 768 ? 0.333 : 0.5;
+        var dx = (navRect.left + navRect.width / 2) - vw / 2;
+        var dy = (navRect.top + navRect.height / 2) - vh / 2;
+        heroTitle.classList.add('flying');
+        heroTitle.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(' + scale + ')';
+        setTimeout(function() {
+            if (seq !== animSeq) return;
+            heroTitle.style.transition = 'opacity 67ms ease-out';
+            heroTitle.style.opacity = '0';
+            navLogo.classList.remove('is-hidden');
+            navLogo.onclick = function(e) { e.preventDefault(); reverseToHome(); };
+            setTimeout(function() {
+                if (seq !== animSeq) return;
+                heroTitle.style.display = 'none';
+                heroTitle.style.transition = '';
+                heroTitle.style.opacity = '';
+            }, 67);
+        }, 200);
+    }, 233);
+}
+
+function morphHeroBack() {
+    if (!heroTitle) return;
+    var seq = animSeq;
+    navLogo.onclick = null;
+    navLogo.classList.add('is-hidden');
+    // 恢复全部 heroTitle 内联样式，避免残留 flying 期间的 transition/display
+    heroTitle.style.display = '';
+    heroTitle.style.opacity = '';
+    heroTitle.style.transition = '';
+    heroTitle.classList.add('flying');
+    void heroTitle.offsetWidth;
+    heroTitle.classList.remove('hero-closed');
+    heroTitle.style.transform = 'translate(-50%, -50%)';
+    setTimeout(function() {
+        if (seq !== animSeq) return;
+        heroTitle.classList.remove('flying');
+        // isTransitioning / isOnHome 由 reverseToHome 的回调统一按序重置
+    }, 267);
+}
+
+function showPortfolio() {
+    // hero-title 已飞到 nav 位置，直接留在那作为 logo
+    var seq = animSeq;
+    portfolioScreen.scrollTop = 0; // 从顶部展示，避免惯性滚动残留
+    homeScreen.style.display = 'none';
+    portfolioScreen.style.visibility = 'visible';
+    portfolioScreen.style.opacity = '1';
+
+    setTimeout(function() {
+        if (seq !== animSeq) return;
+        portfolioTitle.classList.add('show');
+        workBoxes.forEach(function(box, index) {
+            setTimeout(function() { box.classList.add('show'); }, index * ANIM_DELAY.staggerStep);
+        });
+        isOnHome = false;
+        isTransitioning = false;
+    }, ANIM_DELAY.portfolioReveal);
+}
+
+function triggerCapture() {
+    if (isTransitioning || !isOnHome) return;
+    isTransitioning = true;
+    animSeq++;
+    var seq = animSeq;
+    document.querySelector('.scroll-hint').style.display = 'none';
+    homeRevealItems.forEach(function(item) {
+        item.classList.remove('show');
+        item.classList.add('exit-up');
+    });
+    morphHeroToNav();
+    setTimeout(function() {
+        if (seq !== animSeq) return;
+        showPortfolio();
+    }, 533);
+}
+
+/* 直达例图（#portfolio）：不播滚动切换动画，直接展示作品区，
+   仅保留 work-box 原有的级联淡入 */
+function showPortfolioDirect() {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    animSeq++;
+    var seq = animSeq;
+    // 隐藏首屏与 hero 标题（不飞行，直接不显示）
+    portfolioScreen.scrollTop = 0;
+    homeScreen.style.display = 'none';
+    if (heroTitle) heroTitle.style.display = 'none';
+    if (navLogo) {
+        navLogo.classList.remove('is-hidden');
+        navLogo.onclick = function(e) { e.preventDefault(); reverseToHome(); };
+    }
+    portfolioScreen.style.visibility = 'visible';
+    portfolioScreen.style.opacity = '1';
+    setTimeout(function() {
+        if (seq !== animSeq) return;
+        portfolioTitle.classList.add('show');
+        workBoxes.forEach(function(box, index) {
+            setTimeout(function() { box.classList.add('show'); }, index * ANIM_DELAY.staggerStep);
+        });
+        isOnHome = false;
+        isTransitioning = false;
+    }, ANIM_DELAY.portfolioReveal);
+}
+
+function resetHomeItems() {
+    document.querySelector('.scroll-hint').style.display = '';
+    homeRevealItems.forEach(function(item) {
+        item.classList.remove('exit-up', 'show');
+        item.classList.add('from-top');
+    });
+    void homeScreen.offsetWidth;
+    requestAnimationFrame(function() {
+        homeRevealItems.forEach(function(item) {
+            item.classList.remove('from-top');
+            item.classList.add('show');
+        });
+    });
+}
+
+function reverseToHome() {
+    if (isOnHome || isTransitioning || portfolioScreen.scrollTop > 10) return;
+    isTransitioning = true;
+    animSeq++;
+    var seq = animSeq;
+    portfolioScreen.classList.add('portfolio-exit');
+    morphHeroBack();
+    // 与 morphHeroBack 移除 flying 的 400ms 对齐，避免中间窗口期状态不一致
+    setTimeout(function() {
+        if (seq !== animSeq) return;
+        portfolioScreen.style.visibility = 'hidden';
+        portfolioScreen.style.opacity = '0';
+        portfolioScreen.classList.remove('portfolio-exit');
+        document.querySelectorAll('.work-box, #port-title').forEach(function(item) { item.classList.remove('show'); });
+        homeScreen.style.display = 'flex';
+        void homeScreen.offsetWidth;
+        resetHomeItems();
+        isOnHome = true;
+        isTransitioning = false;
+    }, Math.max(ANIM_DELAY.reverseExit, 400));
+}
+
+/* ── 鼠标滚轮监听 ── */
+window.addEventListener('wheel', function(event) {
+    // 切换动画进行中：吞掉所有滚轮事件，阻断触控板惯性继续把作品页往下滚
+    if (isTransitioning) { event.preventDefault(); return; }
+    if (event.deltaY > WHEEL_THRESHOLD && isOnHome) { event.preventDefault(); triggerCapture(); return; }
+    if (event.deltaY < -WHEEL_THRESHOLD && !isOnHome && portfolioScreen.scrollTop <= 0) { event.preventDefault(); reverseToHome(); }
+}, { passive: false });
+
+/* ── 触摸滑动监听 ── */
+document.addEventListener('touchstart', function(event) {
+    touchStartY = event.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', function(event) {
+    if (isTransitioning) return;
+    var swipeDistance = touchStartY - event.changedTouches[0].clientY;
+    if (isOnHome && swipeDistance > SWIPE_THRESHOLD) { triggerCapture(); return; }
+    if (!isOnHome && swipeDistance < -SWIPE_THRESHOLD && portfolioScreen.scrollTop <= 0) { reverseToHome(); }
+}, { passive: true });
+{% endblock %}
+
+{% block onload_extra %}
+/* 标题飞入 → 箭头级联淡入 */
+setTimeout(function() {
+    heroTitle.classList.add('visible');
+}, 200);
+setTimeout(function() {
+    document.querySelectorAll('.scroll-hint.reveal-item').forEach(function(el) {
+        el.classList.add('show');
+    });
+}, 500);
+
+/* 从服务页「查看例图」带 #portfolio 进入时，直接展示作品区（不播切换动画） */
+if (location.hash === '#portfolio') {
+    setTimeout(function() { showPortfolioDirect(); }, 100);
+}
+{% endblock %}

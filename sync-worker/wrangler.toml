@@ -1,0 +1,18 @@
+# limooo_blocklist 每日同步（替代原 auto_block.py 的 Cloudflare IP List 同步部分）
+name = "limooo-blocklist-sync"
+main = "src/index.ts"
+compatibility_date = "2026-08-15"
+account_id = "4a7fd8c8f1a59a265981a73e631b9e3f"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+# 与 Pages 项目共用同一个 D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "limooo"
+database_id = "e2f29d54-29c0-46af-938d-e13995a11d7f"
+
+# 部署前设置 Secret：
+#   wrangler secret put CLOUDFLARE_API_TOKEN
+#   wrangler secret put CLOUDFLARE_ACCOUNT_ID

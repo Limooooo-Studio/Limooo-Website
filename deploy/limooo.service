@@ -1,0 +1,47 @@
+# Limooo - Flask Web Application
+#
+# Copyright (C) 2026 Limooo <https://limooo.cn/>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+# 服务描述，供 systemctl 列表展示
+Description=Gunicorn instance to serve limooo.cn
+# 网络就绪后再启动，避免端口绑定失败
+After=network.target
+
+[Service]
+# 以root用户运行
+User=root
+# 使用 Web 组，便于与 Nginx 协作读写
+Group=www-data
+# 应用工作目录（相对路径都从这里解析）
+WorkingDirectory=/var/www/limooo
+# 指定虚拟环境 Python 路径
+Environment="PATH=/var/www/limooo/venv/bin"
+# 注册密钥配置文件（部署后编辑此文件设置你的密钥，不会被 rsync 覆盖）
+EnvironmentFile=-/var/www/limooo/keys/webauthn.env
+# 使用 gunicorn 运行，监听 8080 端口与你的 src/app.py 一致
+ExecStart=/var/www/limooo/venv/bin/gunicorn --chdir /var/www/limooo/src --workers 3 --bind 127.0.0.1:8080 app:app
+
+# 自动重启策略
+# 只要不是正常停止（systemctl stop），就自动重启
+Restart=on-failure
+# 等待 5 秒后重启（避免疯狂重启）
+RestartSec=5
+# 最大重启次数（可选，防止无限重启）
+StartLimitBurst=5
+[Install]
+# 让服务随系统进入多用户模式自动拉起
+WantedBy=multi-user.target

@@ -1,0 +1,689 @@
+{# Limooo - Flask Web Application
+
+Copyright (C) 2026 Limooo <https://limooo.cn/>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
+
+<!DOCTYPE html>
+<html lang="{{ g.lang or 'zh-CN' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- ── 子页面可覆盖的 meta（主题色 / 配色方案各页面不同） ── -->
+    {% block head_meta %}
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#1E1E1E">
+    {% endblock %}
+
+    <title>{% block title %}Limooo{% endblock %}</title>
+
+    <!-- 预加载主题脚本：在渲染之前检测 localStorage，防止浅色模式下的白色闪烁 -->
+    {% block theme_preload %}
+    <script>(function(){var t=localStorage.getItem('theme');if(t==='light'||(!t&&window.matchMedia('(prefers-color-scheme:light)').matches))document.documentElement.classList.add('light-mode')})();</script>
+    {% endblock %}
+
+    <!-- ── 图标 ── -->
+    <link rel="icon" href="https://limooo.cn/static/icons/favicon.ico" sizes="any">
+    <link rel="icon" href="https://limooo.cn/static/icons/favicon.png" type="image/png" sizes="256x256">
+    <link rel="apple-touch-icon" href="https://limooo.cn/static/icons/favicon.png">
+
+<!-- Tailwind CSS（本地预编译，替代 Play CDN 运行时编译：消除 ~400KB 渲染阻塞脚本 + 依赖第三方 CDN） -->
+    <link rel="stylesheet" href="https://limooo.cn/static/tailwind.css?v=3">
+
+    {% block head_links %}{% endblock %}
+
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           全局 CSS 变量
+           :root 为暗色主题默认值，.light-mode 覆盖为浅色主题
+           子页面可通过 (block style_page) 添加额外样式
+           ═══════════════════════════════════════════════════════════════ */
+        :root {
+            --bg: #1b1b1f;
+            --text: #e2e2e3;
+            --line: #2e2e32;
+            --panel-bg: #202127;
+            --highlight: #2a2a2f;
+            --footer-border: #2e2e32;
+            /* 强调色（青，全站共用） */
+            --accent: #05A5A6;
+            --accent-glow: rgba(5, 165, 166, 0.2);
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+            --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+            /* ── 统一圆角（全站共用） ──
+               --radius-sm  小控件：按钮 / 菜单项 / 输入框 / 标签
+               --radius-md  中控件：主题按钮 / 菜单 / 图片 / 行
+               --radius-lg  大容器：卡片 / 弹层
+               --radius-full 胶囊 */
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 999px;
+            /* 字距缩放:中日韩全角文字按 0.65 收紧,仅英文半角按 0.3 收紧 */
+            --ls-scale: 0.65;
+            /* ── 深浅切换滑块 ── */
+            --switch-icon: #dfdfd6;
+            --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        }
+        html[lang^="en"] { --ls-scale: 0.3; }
+        .light-mode {
+            --bg: #ffffff;
+            --text: #1f2328;
+            --line: #e2e2e3;
+            --panel-bg: #f6f6f7;
+            --highlight: #f2f2f3;
+            --footer-border: #e2e2e3;
+            --accent: #05A5A6;
+            --accent-glow: rgba(5, 165, 166, 0.2);
+            --switch-icon: #67676c;
+            --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+
+        /* ── 全局基础样式 ── */
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg) !important;
+            color: var(--text);
+            overflow: hidden;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            font-weight: 500;
+        }
+
+        * { -webkit-tap-highlight-color: transparent; }
+
+        .pressable {
+            transition: transform 160ms var(--ease-out);
+            cursor: pointer;
+        }
+        .pressable:active { transform: scale(0.97); }
+
+        {% block style_footer %}
+        /* ── 底部版权信息 ── */
+        .global-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
+            border-top: 1px solid var(--footer-border);
+            background-color: var(--bg) !important;
+            display: flex; align-items: center; justify-content: center;
+        }
+        /* 整条 footer 是一个全宽可点击链接,内边距移到链接上以扩大点击区域 */
+        .footer-link {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+            padding: 1.25rem 0;
+            padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+            color: inherit; text-decoration: none;
+        }
+        .footer-text {
+            font-size: 10px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .global-footer { display: none !important; }
+        }
+        {% endblock %}
+
+        {% block style_theme %}
+        /* ── 图标按钮（社交链接 / 主题切换 / 语言切换 / 移动端菜单，VitePress 风格） ── */
+        .icon-btn, .theme-btn {
+            width: 36px; height: 36px; display: flex; align-items: center;
+            justify-content: center; border-radius: var(--radius-md);
+            border: none; background: none; cursor: pointer;
+            color: var(--text); opacity: 0.75;
+            transition: transform 200ms var(--ease-out), background 200ms var(--ease-out), opacity 200ms var(--ease-out);
+        }
+        .icon-btn:active, .theme-btn:active { transform: scale(0.92); }
+        @media (hover: hover) and (pointer: fine) {
+            .icon-btn:hover, .theme-btn:hover { background: var(--highlight); opacity: 1; }
+        }
+        /* ── 语言切换按钮（VitePress VPFlyout：文A图标 + 下箭头） ── */
+        .lang-btn {
+            display: flex; align-items: center;
+            padding: 0 12px; height: 36px;
+            border: none; background: none; cursor: pointer;
+            color: var(--text);
+            transition: color 200ms var(--ease-out);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .lang-btn:hover { color: var(--accent); }
+        }
+        .lang-btn .lang-icon { width: 16px; height: 16px; }
+        .lang-btn .lang-chevron { width: 14px; height: 14px; margin-left: 4px; opacity: 0.6; }
+
+        /* ── 深浅切换（VitePress VPSwitchAppearance：太阳-月亮胶囊滑块） ── */
+        .appearance-switch {
+            position: relative; border-radius: 11px; display: block;
+            width: 40px; height: 22px; flex-shrink: 0;
+            border: 1px solid var(--line);
+            background: var(--highlight);
+            cursor: pointer; padding: 0;
+            transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .appearance-switch:hover { border-color: var(--accent); }
+        }
+        .appearance-check {
+            position: absolute; top: 1px; left: 1px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--bg);
+            box-shadow: var(--switch-shadow);
+            transform: translateX(18px); /* 默认深色：滑块在右 */
+            transition: transform 250ms var(--ease-out);
+        }
+        .appearance-icon {
+            position: relative; display: block; width: 18px; height: 18px;
+            border-radius: 50%; overflow: hidden;
+        }
+        .appearance-icon svg {
+            position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+            color: var(--switch-icon);
+            transition: opacity 250ms var(--ease-out);
+        }
+        /* 默认（深色）：月亮可见；浅色：太阳可见 */
+        .appearance-icon .sun { opacity: 0; }
+        .appearance-icon .moon { opacity: 1; }
+        .light-mode .appearance-icon .sun { opacity: 1; }
+        .light-mode .appearance-icon .moon { opacity: 0; }
+        .light-mode .appearance-check { transform: translateX(0); }
+
+        .theme-toggle { position: relative; display: flex; align-items: center; }
+        /* 汉堡菜单（移动端子站切换）仅在 <768px 显示；须写在 .theme-toggle 之后覆盖其 display:flex */
+        @media (min-width: 768px) {
+            .nav-mobile-menu { display: none; }
+        }
+        .theme-menu {
+            position: absolute; top: calc(100% + 8px); right: 0; min-width: 120px;
+            background: var(--panel-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+            padding: 4px; z-index: 200;
+            opacity: 0; visibility: hidden;
+            transform: translateY(-4px) scale(0.92);
+            transform-origin: top right;
+            transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 150ms;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+        }
+        .theme-menu.open {
+            opacity: 1; visibility: visible; transform: translateY(0) scale(1);
+            transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+        }
+        .theme-option {
+            padding: 8px 14px; margin: 2px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+            letter-spacing: calc(0.05em*var(--ls-scale)); cursor: pointer; white-space: nowrap;
+            transition: background 150ms var(--ease-out);
+            opacity: 0.5;
+        }
+        .lang-flag { margin-right: 6px; }
+        .theme-option.selected {
+            opacity: 1; background: var(--highlight);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .theme-option:hover { opacity: 1; background: var(--highlight); }
+        }
+        {% endblock %}
+
+        {% block style_reveal %}
+        /* ── 入场动画（reveal-item → show） ── */
+        .reveal-item {
+            opacity: 0 !important; transform: translateY(20px);
+            transition: transform 500ms var(--ease-out), opacity 500ms ease-out;
+            will-change: transform, opacity;
+        }
+        .reveal-item.show { opacity: 1 !important; transform: translateY(0); }
+        {% endblock %}
+
+        {% block style_nav %}
+        /* VitePress VPNavBarMenuLink：默认文字色，激活/悬停变品牌色（无下划线） */
+        .global-nav a {
+            display: inline-flex; align-items: center;
+            padding: 0 12px;
+            font-size: 14px; font-weight: 500;
+            text-decoration: none;
+            color: var(--text);
+            transition: color 200ms var(--ease-out);
+            -webkit-font-smoothing: antialiased;
+        }
+        .global-nav a.active { color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) {
+            .global-nav a:hover { color: var(--accent); }
+        }
+        /* 导航链接尾部的 ↗ 外链图标 */
+        .nav-external {
+            display: inline-block;
+            margin-left: 4px;
+            width: 11px; height: 11px;
+            flex-shrink: 0;
+            opacity: 0.45;
+        }
+        /* 导航栏右侧各组之间的竖线分隔符 */
+        .nav-divider {
+            width: 1px; height: 24px;
+            background: var(--line);
+            margin: 0 12px;
+            flex-shrink: 0;
+        }
+
+        /* ── 导航展开菜单 ── */
+        /* 完全复用 .theme-menu / .theme-option 样式，无需额外 CSS */
+        {% endblock %}
+
+        {% block style_page %}{% endblock %}
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 闪光灯组件（由各页面按需启用，默认隐藏） -->
+    {% block flash %}{% endblock %}
+
+    <!-- ═══ 导航栏 ═══ -->
+    {% set is_prod = request.host.endswith('limooo.cn') %}
+    {% set home_url = 'https://limooo.cn' if is_prod else '/' %}
+    {% set services_url = 'https://services.limooo.cn' if is_prod else '/services' %}
+    {% set contact_url = 'https://contact.limooo.cn' if is_prod else '/contact' %}
+    {% set page = 'home' if request.path == '/' else ('services' if request.path == '/services' else ('contact' if request.path == '/contact' else '')) %}
+    {% block nav %}
+    <nav class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl z-[100] flex items-center px-5 md:px-8 h-[70px] md:h-[100px]" style="background: var(--bg);">
+        {% block nav_logo %}
+        <a href="{{ home_url }}" class="flex items-center gap-2 md:gap-2.5 shrink-0" id="nav-logo">
+            <span class="text-lg md:text-2xl font-semibold uppercase tracking-[0.05em]">LIMOOO</span>
+        </a>
+        {% endblock %}
+
+        <div class="flex items-center ml-auto">
+            {% block nav_links %}
+            <div class="global-nav hidden md:flex items-center">
+                <a href="{{ home_url }}" class="nav-link{% if page == 'home' %} active{% endif %}">
+                    <span data-i18n="nav_home">{{ _('nav_home') }}</span>
+                    <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+                </a>
+                <a href="{{ services_url }}" class="nav-link{% if page == 'services' %} active{% endif %}">
+                    <span data-i18n="nav_services">{{ _('nav_services') }}</span>
+                    <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+                </a>
+                <a href="{{ contact_url }}" class="nav-link{% if page == 'contact' %} active{% endif %}">
+                    <span data-i18n="nav_contact">{{ _('nav_contact') }}</span>
+                    <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+                </a>
+            </div>
+            <span class="nav-divider hidden md:block"></span>
+            {% endblock %}
+
+            <!-- 语言切换（文A + 下箭头，桌面端悬停展开） -->
+            <div class="theme-toggle lang-flyout">
+                <button class="lang-btn" onclick="toggleLangMenu(event)" aria-label="{{ _('lang_aria') }}" data-i18n-attr="aria-label:lang_aria" aria-haspopup="true">
+                    <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+                    <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div id="langMenu" class="theme-menu">
+                    <div class="theme-option{% if g.lang == 'zh-CN' %} selected{% endif %}" data-lang="zh-CN" onclick="setLang('zh-CN')"><span class="lang-flag">🇨🇳</span><span data-i18n="lang_zh">{{ _('lang_zh') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'en-US' %} selected{% endif %}" data-lang="en-US" onclick="setLang('en-US')"><span class="lang-flag">🇺🇸</span><span data-i18n="lang_en">{{ _('lang_en') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'ja-JP' %} selected{% endif %}" data-lang="ja-JP" onclick="setLang('ja-JP')"><span class="lang-flag">🇯🇵</span><span data-i18n="lang_ja">{{ _('lang_ja') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'ko-KR' %} selected{% endif %}" data-lang="ko-KR" onclick="setLang('ko-KR')"><span class="lang-flag">🇰🇷</span><span data-i18n="lang_ko">{{ _('lang_ko') }}</span></div>
+                </div>
+            </div>
+            <span class="nav-divider hidden md:block"></span>
+
+            {% block theme_toggle %}
+            <!-- 深浅切换（太阳-月亮胶囊滑块） -->
+            <button class="appearance-switch" type="button" role="switch" aria-checked="false" onclick="toggleTheme()" aria-label="{{ _('theme_aria') }}" data-i18n-attr="aria-label:theme_aria">
+                <span class="appearance-check">
+                    <span class="appearance-icon">
+                        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    </span>
+                </span>
+            </button>
+            {% endblock %}
+            <span class="nav-divider hidden md:block"></span>
+
+            {% block social_links %}
+            <a class="icon-btn" href="https://github.com/Limooooo-Studio" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub">
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            </a>
+            <a class="icon-btn" href="https://space.bilibili.com/1234163143" target="_blank" rel="noopener noreferrer" aria-label="{{ _('visit_bilibili') }}" title="{{ _('visit_bilibili') }}" data-i18n-attr="aria-label,title:visit_bilibili">
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373z"/></svg>
+            </a>
+            {% endblock %}
+
+            {% block nav_dropdown %}{% endblock %}
+        </div>
+    </nav>
+    {% endblock %}
+
+    <!-- ═══ 主体内容（各页面各自填充） ═══ -->
+    {% block content %}{% endblock %}
+
+    <!-- ═══ 底部版权（整条可点击直达源码仓库） ═══ -->
+    {% block footer %}
+    {% include "_footer.html" %}
+    {% endblock %}
+
+    <script>
+    {% block scripts %}
+    /* ═══════════════════════════════════════════════════════════════
+       图片预加载（仅预加载二维码等小资源；带 loading="lazy" 的作品图
+       不在此列，避免提前请求废掉懒加载）
+       ═══════════════════════════════════════════════════════════════ */
+    function preloadPageImages() {
+        if (!window.matchMedia('(hover: hover)').matches) return; // 移动端不预载二维码
+        var urls = new Set();
+        document.querySelectorAll('[data-qr]').forEach(function(el) { urls.add(el.dataset.qr); });
+        urls.forEach(function(url) {
+            var img = new Image();
+            img.onerror = function() {}; // 404 时静默忽略，不报控制台错误
+            img.src = url;
+        });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       主题切换系统（VitePress appearance 行为）
+       - 首次访问跟随系统，点击后固定为浅/深并缓存到 localStorage
+       - 之后不再跟随系统，除非清除 localStorage
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* 读取操作系统偏好 */
+    function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+
+    /* 将主题应用到 DOM：切换 light-mode class、更新 meta 标签、同步滑块 aria-checked */
+    function applyTheme(theme) {
+        document.documentElement.classList.toggle('light-mode', theme === 'light');
+        document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#FFFFFF' : '#1E1E1E';
+        document.querySelector('meta[name="color-scheme"]').content = theme;
+        var sw = document.querySelector('.appearance-switch');
+        if (sw) sw.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
+        {% block theme_apply_extra %}{% endblock %}
+    }
+
+    /* 当前生效主题：localStorage 有缓存则用缓存，否则跟随系统（VitePress appearance 行为） */
+    function effectiveTheme() {
+        var saved = localStorage.getItem('theme');
+        return (saved === 'light' || saved === 'dark') ? saved : getSystemTheme();
+    }
+
+    /* 点击深浅切换按钮：在浅/深之间切换并缓存，之后不再跟随系统 */
+    function toggleTheme() {
+        var next = effectiveTheme() === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       前端翻译工具
+       - I18N:当前语言完整字典(由后端注入,首屏优先)
+       - I18N_CACHE:全语言字典缓存,其余语言在页面加载完成后后台预取
+       - t():按 key 取文本,支持 {param} 占位符替换
+       - applyLang():纯前端切换,重写带 data-i18n 标记的元素,不刷新页面
+       ═══════════════════════════════════════════════════════════════ */
+    var I18N = {{ translations | tojson }};
+    var CURRENT_LANG = '{{ g.lang }}';
+    var I18N_CACHE = {};
+    I18N_CACHE[CURRENT_LANG] = I18N;
+
+    function t(key, params) {
+        var s = (I18N[key] !== undefined) ? I18N[key] : key;
+        if (params) {
+            Object.keys(params).forEach(function(k) {
+                s = s.split('{' + k + '}').join(params[k]);
+            });
+        }
+        return s;
+    }
+
+    /* 取回某语言字典,已缓存则直接回调 */
+    function fetchI18n(lang, cb) {
+        if (I18N_CACHE[lang] !== undefined) { cb(I18N_CACHE[lang]); return; }
+        fetch('/api/i18n/' + encodeURIComponent(lang), { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { if (!r.ok) throw new Error('i18n ' + lang); return r.json(); })
+            .then(function(d) { I18N_CACHE[lang] = d; cb(d); })
+            .catch(function() { I18N_CACHE[lang] = null; cb(null); });
+    }
+
+    /* 解析 data-i18n 文本规范:"key" 或 "key;param=val" */
+    function parseI18nText(spec) {
+        var semi = spec.indexOf(';');
+        var key = semi === -1 ? spec : spec.slice(0, semi);
+        var params = {};
+        if (semi !== -1) {
+            spec.slice(semi + 1).split(';').forEach(function(p) {
+                var eq = p.indexOf('=');
+                if (eq !== -1) params[p.slice(0, eq)] = p.slice(eq + 1);
+            });
+        }
+        return { key: key, params: params };
+    }
+
+    /* 解析 data-i18n-attr 规范:"attr1,attr2:key;param=val|attr3:key2" */
+    function parseI18nAttr(spec) {
+        var out = [];
+        String(spec).split('|').forEach(function(seg) {
+            var colon = seg.indexOf(':');
+            if (colon === -1) return;
+            var attrs = seg.slice(0, colon).split(',');
+            var rest = seg.slice(colon + 1);
+            var semi = rest.indexOf(';');
+            var key = semi === -1 ? rest : rest.slice(0, semi);
+            var params = {};
+            if (semi !== -1) {
+                rest.slice(semi + 1).split(';').forEach(function(p) {
+                    var eq = p.indexOf('=');
+                    if (eq !== -1) params[p.slice(0, eq)] = p.slice(eq + 1);
+                });
+            }
+            attrs.forEach(function(a) { out.push({ attr: a.trim(), key: key, params: params }); });
+        });
+        return out;
+    }
+
+    /* 按当前 I18N 重写所有带标记的元素 */
+    function renderI18n() {
+        document.querySelectorAll('[data-i18n]').forEach(function(el) {
+            var spec = parseI18nText(el.getAttribute('data-i18n'));
+            var text = t(spec.key, spec.params);
+            var prefix = el.getAttribute('data-i18n-prefix');
+            if (prefix != null) text = text ? prefix + text : '';
+            el.textContent = text;
+        });
+        document.querySelectorAll('[data-i18n-attr]').forEach(function(el) {
+            parseI18nAttr(el.getAttribute('data-i18n-attr')).forEach(function(x) {
+                el.setAttribute(x.attr, t(x.key, x.params));
+            });
+        });
+    }
+
+    /* 写入 365 天语言 cookie(跨 .limooo.cn 子域共享) */
+    function saveLangCookie(code) {
+        var domain = location.hostname.endsWith('limooo.cn') ? 'domain=.limooo.cn; ' : '';
+        var secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = 'user_lang_preference=' + code + '; path=/; max-age=31536000; SameSite=Lax' + secure + '; ' + domain;
+    }
+
+    /* 纯前端应用某语言:更新字典/文档 lang/标记文本/菜单选中态 */
+    function applyLang(lang) {
+        if (I18N_CACHE[lang] == null) {  /* 未缓存或预取失败:先取回再应用 */
+            fetchI18n(lang, function(d) { if (d) applyLang(lang); });
+            return;
+        }
+        if (lang !== CURRENT_LANG) {
+            CURRENT_LANG = lang;
+            I18N = I18N_CACHE[lang];
+            document.documentElement.lang = lang;
+            renderI18n();
+            document.querySelectorAll('#langMenu .theme-option').forEach(function(opt) {
+                opt.classList.toggle('selected', opt.dataset.lang === lang);
+            });
+            document.dispatchEvent(new CustomEvent('languagechange'));
+        }
+        saveLangCookie(lang);
+    }
+
+    /* 页面加载完成后,低优先级后台预取其余语言 */
+    function prefetchI18n() {
+        ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].forEach(function(lang) {
+            if (lang === CURRENT_LANG || I18N_CACHE[lang] != null) return;
+            fetchI18n(lang, function() {});
+        });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       跨页预取:当前页加载完成后后台预取另外两个主页(HTML + 图片)
+       - HTML 用 <link rel=prefetch> 原生缓存(带 cookie 保持语言一致,
+         不支持/不缓存时优雅降级)
+       - 图片用 new Image() 预热 HTTP 缓存(nginx 对 /static 有 30 天
+         缓存头,跳转后秒出图)
+       - 移动端不预取二维码(contact 页二维码仅桌面悬停展示)
+       - 图片清单与 index.html / contact.html 的 src 保持同步
+       ═══════════════════════════════════════════════════════════════ */
+    var PAGE_MANIFEST = {
+        '/':        { host: 'limooo.cn',          path: '/',        images: [
+                        '/static/portfolio/IMG_0203.webp',
+                        '/static/portfolio/IMG_0146.webp',
+                        '/static/portfolio/IMG_0130.webp',
+                        '/static/portfolio/IMG_0244.webp',
+                        '/static/portfolio/IMG_0115.webp',
+                        '/static/portfolio/IMG_0179.webp' ] },
+        '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
+        '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
+                        '/static/qr-codes/bilibili.webp',
+                        '/static/qr-codes/qq.webp',
+                        '/static/qr-codes/wechat.webp' ], qr: true }
+    };
+
+    /* 当前所在主页键;生产按子域判断,本地开发按路径 */
+    function currentPageKey() {
+        var h = location.hostname;
+        if (h === 'limooo.cn' || h === 'www.limooo.cn') return '/';
+        if (h === 'services.limooo.cn') return '/services';
+        if (h === 'contact.limooo.cn') return '/contact';
+        if (h.endsWith('.limooo.cn')) return null;   /* admin/appleid 等管理页不预取 */
+        return location.pathname;                    /* 本地开发:'/'|'/services'|'/contact' */
+    }
+
+    /* 生产统一走 limooo.cn(唯一服务 /static 的子域),本地走当前 origin */
+    function pageOrigin() {
+        return location.hostname.endsWith('limooo.cn') ? 'https://limooo.cn' : location.origin;
+    }
+
+    /* 兄弟页 HTML 地址:生产为子域根(nginx 根即页面),本地为同源 + 路径 */
+    function siblingHref(key) {
+        var p = PAGE_MANIFEST[key];
+        return location.hostname.endsWith('limooo.cn') ? 'https://' + p.host : location.origin + p.path;
+    }
+
+    function prefetchPages() {
+        var cur = currentPageKey();
+        if (!PAGE_MANIFEST[cur]) return;
+        var desktop = window.matchMedia('(hover: hover)').matches;
+        var origin = pageOrigin();
+        Object.keys(PAGE_MANIFEST).forEach(function(key) {
+            if (key === cur) return;                     /* 当前页已加载 */
+            var l = document.createElement('link');
+            l.rel = 'prefetch'; l.href = siblingHref(key);
+            document.head.appendChild(l);
+            PAGE_MANIFEST[key].images.forEach(function(rel) {
+                if (PAGE_MANIFEST[key].qr && !desktop) return;   /* 移动端跳过二维码 */
+                var img = new Image();
+                img.onerror = function() {};             /* 404 静默,不报控制台错误 */
+                img.src = origin + rel;
+            });
+        });
+    }
+
+    /* ── 语言菜单开关 ── */
+    function toggleLangMenu(e) {
+        if (e) e.stopPropagation();
+        var m = document.getElementById('langMenu');
+        if (m) m.classList.toggle('open');
+        closeNavMenu();
+    }
+
+    function closeLangMenu() {
+        var m = document.getElementById('langMenu');
+        if (m) m.classList.remove('open');
+    }
+
+    function setLang(code) {
+        closeLangMenu();
+        if (code !== CURRENT_LANG) applyLang(code);
+        else saveLangCookie(code);
+    }
+
+    /* 桌面端：语言菜单悬停自动展开/收起（VitePress VPFlyout 行为），触摸端保持点击切换 */
+    (function bindLangHover() {
+        var fly = document.querySelector('.lang-flyout');
+        if (!fly) return;
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            fly.addEventListener('mouseenter', function() {
+                var m = document.getElementById('langMenu');
+                if (m) m.classList.add('open');
+            });
+            fly.addEventListener('mouseleave', closeLangMenu);
+        }
+    })();
+
+    /* ── 导航菜单切换 ── */
+    function toggleMobileMenu(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('navLinksDropdown').classList.toggle('open');
+        closeLangMenu();
+    }
+
+    /* 关闭导航菜单 */
+    function closeNavMenu() {
+        document.getElementById('navLinksDropdown').classList.remove('open');
+    }
+
+    /* 导航跳转 + 高亮 */
+    function navigateTo(url) {
+        closeNavMenu();
+        location.href = url;
+    }
+
+    /* ── DOM 加载完毕后初始化 ── */
+    window.addEventListener('load', function() {
+        preloadPageImages();
+
+        /* 恢复主题：有缓存用缓存，无缓存跟随系统（VitePress appearance 行为） */
+        applyTheme(effectiveTheme());
+
+        /* 系统主题变化时：仅在无缓存（跟随系统）状态下自动跟随 */
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+            if (!localStorage.getItem('theme')) applyTheme(getSystemTheme());
+        });
+
+        /* 点击 .theme-toggle 外部时收起所有菜单 */
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.theme-toggle')) {
+                closeNavMenu();
+                closeLangMenu();
+            }
+        });
+
+        {% block onload_extra %}{% endblock %}
+
+        /* 界面加载完成后后台预取其余语言与另外两个主页(低优先级,不阻塞首屏) */
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(function() { prefetchI18n(); prefetchPages(); }, { timeout: 3000 });
+        } else {
+            setTimeout(function() { prefetchI18n(); prefetchPages(); }, 1500);
+        }
+    });
+
+    {% block page_scripts %}{% endblock %}
+    {% endblock %}
+    </script>
+</body>
+</html>

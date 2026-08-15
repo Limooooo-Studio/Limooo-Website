@@ -1,0 +1,218 @@
+{# Limooo - Flask Web Application
+
+Copyright (C) 2026 Limooo <https://limooo.cn/>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
+
+{% extends "base.html" %}
+
+{% block title %}Limooo - Contact{% endblock %}
+
+{% block style_page %}
+/* ═══════════════════════════════════════════════════════════════
+   联系页样式：复制提示气泡、桌面端二维码浮层、底部悬停线
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 复制提示气泡 ── */
+.bubble-tip {
+    position: absolute; bottom: 130%; left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--panel-bg); backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px); color: var(--text);
+    padding: 10px 24px; white-space: nowrap; min-width: fit-content;
+    font-size: 12px; font-weight: 600; letter-spacing: calc(0.1em*var(--ls-scale));
+    border-radius: var(--radius-sm); border: 1px solid var(--line);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out), visibility 0.25s;
+    z-index: 100; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+.copyable:hover .bubble-tip {
+    opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+}
+
+/* ── 悬停底部线条（仿链接下划线动效） ── */
+.copyable { position: relative; cursor: pointer; }
+.hover-line {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background-color: var(--text);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.5s var(--ease-out);
+}
+.copyable:hover .hover-line { transform: scaleX(1); }
+
+/* ── 桌面端：二维码浮层（悬停社交链接时在屏幕右侧显示） ── */
+@media (hover: hover) {
+    .qr-display {
+        position: fixed; left: 75%; top: 50%;
+        transform: translate(-50%, -50%) scale(0.92); z-index: 80;
+        opacity: 0; visibility: hidden;
+        filter: blur(4px);
+        transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out), filter 0.3s var(--ease-out), visibility 0.3s;
+        pointer-events: none;
+        border-radius: var(--radius-md); border: 1px solid var(--line);
+        background: var(--panel-bg); padding: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .qr-display.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+    @media (prefers-reduced-transparency: reduce) {
+        .qr-display { background: var(--bg); }
+    }
+    .qr-display img {
+        display: block; max-width: 200px; height: auto; border-radius: var(--radius-sm);
+        filter: invert(1);
+    }
+    .light-mode .qr-display img {
+        filter: none;
+    }
+    .qr-trigger { cursor: pointer; }
+}
+/* 移动端隐藏二维码浮层 */
+@media (max-width: 767px) {
+    .qr-display { display: none !important; }
+}
+{% endblock %}
+
+{% block nav_dropdown %}
+<div class="theme-toggle nav-mobile-menu">
+    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+    </button>
+    <div id="navLinksDropdown" class="theme-menu">
+        <div class="theme-option" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
+        <div class="theme-option selected" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- 主体：固定居中 -->
+<main class="fixed inset-0 flex flex-col justify-center items-center text-center px-6">
+    <h1 class="contact-title reveal-item text-4xl md:text-7xl mb-16 tracking-[calc(0.1em*var(--ls-scale))] uppercase" data-i18n="contact_title">{{ _('contact_title') }}</h1>
+
+    <div class="flex flex-col items-center space-y-10 w-full max-w-lg">
+        <!-- B站 -->
+        <a href="https://space.bilibili.com/1234163143" target="_blank" rel="noopener noreferrer"
+            class="reveal-item copyable pressable qr-trigger cursor-pointer relative block no-underline"
+            data-qr="https://limooo.cn/static/qr-codes/bilibili.webp"
+            style="color: inherit;">
+            <div class="bubble-tip" data-i18n="visit_bilibili">{{ _('visit_bilibili') }}</div>
+            <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_bilibili">{{ _('platform_bilibili') }}</p>
+            <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium">-Limooo-</p>
+            <div class="hover-line"></div>
+        </a>
+
+        <!-- QQ -->
+        <div class="reveal-item copyable pressable qr-trigger cursor-pointer relative"
+            onclick="handleCopy(this, '264755512')"
+            data-qr="https://limooo.cn/static/qr-codes/qq.webp">
+            <div class="bubble-tip" data-i18n="click_to_copy">{{ _('click_to_copy') }}</div>
+            <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]">QQ</p>
+            <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium">264755512</p>
+            <div class="hover-line"></div>
+        </div>
+
+        <!-- 微信 -->
+        <div class="reveal-item copyable pressable qr-trigger cursor-pointer relative"
+            onclick="handleCopy(this, '-Lime-official-')"
+            data-qr="https://limooo.cn/static/qr-codes/wechat.webp">
+            <div class="bubble-tip" data-i18n="click_to_copy">{{ _('click_to_copy') }}</div>
+            <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_wechat">{{ _('platform_wechat') }}</p>
+            <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium">-Lime-official-</p>
+            <div class="hover-line"></div>
+        </div>
+
+        <!-- 邮箱 -->
+        <div class="reveal-item copyable pressable cursor-pointer group relative" onclick="handleCopy(this, 'contact@limooo.cn')">
+            <div class="bubble-tip" data-i18n="click_to_copy">{{ _('click_to_copy') }}</div>
+            <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_email">{{ _('platform_email') }}</p>
+            <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium">contact@limooo.cn</p>
+            <div class="hover-line"></div>
+        </div>
+    </div>
+</main>
+
+<!-- 二维码浮层（桌面端鼠标悬停时显示） -->
+<div class="qr-display" id="qrDisplay">
+    <img src="" alt="QR Code" id="qrImage">
+</div>
+{% endblock %}
+
+{% block onload_extra %}
+/* 联系信息淡入 — 级联错开 */
+setTimeout(function() {
+    var items = document.querySelectorAll('.reveal-item');
+    items.forEach(function(el, i) {
+        setTimeout(function() { el.classList.add('show'); }, i * 80);
+    });
+}, 100);
+{% endblock %}
+
+{% block page_scripts %}
+/* ═══════════════════════════════════════════════════════════════
+   联系页：二维码悬停浮层 + 一键复制
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 复制提示持续时间 ── */
+var COPY_HINT_DURATION = 2000;
+
+/* 更新气泡提示文本 */
+function showTip(tipEl, message, visible) {
+    tipEl.innerText = message;
+    if (visible) {
+        tipEl.style.opacity = '1'; tipEl.style.visibility = 'visible';
+        tipEl.style.transform = 'translateX(-50%) translateY(0)';
+    } else {
+        tipEl.style.opacity = ''; tipEl.style.visibility = '';
+        tipEl.style.transform = '';
+    }
+}
+
+/* 复制文本到剪贴板，并显示"已复制"反馈 */
+function handleCopy(el, text) {
+    navigator.clipboard.writeText(text).then(function() {
+        var tip = el.querySelector('.bubble-tip');
+        if (tip) {
+            showTip(tip, t('copied'), true);
+            setTimeout(function() { showTip(tip, t('click_to_copy'), false); }, COPY_HINT_DURATION);
+        }
+    });
+}
+
+/* ── 二维码相关：桌面端悬停显示对应社交账号的二维码 ── */
+var qrDisplay, qrImage;
+
+/* DOM 加载完毕后初始化二维码浮层 */
+window.addEventListener('load', function() {
+    qrDisplay = document.getElementById('qrDisplay');
+    qrImage = document.getElementById('qrImage');
+    var triggers = document.querySelectorAll('.qr-trigger');
+
+    if (qrDisplay && window.matchMedia('(hover: hover)').matches) {
+        triggers.forEach(function(trigger) {
+            trigger.addEventListener('mouseenter', function() {
+                qrImage.src = trigger.dataset.qr;
+                qrDisplay.classList.add('show');
+            });
+            trigger.addEventListener('mouseleave', function() {
+                qrDisplay.classList.remove('show');
+            });
+        });
+    }
+});
+{% endblock %}

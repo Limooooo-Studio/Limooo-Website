@@ -1,0 +1,392 @@
+{# Limooo - Flask Web Application
+
+Copyright (C) 2026 Limooo <https://limooo.cn/>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
+
+{% extends "base.html" %}
+
+{% block title %}Limooo - Services{% endblock %}
+
+{% block style_page %}
+/* ═══════════════════════════════════════════════════════════════
+   服务页样式：服务卡片与详情弹层
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 服务卡片 ── */
+.service-card {
+    position: relative;
+    border: 1px solid var(--line);
+    background: var(--panel-bg);
+    border-radius: var(--radius-lg);
+    transition: transform 250ms var(--ease-out), border-color 250ms var(--ease-out);
+    overflow: hidden;
+    cursor: pointer;
+}
+.service-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    opacity: 0; transition: opacity 400ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+    .service-card:hover::before { opacity: 1; }
+    .service-card:hover { transform: translateY(-2px); border-color: var(--highlight); }
+}
+.service-card:active { transform: scale(0.97); }
+
+/* ── 卡片上的"点击查看详情"提示 ── */
+.detail-hint {
+    margin-top: 14px;
+    font-size: 10px; font-weight: 600; letter-spacing: calc(0.35em*var(--ls-scale)); text-transform: uppercase;
+    opacity: 0.35; display: flex; align-items: center; gap: 8px;
+    transition: opacity 250ms var(--ease-out);
+}
+.detail-hint svg { transition: transform 250ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+    .service-card:hover .detail-hint { opacity: 0.9; }
+    .service-card:hover .detail-hint svg { transform: translateX(4px); }
+}
+
+/* ── 详情弹层 ──
+   入场:容器 opacity 瞬达 1,毛玻璃立即生效(backdrop-filter 在容器 opacity
+   渐入时会被 Safari 延迟采样,模糊出现有滞后);面板单独 transform 展开
+   退出:容器统一 opacity 300ms 淡出,模糊/遮罩/面板同步消失,保持镜像 */
+.service-modal {
+    position: fixed; inset: 0; z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 300ms var(--ease-out), visibility 0s linear 300ms;
+}
+.service-modal.open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0s, visibility 0s;
+}
+.modal-frost {
+    position: absolute; inset: 0;
+    -webkit-backdrop-filter: blur(24px) saturate(1.3);
+    backdrop-filter: blur(24px) saturate(1.3);
+    pointer-events: none;
+}
+.modal-backdrop {
+    position: absolute; inset: 0;
+    background: color-mix(in srgb, var(--bg) 30%, transparent);
+}
+.modal-panel {
+    position: relative; width: 100%; max-width: 760px;
+    max-height: min(85vh, 680px); overflow-y: auto;
+    background: var(--panel-bg);
+    border: 1px solid var(--line); border-radius: var(--radius-lg);
+    padding: 32px 28px 36px;
+    transform: translateY(16px) scale(0.97);
+    transition: transform 300ms var(--ease-out);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+.service-modal.open .modal-panel { transform: translateY(0) scale(1); }
+
+/* 弹层标题区 */
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.modal-index { font-size: 10px; font-family: monospace; font-weight: bold; opacity: 0.3; }
+.modal-close {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: var(--radius-md);
+    background: transparent; color: var(--text);
+    font-size: 16px; line-height: 1; cursor: pointer;
+    transition: background 200ms var(--ease-out), transform 160ms var(--ease-out);
+}
+.modal-close:active { transform: scale(0.9); }
+@media (hover: hover) and (pointer: fine) {
+    .modal-close:hover { background: var(--highlight); }
+}
+.modal-title { font-size: 22px; font-weight: 600; letter-spacing: calc(0.25em*var(--ls-scale)); margin: 0 0 26px; }
+
+/* ── 套餐 ── */
+.plan-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 640px) { .plan-grid { grid-template-columns: repeat(3, 1fr); } }
+/* 4 档位(场照/正片)移动端也保持 2 列两行 */
+.plan-grid-quad { grid-template-columns: repeat(2, 1fr); }
+.plan {
+    border: 1px solid var(--line); border-radius: var(--radius-md);
+    background: var(--bg); padding: 18px 16px;
+    text-align: center;
+}
+.plan-tag { font-size: 10px; font-weight: 600; letter-spacing: calc(0.2em*var(--ls-scale)); opacity: 0.5; margin: 0 0 8px; }
+/* 价格:flex 让数字精确水平居中;数字与单位底部对齐(line-height 1 保证底边一致) */
+.plan-price {
+    position: relative;
+    height: 44px;
+    margin: 0 0 16px;
+    font-size: 34px; font-weight: 600;
+    line-height: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+.plan-price .price-num {
+    position: relative;
+    white-space: nowrap;
+}
+/* 单位:相对数字右边缘定位(左 100% + 8px),底部与数字对齐 */
+.plan-price .plan-unit {
+    position: absolute;
+    left: 100%; bottom: 0;
+    margin-left: 8px;
+    font-size: 14px; font-weight: 500; opacity: 0.45;
+    line-height: 1;
+    white-space: nowrap;
+}
+/* 正片卡(有 tag):价格组相对整卡垂直居中。用 translateY 平移(不参与布局,
+   不会撑高卡片导致中心漂移),内容贴底对齐保持不变 */
+.plan:has(.plan-tag) .plan-price { transform: translateY(-8px); }
+/* 移动端两列时缩小价格,避免与右侧单位重叠 */
+@media (max-width: 639px) {
+    .plan-price { font-size: 24px; height: 36px; }
+    .plan-price .plan-unit { right: 4px; font-size: 11px; }
+}
+/* 暂不接的服务档位:删除线划过价格数字(两端延伸 2px),单位不划线 */
+.plan-price.strikethrough { opacity: 0.35; }
+.plan-price.strikethrough .price-num::after {
+    content: ''; position: absolute;
+    left: -2px; right: -2px; top: 50%;
+    height: 2px; background: currentColor;
+}
+.plan-features { list-style: none; margin: 0; padding: 0; }
+.plan-features li {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    font-size: 12.5px; padding: 8px 0;
+    border-top: 1px dashed var(--line);
+}
+.plan-features li span:first-child { opacity: 0.45; }
+.plan-features li span:last-child { font-weight: 600; opacity: 0.85; }
+
+/* ── 可选加购 ── */
+.extras { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.extras-title { font-size: 9px; font-weight: 600; letter-spacing: calc(0.3em*var(--ls-scale)); opacity: 0.4; margin: 0 0 10px; }
+.extra-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    font-size: 12.5px; padding: 8px 0;
+    border-top: 1px dashed var(--line);
+}
+.extra-row:first-child { border-top: none; }
+.extra-row span:first-child { opacity: 0.6; }
+.extra-row span:last-child { font-weight: 600; opacity: 0.8; }
+
+/* ── 弹层底部咨询链接 ── */
+.modal-footer { margin-top: 26px; text-align: center; }
+.modal-footer-links { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; }
+.cta-link {
+    font-size: 11px; font-weight: 600; letter-spacing: calc(0.25em*var(--ls-scale)); text-transform: uppercase;
+    color: var(--text); text-decoration: none; opacity: 0.55;
+    padding-bottom: 5px; border-bottom: 1px solid var(--line);
+    transition: opacity 250ms var(--ease-out), border-color 250ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+    .cta-link:hover { opacity: 1; border-color: var(--text); }
+}
+
+/* ── 服务项文字（不换行） ── */
+.service-item { white-space: nowrap; }
+
+/* ── 标题字重 ── */
+h1, h3 { font-weight: 600 !important; }
+{% endblock %}
+
+{% block nav_dropdown %}
+<div class="theme-toggle nav-mobile-menu">
+    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+    </button>
+    <div id="navLinksDropdown" class="theme-menu">
+        <div class="theme-option" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
+        <div class="theme-option selected" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<main class="flex-grow flex flex-col justify-center items-center px-6 pt-[120px] pb-40" style="min-height:100vh;">
+    <!-- 页面标题 -->
+    <header class="mb-16 text-center">
+        <h1 class="service-title reveal-item text-4xl md:text-6xl tracking-[calc(0.15em*var(--ls-scale))] uppercase" data-i18n="services_title">{{ _('services_title') }}</h1>
+        <div class="reveal-item w-16 h-px bg-[var(--text)] mx-auto mt-6 opacity-40"></div>
+    </header>
+
+    <!-- 服务卡片网格 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
+        <div class="reveal-item service-card group relative p-12 md:p-20 flex flex-col items-center justify-center text-center"
+            onclick="openServiceDetail('convention')" role="button" aria-haspopup="dialog">
+            <span class="absolute top-6 left-8 text-[10px] font-mono opacity-30 font-bold">01/</span>
+            <h3 class="service-item text-xl md:text-3xl tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="service_convention">{{ _('service_convention') }}</h3>
+            <span class="detail-hint" data-i18n="detail_hint">{{ _('detail_hint') }}
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+        </div>
+        <div class="reveal-item service-card group relative p-12 md:p-20 flex flex-col items-center justify-center text-center"
+            onclick="openServiceDetail('outdoor')" role="button" aria-haspopup="dialog">
+            <span class="absolute top-6 left-8 text-[10px] font-mono opacity-30 font-bold">02/</span>
+            <h3 class="service-item text-xl md:text-3xl tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
+            <span class="detail-hint" data-i18n="detail_hint">{{ _('detail_hint') }}
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+        </div>
+    </div>
+</main>
+
+<!-- ═══ 详情弹层 01 / 场照拍摄 ═══ -->
+<div class="service-modal" id="modal-convention" role="dialog" aria-modal="true" aria-label="{{ _('service_convention') }}" data-i18n-attr="aria-label:service_convention">
+    <div class="modal-frost"></div>
+    <div class="modal-backdrop" onclick="closeServiceDetail()"></div>
+    <div class="modal-panel">
+        <div class="modal-head">
+            <span class="modal-index">01 / CONVENTION</span>
+            <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
+        </div>
+        <h3 class="modal-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
+
+        <div class="plan-grid plan-grid-quad">
+            <div class="plan">
+                <p class="plan-price"><span class="price-num">CNY 20<span class="plan-unit" data-i18n="unit_per_shot">{{ _('unit_per_shot') }}</span></span></p>
+            </div>
+            <div class="plan">
+                <p class="plan-price"><span class="price-num">CNY 55<span class="plan-unit" data-i18n="unit_per_3">{{ _('unit_per_3') }}</span></span></p>
+            </div>
+            <div class="plan">
+                <p class="plan-price"><span class="price-num">CNY 100<span class="plan-unit" data-i18n="unit_per_6">{{ _('unit_per_6') }}</span></span></p>
+            </div>
+            <div class="plan">
+                <p class="plan-price"><span class="price-num">CNY 150<span class="plan-unit" data-i18n="unit_per_9">{{ _('unit_per_9') }}</span></span></p>
+            </div>
+        </div>
+
+        <div class="extras">
+            <p class="extras-title" data-i18n="notes_label">{{ _('notes_label') }}</p>
+            <div class="extra-row"><span data-i18n="extra_deposit">{{ _('extra_deposit') }}</span><span data-i18n="deposit_20">{{ _('deposit_20') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_negatives">{{ _('extra_negatives') }}</span><span data-i18n="negatives_all">{{ _('negatives_all') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_retouch">{{ _('extra_retouch') }}</span><span data-i18n="retouch_extra">{{ _('retouch_extra') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_effects">{{ _('extra_effects') }}</span><span data-i18n="not_provided">{{ _('not_provided') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_aftercare">{{ _('extra_aftercare') }}</span><span data-i18n="aftercare_desc">{{ _('aftercare_desc') }}</span></div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="modal-footer-links">
+                <a class="cta-link" href="https://limooo.cn#portfolio" target="_blank" rel="noopener" data-i18n="view_portfolio">{{ _('view_portfolio') }}</a>
+                <a class="cta-link" href="https://contact.limooo.cn" data-i18n="book_consult">{{ _('book_consult') }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 详情弹层 02 / 正片拍摄 ═══ -->
+<div class="service-modal" id="modal-outdoor" role="dialog" aria-modal="true" aria-label="{{ _('service_outdoor') }}" data-i18n-attr="aria-label:service_outdoor">
+    <div class="modal-frost"></div>
+    <div class="modal-backdrop" onclick="closeServiceDetail()"></div>
+    <div class="modal-panel">
+        <div class="modal-head">
+            <span class="modal-index">02 / OUTDOOR</span>
+            <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
+        </div>
+        <h3 class="modal-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
+
+        <div class="plan-grid plan-grid-quad">
+            <div class="plan">
+                <p class="plan-tag" data-i18n="plan_studio_solo">{{ _('plan_studio_solo') }}</p>
+                <p class="plan-price strikethrough"><span class="price-num">CNY 150<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
+            </div>
+            <div class="plan">
+                <p class="plan-tag" data-i18n="plan_studio_duo">{{ _('plan_studio_duo') }}</p>
+                <p class="plan-price strikethrough"><span class="price-num">CNY 200<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
+            </div>
+            <div class="plan">
+                <p class="plan-tag" data-i18n="plan_outdoor_solo">{{ _('plan_outdoor_solo') }}</p>
+                <p class="plan-price"><span class="price-num">CNY 180<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
+            </div>
+            <div class="plan">
+                <p class="plan-tag" data-i18n="plan_outdoor_duo">{{ _('plan_outdoor_duo') }}</p>
+                <p class="plan-price"><span class="price-num">CNY 260<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
+            </div>
+        </div>
+
+        <div class="extras">
+            <p class="extras-title" data-i18n="notes_label">{{ _('notes_label') }}</p>
+            <div class="extra-row"><span data-i18n="extra_studio">{{ _('extra_studio') }}</span><span data-i18n="studio_paused">{{ _('studio_paused') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_deposit">{{ _('extra_deposit') }}</span><span data-i18n="deposit_mixed">{{ _('deposit_mixed') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_negatives">{{ _('extra_negatives') }}</span><span data-i18n="negatives_all">{{ _('negatives_all') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_basic_post">{{ _('extra_basic_post') }}</span><span data-i18n="basic_post_desc">{{ _('basic_post_desc') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_retouch">{{ _('extra_retouch') }}</span><span data-i18n="retouch_extra">{{ _('retouch_extra') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_grid9">{{ _('extra_grid9') }}</span><span data-i18n="grid9_extra">{{ _('grid9_extra') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_no_post">{{ _('extra_no_post') }}</span><span data-i18n="no_post_discount">{{ _('no_post_discount') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_effects">{{ _('extra_effects') }}</span><span data-i18n="not_provided">{{ _('not_provided') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_aftercare">{{ _('extra_aftercare') }}</span><span data-i18n="aftercare_desc">{{ _('aftercare_desc') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_ticket">{{ _('extra_ticket') }}</span><span data-i18n="ticket_required">{{ _('ticket_required') }}</span></div>
+            <div class="extra-row"><span data-i18n="extra_transport">{{ _('extra_transport') }}</span><span data-i18n="transport_note">{{ _('transport_note') }}</span></div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="modal-footer-links">
+                <a class="cta-link" href="https://limooo.cn#portfolio" target="_blank" rel="noopener" data-i18n="view_portfolio">{{ _('view_portfolio') }}</a>
+                <a class="cta-link" href="https://contact.limooo.cn" data-i18n="book_consult">{{ _('book_consult') }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block onload_extra %}
+/* 服务卡片级联淡入 */
+setTimeout(function() {
+    document.querySelectorAll('.reveal-item').forEach(function(el, i) {
+        setTimeout(function() { el.classList.add('show'); }, i * 60);
+    });
+}, 100);
+{% endblock %}
+
+{% block page_scripts %}
+/* ═══════════════════════════════════════════════════════════════
+   服务详情弹层：打开 / 关闭
+   ═══════════════════════════════════════════════════════════════ */
+
+function openServiceDetail(id) {
+    var modal = document.getElementById('modal-' + id);
+    if (!modal) return;
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeServiceDetail() {
+    document.querySelectorAll('.service-modal.open').forEach(function(modal) {
+        modal.classList.remove('open');
+    });
+    document.body.style.overflow = '';
+}
+
+/* Esc 键关闭弹层 */
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeServiceDetail();
+});
+
+/* 从主页作品框带 #convention / #outdoor 进入时，直达对应服务弹层 */
+(function() {
+    var hash = location.hash.replace('#', '');
+    if (hash === 'convention' || hash === 'outdoor') {
+        openServiceDetail(hash);
+    }
+})();
+{% endblock %}
