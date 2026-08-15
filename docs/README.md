@@ -140,9 +140,9 @@ limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期
 ### 构建与目录
 
 - `python3 src/build.py`：按 4 种语言预渲染三页到 `public/`，并把 `locales/*.json` 内联为 `functions/api/i18n/[lang].ts`
-- `migrations/001_init.sql`：D1 初始 schema（apple_accounts / blocked_ips / visitors）
+- `scripts/migrations/001_init.sql`：D1 初始 schema（apple_accounts / blocked_ips / visitors）
 - `scripts/export_appleid.py`、`scripts/export_blocklist.py`：生成 D1 导入 SQL（输出在 `scripts/out/`，已 gitignore）
-- `sync-worker/`：每日 03:00 Cron 把 D1 `blocked_ips` 增量同步到 Cloudflare IP List（原 auto_block.py 的 CF 部分；ipset/iptables 已放弃）
+- `scripts/sync-worker/`：每日 03:00 Cron 把 D1 `blocked_ips` 增量同步到 Cloudflare IP List（原 auto_block.py 的 CF 部分；ipset/iptables 已放弃）
 - 注意：authentik backchannel logout 暂未移植到 Pages（`logout_events` 表随 VPS 保留）
 
 ### 环境变量
@@ -160,7 +160,7 @@ limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期
 | `SESSION_HMAC_KEY` | Pages 会话 cookie 签名密钥（与 `GATE_HMAC_KEY` 分开） |
 | `APPLEID_ENCRYPTION_KEY` | Fernet 密钥（取 `keys/appleid_encryption.key`，与 Flask 端共用） |
 
-本地开发：复制 `.dev.vars.example` 为 `.dev.vars` 填入真实值（已 gitignore）。`sync-worker` 的 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` 用 `wrangler secret put` 配置。
+本地开发：复制 `.dev.vars.example` 为 `.dev.vars` 填入真实值（已 gitignore）。`scripts/sync-worker` 的 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` 用 `wrangler secret put` 配置。
 
 ### 门禁行为
 
@@ -180,7 +180,7 @@ limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期
 已完成：
 
 1. Pages 项目（`limooo`，`limooo.pages.dev`）与 D1 数据库（`limooo`，APAC）已创建，D1 绑定 `DB` 已挂到项目
-2. `migrations/001_init.sql` 已执行；`scripts/out/appleid.sql`（5 条）、`blocklist.sql`（1255 条）已导入
+2. `scripts/migrations/001_init.sql` 已执行；`scripts/out/appleid.sql`（5 条）、`blocklist.sql`（1255 条）已导入
 3. Secret 已配置：`TURNSTILE_SITEKEY` / `TURNSTILE_SECRET`（Turnstile widget 为 Managed 模式、域名需含 `auth.limooo.cn`）、`GATE_HMAC_KEY` / `SESSION_HMAC_KEY`（`openssl rand -hex 32`）、`AUTHENTIK_*`、`APPLEID_ENCRYPTION_KEY`
 4. 已部署到 Pages，线上验证：根路径 403 验证页 + `Cache-Control: no-store`、logo 200、`/__gate/verify` 失败重渲染、Location/IP/Ray ID 诊断正常；用 Turnstile 官方测试密钥跑通"提交 → siteverify → 签发 cookie → 放行页面"全链路，伪造 cookie 会被拒绝
 5. WAF 自定义规则已生效：`ip.src in $limooo_blocklist` → block
@@ -189,7 +189,7 @@ limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期
 
 待完成（一个外部依赖）：
 
-- **sync-worker 部署**：需要给 API Token 加 `Workers Scripts: Edit`（含 triggers）权限后 `wrangler deploy`；在此之前服务器 `auto_block.py` 的 Cloudflare IP List 同步继续运行，WAF 规则照常生效
+- **scripts/sync-worker 部署**：需要给 API Token 加 `Workers Scripts: Edit`（含 triggers）权限后 `wrangler deploy`；在此之前服务器 `auto_block.py` 的 Cloudflare IP List 同步继续运行，WAF 规则照常生效
 
 ## License
 
