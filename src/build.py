@@ -148,7 +148,7 @@ def render_gate(appmod, lang: str) -> str:
     with appmod.app.test_request_context("/__gate", headers={"Host": "auth.limooo.cn"}):
         appmod.g.lang = lang
         html = appmod.render_template(
-            "gate.html",
+            "auth.html",
             lang=lang,
             title=t["title"],
             heading=t["heading"],
@@ -252,7 +252,7 @@ def main() -> int:
             with open(os.path.join(lang_dir, filename), "w", encoding="utf-8") as f:
                 f.write(html)
         # 人机验证门禁页（auth.limooo.cn/__gate）
-        with open(os.path.join(lang_dir, "gate.html"), "w", encoding="utf-8") as f:
+        with open(os.path.join(lang_dir, "auth.html"), "w", encoding="utf-8") as f:
             f.write(render_gate(appmod, lang))
         print(f"[build] {lang} rendered", flush=True)
 
@@ -317,7 +317,7 @@ def main() -> int:
                 "visitor.html",
                 "appleid.html",
                 "redirect.html",
-                "gate.html",
+                "auth.html",
             ],
         )
     with open(os.path.join(PREVIEW_OUT, "preview.html"), "w", encoding="utf-8") as f:
