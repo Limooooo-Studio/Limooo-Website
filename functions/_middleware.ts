@@ -14,6 +14,7 @@
  */
 
 import { queryAll, execute } from "./_lib/d1";
+import { requireAuth } from "./_lib/session";
 import type { Env } from "./_lib/env";
 
 interface EventContext {
@@ -987,6 +988,20 @@ export const onRequest: PagesFunction = async (context) => {
     // 干净 URL：按语言从预渲染产物取内容，URL 保持 /、/services、/contact 或子域根
     const asset = pageAsset(url.hostname, url.pathname, detectLang(request));
     if (asset && env.ASSETS) {
+      // 管理端子域（visitor/appleid）未登录直接跳登录页，避免先闪一版空框架
+      if (
+        (url.hostname === "visitor.limooo.cn" || url.hostname === "appleid.limooo.cn") &&
+        !(await requireAuth(env, request))
+      ) {
+        // Response.redirect 要求绝对 URL，这里用 Location 头（允许站内相对路径）
+        return withLangCookie(
+          request,
+          new Response(null, {
+            status: 302,
+            headers: { Location: `/login?next=${encodeURIComponent(url.pathname + url.search)}` },
+          }),
+        );
+      }
       const resp = await env.ASSETS.fetch(new URL(asset, "https://limooo.cn/"));
       if (resp.ok) {
         return withLangCookie(request, new Response(resp.body, {
