@@ -55,7 +55,11 @@ export async function exchangeCode(env: Env, code: string, redirectUri: string):
   try {
     const resp = await fetch(tokenUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        // nginx 的 $ua_deny 只放行含 Mozilla 的 UA，服务端 token 交换必须带浏览器 UA
+        "User-Agent": "Mozilla/5.0 (compatible; limooo-pages/1.0)",
+      },
       body: body.toString(),
       signal: controller.signal,
     });
