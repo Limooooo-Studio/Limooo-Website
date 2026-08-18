@@ -256,10 +256,10 @@ async function recordVisit(env: Env, request: Request, pathname: string): Promis
   try {
     await execute(
       env.DB,
-      "INSERT INTO visitors (ip, country, path) VALUES (?, ?, ?)",
+      // 不记录访问路径（列保留，写空串）
+      "INSERT INTO visitors (ip, country, path) VALUES (?, ?, '')",
       ip,
       cf?.country ?? "",
-      pathname,
     );
   } catch {
     // 埋点失败不阻塞请求

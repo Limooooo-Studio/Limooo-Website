@@ -9,7 +9,6 @@ interface VisitorRow {
   country: string;
   count: number;
   last_ts: string;
-  paths: string;
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -21,8 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     `SELECT v.ip,
             v.country,
             COUNT(*) AS count,
-            MAX(v.ts) AS last_ts,
-            (SELECT GROUP_CONCAT(DISTINCT v2.path) FROM visitors v2 WHERE v2.ip = v.ip) AS paths
+            MAX(v.ts) AS last_ts
      FROM visitors v
      GROUP BY v.ip, v.country
      ORDER BY last_ts DESC
@@ -34,7 +32,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       country: r.country,
       count: r.count,
       last_ts: r.last_ts,
-      paths: (r.paths || "").split(",").filter(Boolean),
     })),
   });
 };
