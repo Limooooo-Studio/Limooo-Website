@@ -44,6 +44,7 @@ const TILE_UPSTREAMS: Record<string, string> = {
 // 不能被门禁拦截的路径（否则死循环）
 const SKIP_PATHS = new Set<string>([
   "/__gate/verify",
+  "/__gate/diag",
   "/Limooo-xtext.webp",
   "/favicon.ico",
 ]);
@@ -410,6 +411,11 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   const turnstileSrc = sitekey
     ? `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer></script>`
     : "";
+  // 除动态诊断信息（Location/IP/Ray ID，由 /__gate/diag 实时获取）外，页面可缓存：
+  // 已有语言 cookie 的请求可边缘缓存；首次访问需写语言 cookie，退化为浏览器私有缓存
+  const hasLangCookie = Boolean(getCookie(LANG_COOKIE, request.headers.get("Cookie")));
+  const cacheControl =
+    opts.errorKey || !sitekey ? "no-store" : hasLangCookie ? "public, max-age=300" : "private, max-age=300";
 
   const html = `<!doctype html>
 <html lang="${lang}">
@@ -614,9 +620,9 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   </form>
   <hr class="divider">
   <dl class="diag">
-    <dt data-i18n="location">${t("location")}</dt><dd>${escapeHtml(country)}</dd>
-    <dt data-i18n="ip">${t("ip")}</dt><dd>${escapeHtml(ip)}</dd>
-    <dt data-i18n="ray">${t("ray")}</dt><dd>${escapeHtml(ray)}</dd>
+    <dt data-i18n="location">${t("location")}</dt><dd id="diag-country">—</dd>
+    <dt data-i18n="ip">${t("ip")}</dt><dd id="diag-ip">—</dd>
+    <dt data-i18n="ray">${t("ray")}</dt><dd id="diag-ray">—</dd>
   </dl>
   <p class="foot" data-i18n="foot">${t("foot")}</p>
 </main>
@@ -746,6 +752,18 @@ ${turnstileSrc}
   // 初始同步主题与文案（Turnstile 由 onloadTurnstileCallback 显式渲染）
   applyTheme(effectiveTheme());
   renderI18n();
+  // 动态诊断信息（Location/IP/Ray ID）每次实时获取，页面其余部分走缓存
+  fetch("/__gate/diag", { headers: { "Accept": "application/json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d) return;
+      var map = { "diag-country": d.country, "diag-ip": d.ip, "diag-ray": d.ray };
+      Object.keys(map).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && map[id]) el.textContent = map[id];
+      });
+    })
+    .catch(function () {});
   /* 系统主题变化时：仅在无缓存（跟随系统）状态下自动跟随 */
   window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () {
     if (!localStorage.getItem("theme")) applyTheme(getSystemTheme());
@@ -758,7 +776,7 @@ ${turnstileSrc}
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
+      "Cache-Control": cacheControl,
     },
   }));
 }
@@ -935,6 +953,18 @@ export const onRequest: PagesFunction = async (context) => {
   // /__gate/verify 与静态放行路径不能被门禁拦（否则死循环）
   if (url.pathname === "/__gate/verify") {
     return handleVerify(context);
+  }
+  // 动态诊断信息 API：每次实时返回，不缓存（页面其余部分已缓存）
+  if (url.pathname === "/__gate/diag") {
+    const cf = (request as Request & { cf?: { country?: string } }).cf;
+    return Response.json(
+      {
+        country: cf?.country ?? "—",
+        ip: request.headers.get("CF-Connecting-IP") || "—",
+        ray: request.headers.get("CF-Ray") || "—",
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   }
   if (
     SKIP_PATHS.has(url.pathname) ||
