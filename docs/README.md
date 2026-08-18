@@ -184,8 +184,10 @@ limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期
 3. Secret 已配置：`TURNSTILE_SITEKEY` / `TURNSTILE_SECRET`（Turnstile widget 为 Managed 模式、域名需含 `auth.limooo.cn`）、`GATE_HMAC_KEY` / `SESSION_HMAC_KEY`（`openssl rand -hex 32`）、`AUTHENTIK_*`、`APPLEID_ENCRYPTION_KEY`
 4. 已部署到 Pages，线上验证：根路径 403 验证页 + `Cache-Control: no-store`、logo 200、`/__gate/verify` 失败重渲染、Location/IP/Ray ID 诊断正常；用 Turnstile 官方测试密钥跑通"提交 → siteverify → 签发 cookie → 放行页面"全链路，伪造 cookie 会被拒绝
 5. WAF 自定义规则已生效：`ip.src in $limooo_blocklist` → block
-6. **DNS 已切换**：`limooo.cn` / `www` / `services` / `contact` / `auth` → CNAME `limooo.pages.dev`（proxied），自定义域名全部 active；`identity` / `visitor` / `appleid` / `redirect` / `xmpp` 保持服务器 A 记录，`*.limooo.cn` 通配 A 保留作为兜底
+6. **DNS 已切换**：`limooo.cn` / `www` / `services` / `contact` / `auth` / `visitor` / `appleid` / `redirect` → CNAME `limooo.pages.dev`（proxied），自定义域名全部 active；`identity` / `xmpp` 保持服务器 A 记录，`*.limooo.cn` 通配 A 保留作为兜底
 7. 门禁托管在 `auth.limooo.cn`（原 `verify.limooo.cn` 已停用）；子域直接出内容、URL 无 `/zh-CN/` 语言前缀，未验证请求会在门禁页保留原始主机与路径并在通过后原路返回
+8. **visitor / appleid / redirect 已迁到 Pages**：visitor（访客统计 + 地图，瓦片由中间件代理 CartoDB）、appleid（Apple ID 管理器）与主站共用同一套 Pages Functions（登录 / API / D1）；`redirect.limooo.cn` 作为纯中转跳转页**豁免人机验证**（避免验证后回跳死循环）
+9. **identity 保留在 VPS**：它承载 authentik（OIDC 身份提供者，Docker 自托管），Pages 无法替代；VPS nginx 仍对其做 `auth_request` 人机验证
 
 待完成（一个外部依赖）：
 
