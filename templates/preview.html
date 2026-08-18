@@ -29,7 +29,7 @@
     <p class="desc">所有子域页面（单语言），点击在本地浏览器中预览（图片/导航均为本地文件）。</p>
     <ul>
         {% for page in pages %}
-        <li><a href="{{ page }}">{{ page.replace('.html', '') }}</a></li>
+        <li><a href="{{ page }}" target="_blank" rel="noopener">{{ page.replace('.html', '') }}</a></li>
         {% endfor %}
     </ul>
 </body>
