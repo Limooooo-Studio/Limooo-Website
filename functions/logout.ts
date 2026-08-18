@@ -9,11 +9,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url);
   const next = url.searchParams.get("next") || "https://limooo.cn/";
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: buildLogoutUrl(env, next),
-      "Set-Cookie": [clearSessionCookie(), clearPendingCookie()].join(", "),
-    },
-  });
+  const resp = new Response(null, { status: 302, headers: { Location: buildLogoutUrl(env, next) } });
+  resp.headers.append("Set-Cookie", clearSessionCookie());
+  resp.headers.append("Set-Cookie", clearPendingCookie());
+  return resp;
 };
