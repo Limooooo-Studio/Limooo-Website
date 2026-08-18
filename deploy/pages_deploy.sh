@@ -55,11 +55,30 @@ fi
 if [ "$VERBOSE" = 1 ]; then
     echo "$BUILD_PY src/build.py"
 fi
-"$BUILD_PY" src/build.py
+DEPLOY_LOG="$(mktemp)"
+if [ "$VERBOSE" = 1 ]; then
+    "$BUILD_PY" src/build.py
+else
+    "$BUILD_PY" src/build.py >"$DEPLOY_LOG" 2>&1 || {
+        echo "构建失败：" >&2
+        cat "$DEPLOY_LOG" >&2
+        rm -f "$DEPLOY_LOG"
+        exit 1
+    }
+fi
 
 if [ "$VERBOSE" = 1 ]; then
     echo "npx -y wrangler@latest pages deploy public --project-name $PAGES_PROJECT --branch $PAGES_BRANCH"
 fi
-npx -y wrangler@latest pages deploy public --project-name "$PAGES_PROJECT" --branch "$PAGES_BRANCH"
-
+if [ "$VERBOSE" = 1 ]; then
+    npx -y wrangler@latest pages deploy public --project-name "$PAGES_PROJECT" --branch "$PAGES_BRANCH"
+else
+    npx -y wrangler@latest pages deploy public --project-name "$PAGES_PROJECT" --branch "$PAGES_BRANCH" >>"$DEPLOY_LOG" 2>&1 || {
+        echo "Pages 部署失败：" >&2
+        cat "$DEPLOY_LOG" >&2
+        rm -f "$DEPLOY_LOG"
+        exit 1
+    }
+fi
+rm -f "$DEPLOY_LOG"
 echo "Pages: done"
