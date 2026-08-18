@@ -249,14 +249,15 @@ def main() -> int:
     # 4) i18n Functions（前端语言切换接口）
     write_i18n_functions()
 
-    # 5) 子域预览（本地预览用，不入库）：preview/<lang>/ 下放所有子域页面，
+    # 5) 子域预览（本地预览用，不入库）：生成的预览输出到 preview/templates/<lang>/，
     #    并镜像 static/ 资源，HTML 里的图片引用改为本地相对路径（离线可看）
+    PREVIEW_OUT = os.path.join(PREVIEW_DIR, "templates")
     if os.path.isdir(PREVIEW_DIR):
         shutil.rmtree(PREVIEW_DIR)
-    os.makedirs(PREVIEW_DIR)
+    os.makedirs(PREVIEW_OUT)
     shutil.copytree(STATIC_DIR, os.path.join(PREVIEW_DIR, "static"))
     for lang in LANGS:
-        dst = os.path.join(PREVIEW_DIR, lang)
+        dst = os.path.join(PREVIEW_OUT, lang)
         os.makedirs(dst, exist_ok=True)
         src = os.path.join(PUBLIC_DIR, lang)
         for name in os.listdir(src):
@@ -287,7 +288,7 @@ def main() -> int:
                 html = html.replace('"https://limooo.cn/"', '"index.html"')
                 with open(os.path.join(dst, name), "w", encoding="utf-8") as f:
                     f.write(html)
-    # 预览总索引（列出 4 语言 × 所有子域页面）
+    # 预览总索引（列出 4 语言 × 所有子域页面，模板在 Flask/templates/preview.html）
     with appmod.app.test_request_context("/", headers={"Host": "limooo.cn"}):
         index_html = appmod.render_template(
             "preview.html",
@@ -302,7 +303,7 @@ def main() -> int:
                 "gate.html",
             ],
         )
-    with open(os.path.join(PREVIEW_DIR, "index.html"), "w", encoding="utf-8") as f:
+    with open(os.path.join(PREVIEW_OUT, "index.html"), "w", encoding="utf-8") as f:
         f.write(index_html)
     with open(os.path.join(PREVIEW_DIR, ".gitkeep"), "w", encoding="utf-8") as f:
         pass
