@@ -2,7 +2,7 @@
 export const translations: Record<string, Record<string, string>> = {
   "zh-cn": {
     "redirect_title": "正在跳转",
-    "redirect_text": "正在跳转…",
+    "redirect_text": "正在跳转... (・ω・)",
     "lang_aria": "切换语言",
     "lang_zh": "简体中文",
     "lang_en": "English",
@@ -128,7 +128,7 @@ export const translations: Record<string, Record<string, string>> = {
   },
   "en-us": {
     "redirect_title": "Redirecting",
-    "redirect_text": "Redirecting…",
+    "redirect_text": "Redirecting... (・ω・)",
     "lang_aria": "Switch language",
     "lang_zh": "简体中文",
     "lang_en": "English",
@@ -254,7 +254,7 @@ export const translations: Record<string, Record<string, string>> = {
   },
   "ja-jp": {
     "redirect_title": "リダイレクト中",
-    "redirect_text": "リダイレクト中…",
+    "redirect_text": "リダイレクト中... (・ω・)",
     "lang_aria": "言語切替",
     "lang_zh": "简体中文",
     "lang_en": "English",
@@ -380,7 +380,7 @@ export const translations: Record<string, Record<string, string>> = {
   },
   "ko-kr": {
     "redirect_title": "리다이렉트 중",
-    "redirect_text": "리다이렉트 중…",
+    "redirect_text": "리다이렉트 중... (・ω・)",
     "lang_aria": "언어 전환",
     "lang_zh": "简体中文",
     "lang_en": "English",

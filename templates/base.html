@@ -367,11 +367,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
     <!-- ═══ 底部版权（整条可点击直达源码仓库） ═══ -->
     {% block footer %}
+    {% block footer_markup %}
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
             <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
         </div>
     </footer>
+    {% endblock %}
     {% endblock %}
 
     <script>
@@ -678,11 +680,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
         {% block onload_extra %}{% endblock %}
 
-        /* 界面加载完成后后台预取其余语言与另外两个主页(低优先级,不阻塞首屏) */
+        /* 界面加载完成后立即预取全部语言:切换语言时字典已在缓存,不再等网络;
+           另外两个主页的 prefetch 保持低优先级,不抢首屏之后的带宽 */
+        prefetchI18n();
         if ('requestIdleCallback' in window) {
-            requestIdleCallback(function() { prefetchI18n(); prefetchPages(); }, { timeout: 3000 });
+            requestIdleCallback(prefetchPages, { timeout: 3000 });
         } else {
-            setTimeout(function() { prefetchI18n(); prefetchPages(); }, 1500);
+            setTimeout(prefetchPages, 1500);
         }
     });
 
