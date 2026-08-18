@@ -44,6 +44,19 @@ if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
     exit 1
 fi
 
+# ── 自动构建 Pages 静态产物（改了主站模板无需手动 build） ──
+# 首次运行自动创建本地构建环境 .venv-build/（已 gitignore），装齐 Flask 依赖
+BUILD_PY=".venv-build/bin/python"
+if [ ! -x "$BUILD_PY" ]; then
+    echo "首次构建：创建 .venv-build 并安装依赖..."
+    python3 -m venv .venv-build
+    .venv-build/bin/pip install -q flask cryptography geoip2 certifi httpx requests aiohttp click pydantic msal
+fi
+if [ "$VERBOSE" = 1 ]; then
+    echo "$BUILD_PY src/build.py"
+fi
+"$BUILD_PY" src/build.py
+
 if [ "$VERBOSE" = 1 ]; then
     echo "npx -y wrangler@latest pages deploy public --project-name $PAGES_PROJECT --branch $PAGES_BRANCH"
 fi
