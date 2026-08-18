@@ -157,6 +157,19 @@ function detectLang(request: Request): string {
   return "en-us";
 }
 
+/** 语言 cookie（与 Flask persist_detected_lang 一致，跨子域共享、365 天） */
+function langCookieHeader(host: string, lang: string): string {
+  const domain = host.endsWith("limooo.cn") ? "Domain=.limooo.cn; " : "";
+  return `${LANG_COOKIE}=${lang}; Path=/; Max-Age=31536000; SameSite=Lax; Secure; ${domain}`;
+}
+
+/** 首次访问（无语言 cookie）时把检测出的语言写回，此后各子域固定使用该语言 */
+function withLangCookie(request: Request, resp: Response): Response {
+  if (getCookie(LANG_COOKIE, request.headers.get("Cookie"))) return resp;
+  resp.headers.append("Set-Cookie", langCookieHeader(request.headers.get("Host") ?? "", detectLang(request)));
+  return resp;
+}
+
 /** 主机+路径 → 应吐出的语言页面资产；静态资源等返回 null 走 next() */
 function pageAsset(host: string, pathname: string, lang: string): string | null {
   const p = pathname.replace(/\/+$/, "") || "/";
@@ -705,13 +718,13 @@ ${turnstileSrc}
 </body>
 </html>`;
 
-  return new Response(html, {
+  return withLangCookie(request, new Response(html, {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
     },
-  });
+  }));
 }
 
 /** POST /__gate/verify：校验 Turnstile，成功签发 cookie 并 302 回原路径 */
@@ -759,14 +772,14 @@ async function handleVerify(context: EventContext): Promise<Response> {
   const cookie =
     `${GATE_COOKIE}=${expiry}.${signature}; Domain=.limooo.cn; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttlSeconds}`;
 
-  return new Response(null, {
+  return withLangCookie(request, new Response(null, {
     status: 302,
     headers: {
       Location: viaRedirect(host, next),
       "Set-Cookie": cookie,
       "Cache-Control": "no-store",
     },
-  });
+  }));
 }
 
 export const onRequest: PagesFunction = async (context) => {
@@ -783,13 +796,13 @@ export const onRequest: PagesFunction = async (context) => {
 
   // www 保持原 nginx 行为：先 301 到主站（保留路径），再由主站决定是否送门禁
   if (url.hostname === "www.limooo.cn") {
-    return new Response(null, {
+    return withLangCookie(request, new Response(null, {
       status: 301,
       headers: {
         Location: `https://limooo.cn${url.pathname}${url.search}`,
         "Cache-Control": "no-store",
       },
-    });
+    }));
   }
 
   // 应用层封禁（放行登录/管理路径，避免管理员从被封 IP 无法登录）
@@ -813,7 +826,7 @@ export const onRequest: PagesFunction = async (context) => {
     if (url.hostname === GATE_HOST) {
       const back = safeNextPath(url.searchParams.get("next") ?? "/");
       const host = sanitizeHost(url.searchParams.get("host"));
-      return Response.redirect(viaRedirect(host, back), 302);
+      return withLangCookie(request, Response.redirect(viaRedirect(host, back), 302));
     }
     const record = recordVisit(env, request, url.pathname);
     if (typeof context.waitUntil === "function") {
@@ -826,12 +839,12 @@ export const onRequest: PagesFunction = async (context) => {
     if (asset && env.ASSETS) {
       const resp = await env.ASSETS.fetch(new URL(asset, "https://limooo.cn/"));
       if (resp.ok) {
-        return new Response(resp.body, {
+        return withLangCookie(request, new Response(resp.body, {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "private, max-age=300",
           },
-        });
+        }));
       }
     }
     return next();
@@ -842,13 +855,13 @@ export const onRequest: PagesFunction = async (context) => {
     const gateUrl = new URL("/__gate", `https://${GATE_HOST}/`);
     gateUrl.searchParams.set("host", url.hostname);
     gateUrl.searchParams.set("next", url.pathname + url.search);
-    return new Response(null, {
+    return withLangCookie(request, new Response(null, {
       status: 302,
       headers: {
         Location: gateUrl.toString(),
         "Cache-Control": "no-store",
       },
-    });
+    }));
   }
 
   return renderGatePage(context, {
