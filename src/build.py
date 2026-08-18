@@ -273,8 +273,37 @@ def main() -> int:
                     'src="/Limooo-xtext.webp"',
                     'src="../../static/icons/Limooo-xtext.webp"',
                 )
+                # 站内导航本地化：https://<子域>.limooo.cn → 同目录本地文件
+                for sub, page in (
+                    ("services", "services.html"),
+                    ("contact", "contact.html"),
+                    ("visitor", "visitor.html"),
+                    ("appleid", "appleid.html"),
+                ):
+                    html = re.sub(rf'href="https://{sub}\.limooo\.cn/?', f'href="{page}"', html)
+                html = re.sub(r'href="https://limooo\.cn/?', 'href="index.html"', html)
+                # redirect 预览默认目标也指向本地首页
+                html = re.sub(r'url=https://limooo\.cn/', 'url=index.html', html)
+                html = html.replace('"https://limooo.cn/"', '"index.html"')
                 with open(os.path.join(dst, name), "w", encoding="utf-8") as f:
                     f.write(html)
+    # 预览总索引（列出 4 语言 × 所有子域页面）
+    with appmod.app.test_request_context("/", headers={"Host": "limooo.cn"}):
+        index_html = appmod.render_template(
+            "preview.html",
+            langs=LANGS,
+            pages=[
+                "index.html",
+                "services.html",
+                "contact.html",
+                "visitor.html",
+                "appleid.html",
+                "redirect.html",
+                "gate.html",
+            ],
+        )
+    with open(os.path.join(PREVIEW_DIR, "index.html"), "w", encoding="utf-8") as f:
+        f.write(index_html)
     with open(os.path.join(PREVIEW_DIR, ".gitkeep"), "w", encoding="utf-8") as f:
         pass
     print(f"[build] preview generated for {len(LANGS)} languages", flush=True)
