@@ -986,6 +986,14 @@ export const onRequest: PagesFunction = async (context) => {
     }));
   }
 
+  // 全量埋点：所有页面 GET（含未通过门禁的请求）都写入 D1，visitor 面板可看全量流量
+  const record = recordVisit(env, request, url.pathname);
+  if (typeof context.waitUntil === "function") {
+    context.waitUntil(record);
+  } else {
+    void record;
+  }
+
   // 应用层封禁（放行登录/管理路径，避免管理员从被封 IP 无法登录）
   const ip = request.headers.get("CF-Connecting-IP") ?? "";
   const exempt =
@@ -1008,12 +1016,6 @@ export const onRequest: PagesFunction = async (context) => {
       const back = safeNextPath(url.searchParams.get("next") ?? "/");
       const host = sanitizeHost(url.searchParams.get("host"));
       return withLangCookie(request, Response.redirect(viaRedirect(host, back), 302));
-    }
-    const record = recordVisit(env, request, url.pathname);
-    if (typeof context.waitUntil === "function") {
-      context.waitUntil(record);
-    } else {
-      void record;
     }
     // 干净 URL：按语言从预渲染产物取内容，URL 保持 /、/services、/contact 或子域根
     const asset = pageAsset(url.hostname, url.pathname, detectLang(request));
