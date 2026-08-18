@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS visitors (
     ip      TEXT NOT NULL,
     country TEXT DEFAULT '',
     path    TEXT NOT NULL,
+    status  INTEGER DEFAULT 0,
     ts      TEXT DEFAULT (datetime('now'))
 );
 

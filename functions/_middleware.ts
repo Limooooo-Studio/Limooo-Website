@@ -235,31 +235,39 @@ async function isBlocked(env: Env, ip: string): Promise<boolean> {
   return false;
 }
 
-/** 访客前向统计：只记页面 GET（静态资源 / API / 门禁路径不记） */
-async function recordVisit(env: Env, request: Request, pathname: string): Promise<void> {
-  if (!env.DB || request.method !== "GET") return;
+/** 页面 GET 且非噪音类目：才做访客埋点（静态资源 / API / 门禁路径 / 跳转子域不记） */
+function shouldTrackVisit(request: Request, url: URL): boolean {
+  if (request.method !== "GET") return false;
+  const p = url.pathname;
   if (
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/static/") ||
-    pathname.startsWith("/__gate") ||
-    pathname.startsWith("/tiles/") ||
-    pathname.startsWith("/favicon") ||
-    pathname === "/Limooo-xtext.webp"
+    p.startsWith("/api/") ||
+    p.startsWith("/static/") ||
+    p.startsWith("/__gate") ||
+    p.startsWith("/tiles/") ||
+    p.startsWith("/favicon") ||
+    p === "/Limooo-xtext.webp"
   ) {
-    return;
+    return false;
   }
-  if (/\.(png|webp|jpg|jpeg|gif|ico|svg|css|js|json|webmanifest|txt|xml)$/i.test(pathname)) {
-    return;
+  if (/\.(png|webp|jpg|jpeg|gif|ico|svg|css|js|json|webmanifest|txt|xml)$/i.test(p)) {
+    return false;
   }
+  if (url.hostname === REDIRECT_HOSTNAME) return false;
+  return true;
+}
+
+/** 访客前向统计：响应发出后记录（含状态码；不记录访问路径） */
+async function recordVisit(env: Env, request: Request, status: number): Promise<void> {
+  if (!env.DB) return;
   const ip = request.headers.get("CF-Connecting-IP") ?? "";
   const cf = (request as Request & { cf?: { country?: string } }).cf;
   try {
     await execute(
       env.DB,
-      // 不记录访问路径（列保留，写空串）
-      "INSERT INTO visitors (ip, country, path) VALUES (?, ?, '')",
+      "INSERT INTO visitors (ip, country, path, status) VALUES (?, ?, '', ?)",
       ip,
       cf?.country ?? "",
+      status,
     );
   } catch {
     // 埋点失败不阻塞请求
@@ -942,6 +950,22 @@ async function handleVerify(context: EventContext): Promise<Response> {
 }
 
 export const onRequest: PagesFunction = async (context) => {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  // 响应发出后再埋点（拿真实状态码），未验证 / 封禁 / 正常页面都记
+  if (shouldTrackVisit(request, url)) {
+    const resp = await handleOnRequest(context);
+    if (typeof context.waitUntil === "function") {
+      context.waitUntil(recordVisit(env, request, resp.status));
+    } else {
+      void recordVisit(env, request, resp.status);
+    }
+    return resp;
+  }
+  return handleOnRequest(context);
+};
+
+async function handleOnRequest(context: EventContext): Promise<Response> {
   const { request, env, next } = context;
   const url = new URL(request.url);
 
@@ -984,14 +1008,6 @@ export const onRequest: PagesFunction = async (context) => {
         "Cache-Control": "no-store",
       },
     }));
-  }
-
-  // 全量埋点：所有页面 GET（含未通过门禁的请求）都写入 D1，visitor 面板可看全量流量
-  const record = recordVisit(env, request, url.pathname);
-  if (typeof context.waitUntil === "function") {
-    context.waitUntil(record);
-  } else {
-    void record;
   }
 
   // 应用层封禁（放行登录/管理路径，避免管理员从被封 IP 无法登录）
