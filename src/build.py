@@ -19,6 +19,7 @@ import sys
 # 仓库根目录（本文件位于 src/ 下，向上取一层）
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
+PREVIEW_DIR = os.path.join(BASE_DIR, "preview")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
 FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
@@ -31,20 +32,94 @@ DEFAULT_LANG = "en-us"
 # 导航链接保留子域绝对地址（limooo.cn / services.limooo.cn / contact.limooo.cn），
 # 由中间件按主机名把对应语言页面吐到干净 URL，不做语言路径前缀。
 PAGES = (
-    ("index.html", "index.html", "/"),
-    ("services.html", "services.html", "/services"),
-    ("contact.html", "contact.html", "/contact"),
+    ("index.html", "index.html", "/", None),
+    ("services.html", "services.html", "/services", None),
+    ("contact.html", "contact.html", "/contact", None),
     # 子域专属管理页（visitor.limooo.cn / appleid.limooo.cn），由中间件按主机名吐出
-    ("visitor.html", "visitor.html", "/visitor"),
-    ("appleid.html", "appleid.html", "/appleid"),
+    ("visitor.html", "visitor.html", "/visitor", None),
+    ("appleid.html", "appleid.html", "/appleid", None),
+    # 统一跳转页（redirect.limooo.cn）：预渲染默认目标（主站首页），实际跳转参数由中间件拼接
+    ("redirect.html", "redirect.html", "/r", "redirect"),
 )
 
+# 门禁页文案（与 functions/_middleware.ts 的 GATE_I18N 保持一致）
+GATE_I18N = {
+    "zh-cn": {
+        "title": "人机验证 · Limooo",
+        "heading": "请完成人机验证后再访问本站",
+        "location": "位置",
+        "ip": "IP",
+        "ray": "Ray ID",
+        "foot": "由 Limooo 边缘安全提供保护",
+        "lang_aria": "切换语言",
+        "theme_aria": "切换主题",
+        "copyright": "© 2026 LIMOOO 保留所有权利",
+        "error_sitekey": "服务配置错误：未设置 TURNSTILE_SITEKEY。",
+        "error_invalid": "请求无效，请重试。",
+        "error_unavailable": "验证服务暂时不可用，请稍后重试。",
+        "error_failed": "验证未通过，请重试。",
+    },
+    "en-us": {
+        "title": "Verify you are human · Limooo",
+        "heading": "Please complete this CAPTCHA to access the site.",
+        "location": "Location",
+        "ip": "IP",
+        "ray": "Ray ID",
+        "foot": "Secured by Limooo Edge Security",
+        "lang_aria": "Switch language",
+        "theme_aria": "Toggle theme",
+        "copyright": "© 2026 LIMOOO ALL RIGHTS RESERVED",
+        "error_sitekey": "Server configuration error: TURNSTILE_SITEKEY is not set.",
+        "error_invalid": "Invalid request. Please try again.",
+        "error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
+        "error_failed": "Verification failed. Please try again.",
+    },
+    "ja-jp": {
+        "title": "人認証 · Limooo",
+        "heading": "このサイトにアクセスするには、人認証を完了してください",
+        "location": "場所",
+        "ip": "IP",
+        "ray": "Ray ID",
+        "foot": "Limooo Edge Security により保護されています",
+        "lang_aria": "言語切替",
+        "theme_aria": "テーマ切替",
+        "copyright": "© 2026 LIMOOO 全著作権所有",
+        "error_sitekey": "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
+        "error_invalid": "リクエストが無効です。もう一度お試しください。",
+        "error_unavailable": "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
+        "error_failed": "認証に失敗しました。もう一度お試しください。",
+    },
+    "ko-kr": {
+        "title": "휴먼 인증 · Limooo",
+        "heading": "사이트에 접속하려면 인증을 완료해 주세요",
+        "location": "위치",
+        "ip": "IP",
+        "ray": "Ray ID",
+        "foot": "Limooo Edge Security가 보호합니다",
+        "lang_aria": "언어 전환",
+        "theme_aria": "테마 전환",
+        "copyright": "© 2026 LIMOOO 모든 권리 보유",
+        "error_sitekey": "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
+        "error_invalid": "잘못된 요청입니다. 다시 시도해 주세요.",
+        "error_unavailable": "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+        "error_failed": "인증에 실패했습니다. 다시 시도해 주세요.",
+    },
+}
 
-def render_page(appmod, template: str, path: str, lang: str) -> str:
+
+def render_page(appmod, template: str, path: str, lang: str, extra=None) -> str:
     """用 Flask 渲染上下文渲染单个页面（Host 固定为 limooo.cn）"""
+    kwargs = {}
+    if extra == "redirect":
+        # 预渲染默认跳转目标；实际登录/登出回跳由中间件动态拼接 to 参数
+        kwargs = {
+            "to": "https://limooo.cn/",
+            "preload": True,
+            "preload_images": appmod.REDIRECT_PRELOAD_IMAGES,
+        }
     with appmod.app.test_request_context(path, headers={"Host": "limooo.cn"}):
         appmod.g.lang = lang
-        html = appmod.render_template(template)
+        html = appmod.render_template(template, **kwargs)
     # 相对资源统一加根斜杠：模板里是 src="static/..."，在 /zh-cn 这类子路径下
     # 会解析错位，改成 /static/... 后任何路径都正确（配合中间件干净 URL）
     html = html.replace('src="static/', 'src="/static/')
@@ -56,6 +131,46 @@ def render_page(appmod, template: str, path: str, lang: str) -> str:
         "catch(e){}</script>"
     )
     html = html.replace("</body>", cookie_js + "</body>")
+    return html
+
+
+def render_gate(appmod, lang: str) -> str:
+    """按语言预渲染人机验证门禁页（auth.limooo.cn/__gate）"""
+    t = GATE_I18N[lang]
+    sitekey = os.environ.get("TURNSTILE_SITEKEY", "")
+    if sitekey:
+        turnstile_html = '<div id="turnstile-wrap"></div>'
+        turnstile_src = (
+            '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?'
+            'onload=onloadTurnstileCallback" defer></script>'
+        )
+    else:
+        turnstile_html = (
+            f'<div class="error" data-i18n="error_sitekey">{t["error_sitekey"]}</div>'
+        )
+        turnstile_src = ""
+    with appmod.app.test_request_context("/__gate", headers={"Host": "auth.limooo.cn"}):
+        appmod.g.lang = lang
+        html = appmod.render_template(
+            "gate.html",
+            lang=lang,
+            title=t["title"],
+            heading=t["heading"],
+            location=t["location"],
+            ip=t["ip"],
+            ray=t["ray"],
+            foot=t["foot"],
+            lang_aria=t["lang_aria"],
+            theme_aria=t["theme_aria"],
+            copyright=t["copyright"],
+            error_html="",
+            turnstile_html=turnstile_html,
+            turnstile_src=turnstile_src,
+            sitekey=sitekey,
+            gate_i18n=json.dumps(GATE_I18N, ensure_ascii=False),
+            host="",
+            next="/",
+        )
     return html
 
 
@@ -114,10 +229,13 @@ def main() -> int:
     for lang in LANGS:
         lang_dir = os.path.join(PUBLIC_DIR, lang)
         os.makedirs(lang_dir, exist_ok=True)
-        for template, filename, path in PAGES:
-            html = render_page(appmod, template, path, lang)
+        for template, filename, path, extra in PAGES:
+            html = render_page(appmod, template, path, lang, extra)
             with open(os.path.join(lang_dir, filename), "w", encoding="utf-8") as f:
                 f.write(html)
+        # 人机验证门禁页（auth.limooo.cn/__gate）
+        with open(os.path.join(lang_dir, "gate.html"), "w", encoding="utf-8") as f:
+            f.write(render_gate(appmod, lang))
         print(f"[build] {lang} rendered", flush=True)
 
     # 3) 静态资源镜像
@@ -130,6 +248,21 @@ def main() -> int:
 
     # 4) i18n Functions（前端语言切换接口）
     write_i18n_functions()
+
+    # 5) 子域预览（本地预览用，不入库）：preview/<lang>/ 下放所有子域页面
+    if os.path.isdir(PREVIEW_DIR):
+        shutil.rmtree(PREVIEW_DIR)
+    os.makedirs(PREVIEW_DIR)
+    for lang in LANGS:
+        dst = os.path.join(PREVIEW_DIR, lang)
+        os.makedirs(dst, exist_ok=True)
+        src = os.path.join(PUBLIC_DIR, lang)
+        for name in os.listdir(src):
+            if name.endswith(".html"):
+                shutil.copy2(os.path.join(src, name), os.path.join(dst, name))
+    with open(os.path.join(PREVIEW_DIR, ".gitkeep"), "w", encoding="utf-8") as f:
+        pass
+    print(f"[build] preview generated for {len(LANGS)} languages", flush=True)
 
     # 保留 .gitkeep（git 只跟踪它，生成内容不入库）
     with open(os.path.join(PUBLIC_DIR, ".gitkeep"), "w", encoding="utf-8"):
