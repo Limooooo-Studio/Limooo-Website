@@ -262,3 +262,6 @@ WEOF
     echo "cd /var/www/limooo/src && ../venv/bin/python3 auto_block.py ipset"
     cd /var/www/limooo/src && ../venv/bin/python3 auto_block.py ipset
 EOF
+
+echo "bash deploy/pages_deploy.sh --verbose"
+bash deploy/pages_deploy.sh --verbose

@@ -1,6 +1,6 @@
 // 由 build.py 自动生成，勿手改。
 export const translations: Record<string, Record<string, string>> = {
-  "zh-CN": {
+  "zh-cn": {
     "lang_aria": "切换语言",
     "lang_zh": "简体中文",
     "lang_en": "English",
@@ -124,7 +124,7 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "已添加",
     "toast_op_failed": "操作失败"
   },
-  "en-US": {
+  "en-us": {
     "lang_aria": "Switch language",
     "lang_zh": "简体中文",
     "lang_en": "English",
@@ -248,7 +248,7 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "Added",
     "toast_op_failed": "Operation failed"
   },
-  "ja-JP": {
+  "ja-jp": {
     "lang_aria": "言語切替",
     "lang_zh": "简体中文",
     "lang_en": "English",
@@ -372,7 +372,7 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "追加しました",
     "toast_op_failed": "操作に失敗"
   },
-  "ko-KR": {
+  "ko-kr": {
     "lang_aria": "언어 전환",
     "lang_zh": "简体中文",
     "lang_en": "English",

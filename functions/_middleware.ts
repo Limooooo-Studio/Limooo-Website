@@ -39,6 +39,9 @@ const SKIP_PATHS = new Set<string>([
   "/Limooo-xtext.webp",
   "/favicon.ico",
 ]);
+// /static/ 下的 CSS/图片等公开静态资源也放行：
+// 主站页面本身已由门禁保护，但外部引用（如 authentik 登录页 logo 指向
+// limooo.cn/static/...）不带 __gate cookie，被拦会 302 导致图片加载失败。
 
 // 公开主机白名单：services/contact 子域直接出各自内容，www 301 到主站；
 // identity/visitor/appleid 由 VPS 上的 nginx auth_request 跳到这里验证后原路返回
@@ -52,8 +55,9 @@ const PUBLIC_HOSTS = new Set([
   "appleid.limooo.cn",
 ]);
 
-// 多语言（与原 Flask 端一致：cookie > Accept-Language > IP 地区 > en-US）
-const SUPPORTED_LANGS = ["zh-CN", "en-US", "ja-JP", "ko-KR"];
+// 多语言（与原 Flask 端一致：cookie > Accept-Language > IP 地区 > en-us）
+// 语言代码统一小写，与 Cloudflare Turnstile 的 language 参数格式一致
+const SUPPORTED_LANGS = ["zh-cn", "en-us", "ja-jp", "ko-kr"];
 const LANG_COOKIE = "user_lang_preference";
 
 const textEncoder = new TextEncoder();
@@ -132,24 +136,25 @@ function sanitizeHost(raw: string | null | undefined): string {
   return raw && PUBLIC_HOSTS.has(raw) ? raw : "limooo.cn";
 }
 
-/** 语言检测：cookie > Accept-Language(zh/en/ja/ko) > CF 地区(CN/JP/KR) > en-US */
+/** 语言检测：cookie > Accept-Language(zh/en/ja/ko) > CF 地区(CN/JP/KR) > en-us */
 function detectLang(request: Request): string {
   const cookie = getCookie(LANG_COOKIE, request.headers.get("Cookie"));
-  if (cookie && SUPPORTED_LANGS.includes(cookie)) return cookie;
+  // 兼容历史大写 cookie（zh-cn 等）
+  if (cookie && SUPPORTED_LANGS.includes(cookie.toLowerCase())) return cookie.toLowerCase();
 
   const accept = request.headers.get("Accept-Language") ?? "";
   for (const part of accept.split(",")) {
     const p = part.trim().split(";")[0].toLowerCase();
-    if (p.startsWith("zh")) return "zh-CN";
-    if (p.startsWith("en")) return "en-US";
-    if (p.startsWith("ja")) return "ja-JP";
-    if (p.startsWith("ko")) return "ko-KR";
+    if (p.startsWith("zh")) return "zh-cn";
+    if (p.startsWith("en")) return "en-us";
+    if (p.startsWith("ja")) return "ja-jp";
+    if (p.startsWith("ko")) return "ko-kr";
   }
 
   const cf = (request as Request & { cf?: { country?: string } }).cf;
-  const byCountry: Record<string, string> = { CN: "zh-CN", JP: "ja-JP", KR: "ko-KR" };
+  const byCountry: Record<string, string> = { CN: "zh-cn", JP: "ja-jp", KR: "ko-kr" };
   if (cf?.country && byCountry[cf.country]) return byCountry[cf.country];
-  return "en-US";
+  return "en-us";
 }
 
 /** 主机+路径 → 应吐出的语言页面资产；静态资源等返回 null 走 next() */
@@ -265,10 +270,70 @@ function escapeHtml(value: string): string {
   });
 }
 
+/** 验证页文案（与主站共用语言偏好：cookie > Accept-Language > CF 地区 > en-us） */
+const GATE_I18N: Record<string, Record<string, string>> = {
+  "zh-cn": {
+    title: "人机验证 · Limooo",
+    heading: "请完成人机验证后再访问本站",
+    location: "位置",
+    ip: "IP",
+    ray: "Ray ID",
+    foot: "由 Limooo 边缘安全提供保护",
+    lang_aria: "切换语言",
+    theme_aria: "切换主题",
+    error_sitekey: "服务配置错误：未设置 TURNSTILE_SITEKEY。",
+    error_invalid: "请求无效，请重试。",
+    error_unavailable: "验证服务暂时不可用，请稍后重试。",
+    error_failed: "验证未通过，请重试。",
+  },
+  "en-us": {
+    title: "Verify you are human · Limooo",
+    heading: "Please complete this CAPTCHA to access the site.",
+    location: "Location",
+    ip: "IP",
+    ray: "Ray ID",
+    foot: "Secured by Limooo Edge Security",
+    lang_aria: "Switch language",
+    theme_aria: "Toggle theme",
+    error_sitekey: "Server configuration error: TURNSTILE_SITEKEY is not set.",
+    error_invalid: "Invalid request. Please try again.",
+    error_unavailable: "Verification service temporarily unavailable. Please try again in a moment.",
+    error_failed: "Verification failed. Please try again.",
+  },
+  "ja-jp": {
+    title: "人認証 · Limooo",
+    heading: "このサイトにアクセスするには、人認証を完了してください",
+    location: "場所",
+    ip: "IP",
+    ray: "Ray ID",
+    foot: "Limooo Edge Security により保護されています",
+    lang_aria: "言語切替",
+    theme_aria: "テーマ切替",
+    error_sitekey: "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
+    error_invalid: "リクエストが無効です。もう一度お試しください。",
+    error_unavailable: "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
+    error_failed: "認証に失敗しました。もう一度お試しください。",
+  },
+  "ko-kr": {
+    title: "휴먼 인증 · Limooo",
+    heading: "사이트에 접속하려면 인증을 완료해 주세요",
+    location: "위치",
+    ip: "IP",
+    ray: "Ray ID",
+    foot: "Limooo Edge Security가 보호합니다",
+    lang_aria: "언어 전환",
+    theme_aria: "테마 전환",
+    error_sitekey: "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
+    error_invalid: "잘못된 요청입니다. 다시 시도해 주세요.",
+    error_unavailable: "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+    error_failed: "인증에 실패했습니다. 다시 시도해 주세요.",
+  },
+};
+
 interface GateRenderOptions {
   next?: string;
   host?: string;
-  error?: string;
+  errorKey?: string;
   unavailable?: boolean;
 }
 
@@ -277,6 +342,8 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   const url = new URL(request.url);
   const host = sanitizeHost(opts.host);
   const next = safeNextPath(opts.next ?? "/");
+  const lang = detectLang(request);
+  const t = (key: string): string => GATE_I18N[lang]?.[key] ?? GATE_I18N["en-us"][key] ?? key;
 
   const cf = (request as Request & { cf?: { country?: string } }).cf;
   const country = cf?.country ?? "—";
@@ -285,25 +352,25 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   const sitekey = env.TURNSTILE_SITEKEY ?? "";
   const status = opts.unavailable ? 503 : 403;
 
-  const errorHtml = opts.error
-    ? `<div class="error">${escapeHtml(opts.error)}</div>`
+  const errorHtml = opts.errorKey
+    ? `<div class="error" data-i18n="error_${opts.errorKey}">${t(`error_${opts.errorKey}`)}</div>`
     : "";
   const turnstileHtml = sitekey
     ? `<div id="turnstile-wrap"></div>`
-    : `<div class="error">Server configuration error: TURNSTILE_SITEKEY is not set.</div>`;
+    : `<div class="error" data-i18n="error_sitekey">${t("error_sitekey")}</div>`;
   const turnstileSrc = sitekey
     ? `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer></script>`
     : "";
 
   const html = `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#17181c">
-<title>Verify you are human · Limooo</title>
+<title>${t("title")}</title>
 <script>
   // 与主站共用 localStorage key "theme"：首次跟随系统，点击后固定并缓存
   (function () {
@@ -322,14 +389,22 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     --line: #2e2e32; --panel: #202127; --highlight: #2a2a2f;
     --accent: #05A5A6;
     --foot: #E7EBCE;
+    /* 主站同款控件变量 */
+    --bg: #1b1b1f; --panel-bg: #202127;
+    --radius-sm: 6px; --radius-md: 10px;
+    --switch-icon: #dfdfd6; --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --ls-scale: 0.65;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   }
+  html[lang^="en"] { --ls-scale: 0.3; }
   .light-mode {
     color-scheme: light;
     --bg-a: #f3f4f6; --bg-b: #e5e7eb;
     --text: #1f2328; --muted: #6b7280;
     --line: #e2e2e3; --panel: #ffffff; --highlight: #f2f2f3;
     --foot: #9ca3af;
+    --bg: #ffffff; --panel-bg: #f6f6f7;
+    --switch-icon: #67676c; --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   }
   body {
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -342,28 +417,88 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     -webkit-font-smoothing: antialiased;
     transition: background 300ms var(--ease-out);
   }
-  /* 深浅切换（与主站同款：图标变色 + active 缩放；轨道/背景不用强调色） */
-  .theme-btn {
+  /* 右上角控件组（语言切换 + 深浅切换，样式与主站导航栏一致） */
+  .gate-controls {
     position: fixed; top: 18px; right: 18px; z-index: 10;
-    width: 40px; height: 40px; border-radius: 999px;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--panel); color: var(--text);
-    border: 1px solid var(--line); cursor: pointer;
-    transition: transform 160ms var(--ease-out), background 160ms var(--ease-out),
-      color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    display: flex; align-items: center; gap: 8px;
   }
-  .theme-btn:hover { background: var(--highlight); }
-  .theme-btn:hover svg { color: var(--accent); }
-  .theme-btn:active { transform: scale(0.92); color: var(--accent); }
-  .theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .theme-btn svg {
-    position: absolute; width: 19px; height: 19px;
-    transition: opacity 250ms ease-out, transform 400ms var(--ease-out);
+  /* ── 语言切换按钮（与主站一致：文A 图标 + 下箭头） ── */
+  .theme-toggle { position: relative; display: flex; align-items: center; }
+  .lang-btn {
+    display: flex; align-items: center;
+    padding: 0 12px; height: 36px;
+    border: none; background: none; cursor: pointer;
+    color: var(--text);
+    transition: color 200ms var(--ease-out);
   }
-  .theme-btn .icon-sun { opacity: 0; transform: rotate(-90deg) scale(0.5); }
-  .theme-btn .icon-moon { opacity: 1; transform: rotate(0) scale(1); }
-  .light-mode .theme-btn .icon-sun { opacity: 1; transform: rotate(0) scale(1); }
-  .light-mode .theme-btn .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.5); }
+  @media (hover: hover) and (pointer: fine) {
+    .lang-btn:hover { color: var(--accent); }
+  }
+  .lang-btn .lang-icon { width: 16px; height: 16px; }
+  .lang-btn .lang-chevron { width: 14px; height: 14px; margin-left: 4px; opacity: 0.6; }
+  /* ── 语言菜单（与主站一致：VitePress VPFlyout 弹出层） ── */
+  .theme-menu {
+    position: absolute; top: calc(100% + 8px); right: 0; min-width: 120px;
+    background: var(--panel-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+    padding: 4px; z-index: 200;
+    opacity: 0; visibility: hidden;
+    transform: translateY(-4px) scale(0.92);
+    transform-origin: top right;
+    transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 150ms;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  }
+  .theme-menu.open {
+    opacity: 1; visibility: visible; transform: translateY(0) scale(1);
+    transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  }
+  .theme-option {
+    padding: 8px 14px; margin: 2px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    letter-spacing: calc(0.05em * var(--ls-scale)); cursor: pointer; white-space: nowrap;
+    transition: background 150ms var(--ease-out);
+    opacity: 0.5;
+  }
+  .lang-flag { margin-right: 6px; }
+  .theme-option.selected {
+    opacity: 1; background: var(--highlight);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .theme-option:hover { opacity: 1; background: var(--highlight); }
+  }
+  /* ── 深浅切换（与主站一致：太阳-月亮胶囊滑块） ── */
+  .appearance-switch {
+    position: relative; border-radius: 11px; display: block;
+    width: 40px; height: 22px; flex-shrink: 0;
+    border: 1px solid var(--line);
+    background: var(--highlight);
+    cursor: pointer; padding: 0;
+    transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .appearance-switch:hover { border-color: var(--accent); }
+  }
+  .appearance-check {
+    position: absolute; top: 1px; left: 1px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--bg);
+    box-shadow: var(--switch-shadow);
+    transform: translateX(18px); /* 默认深色：滑块在右 */
+    transition: transform 250ms var(--ease-out);
+  }
+  .appearance-icon {
+    position: relative; display: block; width: 18px; height: 18px;
+    border-radius: 50%; overflow: hidden;
+  }
+  .appearance-icon svg {
+    position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+    color: var(--switch-icon);
+    transition: opacity 250ms var(--ease-out);
+  }
+  /* 默认（深色）：月亮可见；浅色：太阳可见 */
+  .appearance-icon .sun { opacity: 0; }
+  .appearance-icon .moon { opacity: 1; }
+  .light-mode .appearance-icon .sun { opacity: 1; }
+  .light-mode .appearance-icon .moon { opacity: 0; }
+  .light-mode .appearance-check { transform: translateX(0); }
   .card {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -397,13 +532,31 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
 </style>
 </head>
 <body>
-<button class="theme-btn" type="button" role="switch" aria-checked="true" aria-label="Toggle theme" onclick="toggleTheme()">
-  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-</button>
+<div class="gate-controls">
+  <div class="theme-toggle lang-flyout">
+    <button class="lang-btn" onclick="toggleLangMenu(event)" aria-haspopup="true" aria-label="${t("lang_aria")}" data-i18n-attr="aria-label:lang_aria">
+      <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+      <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div id="langMenu" class="theme-menu">
+      <div class="theme-option${lang === "zh-cn" ? " selected" : ""}" data-lang="zh-cn" onclick="setLang('zh-cn')"><span class="lang-flag">🇨🇳</span><span>简体中文</span></div>
+      <div class="theme-option${lang === "en-us" ? " selected" : ""}" data-lang="en-us" onclick="setLang('en-us')"><span class="lang-flag">🇺🇸</span><span>English</span></div>
+      <div class="theme-option${lang === "ja-jp" ? " selected" : ""}" data-lang="ja-jp" onclick="setLang('ja-jp')"><span class="lang-flag">🇯🇵</span><span>日本語</span></div>
+      <div class="theme-option${lang === "ko-kr" ? " selected" : ""}" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span>한국어</span></div>
+    </div>
+  </div>
+  <button class="appearance-switch" type="button" role="switch" aria-checked="false" aria-label="${t("theme_aria")}" data-i18n-attr="aria-label:theme_aria" onclick="toggleTheme()">
+    <span class="appearance-check">
+      <span class="appearance-icon">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </span>
+    </span>
+  </button>
+</div>
 <main class="card">
   <img class="logo" src="/Limooo-xtext.webp" alt="LIMOOO" width="220">
-  <h1>Please complete this CAPTCHA to access the site.</h1>
+  <h1 data-i18n="heading">${t("heading")}</h1>
   ${errorHtml}
   <form id="gate" method="post" action="/__gate/verify">
     <input type="hidden" name="host" value="${escapeHtml(host)}">
@@ -412,19 +565,33 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   </form>
   <hr class="divider">
   <dl class="diag">
-    <dt>Location:</dt><dd>${escapeHtml(country)}</dd>
-    <dt>IP:</dt><dd>${escapeHtml(ip)}</dd>
-    <dt>Ray ID:</dt><dd>${escapeHtml(ray)}</dd>
+    <dt data-i18n="location">${t("location")}</dt><dd>${escapeHtml(country)}</dd>
+    <dt data-i18n="ip">${t("ip")}</dt><dd>${escapeHtml(ip)}</dd>
+    <dt data-i18n="ray">${t("ray")}</dt><dd>${escapeHtml(ray)}</dd>
   </dl>
-  <p class="foot">Secured by <strong>Limooo</strong> Edge Security</p>
+  <p class="foot" data-i18n="foot">${t("foot")}</p>
 </main>
 ${turnstileSrc}
 <script>
   var turnstileWidget = null;
+  var CURRENT_LANG = ${JSON.stringify(lang)};
+  var GATE_I18N = ${JSON.stringify(GATE_I18N)};
+
+  function t(key) {
+    var dict = GATE_I18N[CURRENT_LANG] || GATE_I18N["en-us"];
+    return dict && dict[key] !== undefined ? dict[key] : key;
+  }
+  /* Turnstile 的 language 参数要求小写格式（zh-cn / en-us / ja / ko），
+     直接传 zh-cn 等大写值不会被识别，widget 会回退到浏览器语言 */
+  function turnstileLang(code) {
+    return { "zh-cn": "zh-cn", "en-us": "en-us", "ja-jp": "ja", "ko-kr": "ko" }[code] || "auto";
+  }
 
   function onTurnstileSuccess() {
     document.getElementById("gate").submit();
   }
+
+  /* ── 主题切换（与主站一致：localStorage "theme"，首次跟随系统） ── */
   function getSystemTheme() {
     return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   }
@@ -434,30 +601,106 @@ ${turnstileSrc}
   }
   function applyTheme(theme) {
     document.documentElement.classList.toggle("light-mode", theme === "light");
-    document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#ffffff" : "#17181c";
-    var btn = document.querySelector(".theme-btn");
-    if (btn) btn.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.content = theme === "light" ? "#ffffff" : "#17181c";
+    var sw = document.querySelector(".appearance-switch");
+    if (sw) sw.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
+  }
+  function resetTurnstile() {
+    if (turnstileWidget && window.turnstile) {
+      window.turnstile.reset(turnstileWidget, {
+        theme: effectiveTheme() === "light" ? "light" : "dark",
+        language: turnstileLang(CURRENT_LANG)
+      });
+    }
   }
   function toggleTheme() {
     var next = effectiveTheme() === "light" ? "dark" : "light";
     localStorage.setItem("theme", next);
     applyTheme(next);
-    if (turnstileWidget && window.turnstile) {
-      window.turnstile.reset(turnstileWidget, { theme: next === "light" ? "light" : "dark" });
-    }
+    resetTurnstile();
   }
+
+  /* ── 语言切换（与主站一致：cookie + 纯前端切换，不刷新页面） ── */
+  function saveLangCookie(code) {
+    var domain = location.hostname.endsWith("limooo.cn") ? "domain=.limooo.cn; " : "";
+    var secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = "user_lang_preference=" + code + "; path=/; max-age=31536000; SameSite=Lax" + secure + "; " + domain;
+  }
+  function renderI18n() {
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    document.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
+      el.getAttribute("data-i18n-attr").split("|").forEach(function (seg) {
+        var colon = seg.indexOf(":");
+        if (colon === -1) return;
+        seg.slice(0, colon).split(",").forEach(function (attr) {
+          el.setAttribute(attr.trim(), t(seg.slice(colon + 1)));
+        });
+      });
+    });
+  }
+  function applyLang(lang) {
+    if (!GATE_I18N[lang]) return;
+    if (lang !== CURRENT_LANG) {
+      CURRENT_LANG = lang;
+      document.documentElement.lang = lang;
+      renderI18n();
+      document.querySelectorAll("#langMenu .theme-option").forEach(function (opt) {
+        opt.classList.toggle("selected", opt.dataset.lang === lang);
+      });
+    }
+    saveLangCookie(lang);
+    resetTurnstile();
+  }
+  function toggleLangMenu(e) {
+    if (e) e.stopPropagation();
+    var m = document.getElementById("langMenu");
+    if (m) m.classList.toggle("open");
+  }
+  function closeLangMenu() {
+    var m = document.getElementById("langMenu");
+    if (m) m.classList.remove("open");
+  }
+  function setLang(code) {
+    closeLangMenu();
+    applyLang(code);
+  }
+  /* 桌面端：语言菜单悬停自动展开/收起（与主站一致），触摸端保持点击切换 */
+  (function bindLangHover() {
+    var fly = document.querySelector(".lang-flyout");
+    if (!fly) return;
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      fly.addEventListener("mouseenter", function () {
+        var m = document.getElementById("langMenu");
+        if (m) m.classList.add("open");
+      });
+      fly.addEventListener("mouseleave", closeLangMenu);
+    }
+  })();
+  /* 点击控件外部时收起语言菜单 */
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".theme-toggle")) closeLangMenu();
+  });
   function onloadTurnstileCallback() {
     var wrap = document.getElementById("turnstile-wrap");
     if (window.turnstile && wrap) {
       turnstileWidget = window.turnstile.render(wrap, {
         sitekey: ${JSON.stringify(sitekey)},
         callback: onTurnstileSuccess,
-        theme: effectiveTheme() === "light" ? "light" : "dark"
+        theme: effectiveTheme() === "light" ? "light" : "dark",
+        language: turnstileLang(CURRENT_LANG)
       });
     }
   }
-  // 初始同步主题（Turnstile 由 onloadTurnstileCallback 显式渲染）
+  // 初始同步主题与文案（Turnstile 由 onloadTurnstileCallback 显式渲染）
   applyTheme(effectiveTheme());
+  renderI18n();
+  /* 系统主题变化时：仅在无缓存（跟随系统）状态下自动跟随 */
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () {
+    if (!localStorage.getItem("theme")) applyTheme(getSystemTheme());
+  });
 </script>
 </body>
 </html>`;
@@ -482,7 +725,7 @@ async function handleVerify(context: EventContext): Promise<Response> {
   try {
     form = await request.formData();
   } catch {
-    return renderGatePage(context, { error: "Invalid request. Please try again." });
+    return renderGatePage(context, { errorKey: "invalid" });
   }
 
   const token = form.get("cf-turnstile-response")?.toString() ?? "";
@@ -503,9 +746,7 @@ async function handleVerify(context: EventContext): Promise<Response> {
       host,
       next,
       unavailable,
-      error: unavailable
-        ? "Verification service temporarily unavailable. Please try again in a moment."
-        : "Verification failed. Please try again.",
+      errorKey: unavailable ? "unavailable" : "failed",
     });
   }
 
@@ -536,7 +777,7 @@ export const onRequest: PagesFunction = async (context) => {
   if (url.pathname === "/__gate/verify") {
     return handleVerify(context);
   }
-  if (SKIP_PATHS.has(url.pathname)) {
+  if (SKIP_PATHS.has(url.pathname) || url.pathname.startsWith("/static/")) {
     return next();
   }
 

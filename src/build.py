@@ -23,8 +23,9 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
 FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
 
-LANGS = ("zh-CN", "en-US", "ja-JP", "ko-KR")
-DEFAULT_LANG = "en-US"
+# 语言代码统一小写（与 Cloudflare Turnstile 的 language 参数格式一致）
+LANGS = ("zh-cn", "en-us", "ja-jp", "ko-kr")
+DEFAULT_LANG = "en-us"
 
 # (模板, 输出文件名, 渲染路径) —— 用 Host: limooo.cn 渲染（is_prod=True），
 # 导航链接保留子域绝对地址（limooo.cn / services.limooo.cn / contact.limooo.cn），
@@ -41,7 +42,7 @@ def render_page(appmod, template: str, path: str, lang: str) -> str:
     with appmod.app.test_request_context(path, headers={"Host": "limooo.cn"}):
         appmod.g.lang = lang
         html = appmod.render_template(template)
-    # 相对资源统一加根斜杠：模板里是 src="static/..."，在 /zh-CN 这类子路径下
+    # 相对资源统一加根斜杠：模板里是 src="static/..."，在 /zh-cn 这类子路径下
     # 会解析错位，改成 /static/... 后任何路径都正确（配合中间件干净 URL）
     html = html.replace('src="static/', 'src="/static/')
     html = html.replace('href="static/', 'href="/static/')

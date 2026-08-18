@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 <!DOCTYPE html>
-<html lang="{{ g.lang or 'zh-CN' }}">
+<html lang="{{ g.lang or 'zh-cn' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -327,10 +327,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                     <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <div id="langMenu" class="theme-menu">
-                    <div class="theme-option{% if g.lang == 'zh-CN' %} selected{% endif %}" data-lang="zh-CN" onclick="setLang('zh-CN')"><span class="lang-flag">🇨🇳</span><span data-i18n="lang_zh">{{ _('lang_zh') }}</span></div>
-                    <div class="theme-option{% if g.lang == 'en-US' %} selected{% endif %}" data-lang="en-US" onclick="setLang('en-US')"><span class="lang-flag">🇺🇸</span><span data-i18n="lang_en">{{ _('lang_en') }}</span></div>
-                    <div class="theme-option{% if g.lang == 'ja-JP' %} selected{% endif %}" data-lang="ja-JP" onclick="setLang('ja-JP')"><span class="lang-flag">🇯🇵</span><span data-i18n="lang_ja">{{ _('lang_ja') }}</span></div>
-                    <div class="theme-option{% if g.lang == 'ko-KR' %} selected{% endif %}" data-lang="ko-KR" onclick="setLang('ko-KR')"><span class="lang-flag">🇰🇷</span><span data-i18n="lang_ko">{{ _('lang_ko') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'zh-cn' %} selected{% endif %}" data-lang="zh-cn" onclick="setLang('zh-cn')"><span class="lang-flag">🇨🇳</span><span data-i18n="lang_zh">{{ _('lang_zh') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'en-us' %} selected{% endif %}" data-lang="en-us" onclick="setLang('en-us')"><span class="lang-flag">🇺🇸</span><span data-i18n="lang_en">{{ _('lang_en') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'ja-jp' %} selected{% endif %}" data-lang="ja-jp" onclick="setLang('ja-jp')"><span class="lang-flag">🇯🇵</span><span data-i18n="lang_ja">{{ _('lang_ja') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'ko-kr' %} selected{% endif %}" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span data-i18n="lang_ko">{{ _('lang_ko') }}</span></div>
                 </div>
             </div>
             <span class="nav-divider hidden md:block"></span>
@@ -532,7 +532,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
     /* 页面加载完成后,低优先级后台预取其余语言 */
     function prefetchI18n() {
-        ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].forEach(function(lang) {
+        ['zh-cn', 'en-us', 'ja-jp', 'ko-kr'].forEach(function(lang) {
             if (lang === CURRENT_LANG || I18N_CACHE[lang] != null) return;
             fetchI18n(lang, function() {});
         });
@@ -549,17 +549,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
        ═══════════════════════════════════════════════════════════════ */
     var PAGE_MANIFEST = {
         '/':        { host: 'limooo.cn',          path: '/',        images: [
-                        '/static/portfolio/IMG_0203.webp',
-                        '/static/portfolio/IMG_0146.webp',
-                        '/static/portfolio/IMG_0130.webp',
-                        '/static/portfolio/IMG_0244.webp',
-                        '/static/portfolio/IMG_0115.webp',
-                        '/static/portfolio/IMG_0179.webp' ] },
+                        'https://limooo.cn/static/portfolio/IMG_0203.webp',
+                        'https://limooo.cn/static/portfolio/IMG_0146.webp',
+                        'https://limooo.cn/static/portfolio/IMG_0130.webp',
+                        'https://limooo.cn/static/portfolio/IMG_0244.webp',
+                        'https://limooo.cn/static/portfolio/IMG_0115.webp',
+                        'https://limooo.cn/static/portfolio/IMG_0179.webp' ] },
         '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
         '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
-                        '/static/qr-codes/bilibili.webp',
-                        '/static/qr-codes/qq.webp',
-                        '/static/qr-codes/wechat.webp' ], qr: true }
+                        'https://limooo.cn/static/qr-codes/bilibili.webp',
+                        'https://limooo.cn/static/qr-codes/qq.webp',
+                        'https://limooo.cn/static/qr-codes/wechat.webp' ], qr: true }
     };
 
     /* 当前所在主页键;生产按子域判断,本地开发按路径 */
@@ -597,7 +597,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 if (PAGE_MANIFEST[key].qr && !desktop) return;   /* 移动端跳过二维码 */
                 var img = new Image();
                 img.onerror = function() {};             /* 404 静默,不报控制台错误 */
-                img.src = origin + rel;
+                img.src = rel.indexOf('http') === 0 ? rel : origin + rel;
             });
         });
     }

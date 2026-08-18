@@ -221,4 +221,8 @@ WEOF
     cd /var/www/limooo/src && ../venv/bin/python3 auto_block.py ipset >/dev/null 2>&1
 EOF
 
+# Cloudflare Pages 部署（auth/limooo 站点由 Pages 托管，VPS rsync 不影响它）
+echo "Deploying to Cloudflare Pages..."
+"$LOCAL_DIR/deploy/pages_deploy.sh"
+
 echo "Deploy: done"

@@ -332,9 +332,10 @@ _asn_reader: geoip2.database.Reader | None = None
 
 
 # ── 多语言支持 ──────────────────────────────────────────
-SUPPORTED_LANGS = ("zh-CN", "en-US", "ja-JP", "ko-KR")
-DEFAULT_LANG = "en-US"  # 无法判定时默认英文（IP 地理检测的其他地区也归英文）
-KEY_FALLBACK_LANG = "zh-CN"  # 缺失翻译键时回退中文原文
+# 语言代码统一小写（与 Cloudflare Turnstile 的 language 参数格式一致）
+SUPPORTED_LANGS = ("zh-cn", "en-us", "ja-jp", "ko-kr")
+DEFAULT_LANG = "en-us"  # 无法判定时默认英文（IP 地理检测的其他地区也归英文）
+KEY_FALLBACK_LANG = "zh-cn"  # 缺失翻译键时回退中文原文
 LANG_COOKIE = "user_lang_preference"
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
 
@@ -355,27 +356,27 @@ def _load_translations() -> None:
 
 def _country_to_lang(iso_code: str | None) -> str | None:
     """按国家/地区 ISO 码映射默认语言，非目标国家返回 None"""
-    mapping = {"CN": "zh-CN", "JP": "ja-JP", "KR": "ko-KR"}
+    mapping = {"CN": "zh-cn", "JP": "ja-jp", "KR": "ko-kr"}
     return mapping.get(iso_code or "")
 
 
 def _detect_lang() -> str:
     """语言检测优先级: Cookie > Accept-Language(zh/en/ja/ko) > IP 地理位置"""
     cookie = request.cookies.get(LANG_COOKIE)
-    if cookie in SUPPORTED_LANGS:
-        return cookie
+    if cookie and cookie.lower() in SUPPORTED_LANGS:
+        return cookie.lower()
 
     accept = request.headers.get("Accept-Language", "")
     for part in accept.split(","):
         prefix = part.strip().split(";")[0].lower()
         if prefix.startswith("zh"):
-            return "zh-CN"
+            return "zh-cn"
         if prefix.startswith("en"):
-            return "en-US"
+            return "en-us"
         if prefix.startswith("ja"):
-            return "ja-JP"
+            return "ja-jp"
         if prefix.startswith("ko"):
-            return "ko-KR"
+            return "ko-kr"
 
     ip = request.headers.get("X-Real-IP") or request.remote_addr
     if ip and not is_private_ip(ip):
@@ -842,13 +843,14 @@ def api_auth_status():
 REDIRECT_HOST = "https://redirect.limooo.cn/"
 
 # redirect 页预热的 limooo.cn 主站图片（与 base.html PAGE_MANIFEST['/'] 保持同步）
+# 全部用裸域绝对 URL（资源统一走 https://limooo.cn/static/）
 REDIRECT_PRELOAD_IMAGES = [
-    "/static/portfolio/IMG_0203.webp",
-    "/static/portfolio/IMG_0146.webp",
-    "/static/portfolio/IMG_0130.webp",
-    "/static/portfolio/IMG_0244.webp",
-    "/static/portfolio/IMG_0115.webp",
-    "/static/portfolio/IMG_0179.webp",
+    "https://limooo.cn/static/portfolio/IMG_0203.webp",
+    "https://limooo.cn/static/portfolio/IMG_0146.webp",
+    "https://limooo.cn/static/portfolio/IMG_0130.webp",
+    "https://limooo.cn/static/portfolio/IMG_0244.webp",
+    "https://limooo.cn/static/portfolio/IMG_0115.webp",
+    "https://limooo.cn/static/portfolio/IMG_0179.webp",
 ]
 
 
