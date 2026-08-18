@@ -15,10 +15,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.redirect("https://limooo.cn/?error=bad_state", 302);
   }
 
-  const session = await exchangeCode(env, code, redirectUriFor(url.hostname));
-  if (!session) {
-    return Response.redirect("https://limooo.cn/?error=auth_failed", 302);
+  const result = await exchangeCode(env, code, redirectUriFor(url.hostname));
+  if (!result.session) {
+    return Response.redirect(`https://limooo.cn/?error=auth_failed&reason=${encodeURIComponent(result.reason)}`, 302);
   }
+  const session = result.session;
 
   // pending.next 只可能是站内相对路径或 https://limooo.cn/ 开头的完整 URL（login.ts 已过滤）
   const next = new URL(pending.next, "https://limooo.cn/").toString();

@@ -39,7 +39,11 @@ export function buildAuthorizeUrl(env: Env, state: string, redirectUri: string):
   return `${base}/application/o/authorize/?${params.toString()}`;
 }
 
-export async function exchangeCode(env: Env, code: string, redirectUri: string): Promise<SessionData | null> {
+export async function exchangeCode(
+  env: Env,
+  code: string,
+  redirectUri: string,
+): Promise<{ session: SessionData; reason?: never } | { session?: never; reason: string }> {
   const tokenUrl = (env.AUTHENTIK_URL || "https://identity.limooo.cn").replace(/\/$/, "") + "/application/o/token/";
   const body = new URLSearchParams({
     client_id: env.AUTHENTIK_CLIENT_ID ?? "",
@@ -52,6 +56,7 @@ export async function exchangeCode(env: Env, code: string, redirectUri: string):
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   let claims: IdTokenClaims | null = null;
+  let reason = "";
   try {
     const resp = await fetch(tokenUrl, {
       method: "POST",
@@ -63,16 +68,30 @@ export async function exchangeCode(env: Env, code: string, redirectUri: string):
       body: body.toString(),
       signal: controller.signal,
     });
-    const result = (await resp.json()) as { id_token?: string };
+    const text = await resp.text();
+    let result: { id_token?: string; error?: string; error_description?: string } = {};
+    try {
+      result = JSON.parse(text);
+    } catch {
+      reason = `bad_json:${text.slice(0, 200)}`;
+    }
+    if (!resp.ok) reason = reason || `http_${resp.status}:${result.error_description || result.error || text.slice(0, 200)}`;
+    else if (!result.id_token) reason = reason || "no_id_token";
     if (result.id_token) {
-      claims = b64urlDecodeJson(result.id_token.split(".")[1]) as IdTokenClaims;
+      try {
+        claims = b64urlDecodeJson(result.id_token.split(".")[1]) as IdTokenClaims;
+      } catch (e) {
+        reason = reason || `id_token_parse:${String(e)}`;
+      }
     }
   } catch {
-    claims = null;
+    reason = "fetch_exception";
   } finally {
     clearTimeout(timer);
   }
-  if (!claims || !claims.sub) return null;
+  if (!claims) reason = reason || "no_claims";
+  else if (!claims.sub) reason = reason || "no_sub";
+  if (!claims || !claims.sub) return { reason };
 
   const adminGroups = (env.AUTHENTIK_ADMIN_GROUPS || "authentik Admins")
     .split(",")
@@ -83,11 +102,13 @@ export async function exchangeCode(env: Env, code: string, redirectUri: string):
   const name = claims.name || email;
 
   return {
-    sub: claims.sub,
-    user: { email, name },
-    role: groups.some((g) => adminGroups.includes(g)) ? "admin" : "viewer",
-    authAt: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 7 * 86400,
+    session: {
+      sub: claims.sub,
+      user: { email, name },
+      role: groups.some((g) => adminGroups.includes(g)) ? "admin" : "viewer",
+      authAt: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 7 * 86400,
+    },
   };
 }
 

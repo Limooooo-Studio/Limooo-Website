@@ -7,7 +7,8 @@ import type { Env } from "./_lib/env";
 function safeNext(raw: string | null): string {
   if (!raw) return "https://limooo.cn/";
   if (raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) return raw;
-  if (/^https:\/\/limooo\.cn\//.test(raw)) return raw;
+  // 放行主站及已迁移到 Pages 的管理子域（登录后回跳原页面）
+  if (/^https:\/\/(limooo\.cn|visitor\.limooo\.cn|appleid\.limooo\.cn)\//.test(raw)) return raw;
   return "https://limooo.cn/";
 }
 
