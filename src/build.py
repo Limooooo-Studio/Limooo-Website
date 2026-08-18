@@ -53,7 +53,6 @@ GATE_I18N = {
         "foot": "由 Limooo 边缘安全提供保护",
         "lang_aria": "切换语言",
         "theme_aria": "切换主题",
-        "copyright": "© 2026 LIMOOO 保留所有权利",
         "error_sitekey": "服务配置错误：未设置 TURNSTILE_SITEKEY。",
         "error_invalid": "请求无效，请重试。",
         "error_unavailable": "验证服务暂时不可用，请稍后重试。",
@@ -68,7 +67,6 @@ GATE_I18N = {
         "foot": "Secured by Limooo Edge Security",
         "lang_aria": "Switch language",
         "theme_aria": "Toggle theme",
-        "copyright": "© 2026 LIMOOO ALL RIGHTS RESERVED",
         "error_sitekey": "Server configuration error: TURNSTILE_SITEKEY is not set.",
         "error_invalid": "Invalid request. Please try again.",
         "error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
@@ -83,7 +81,6 @@ GATE_I18N = {
         "foot": "Limooo Edge Security により保護されています",
         "lang_aria": "言語切替",
         "theme_aria": "テーマ切替",
-        "copyright": "© 2026 LIMOOO 全著作権所有",
         "error_sitekey": "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
         "error_invalid": "リクエストが無効です。もう一度お試しください。",
         "error_unavailable": "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
@@ -98,7 +95,6 @@ GATE_I18N = {
         "foot": "Limooo Edge Security가 보호합니다",
         "lang_aria": "언어 전환",
         "theme_aria": "테마 전환",
-        "copyright": "© 2026 LIMOOO 모든 권리 보유",
         "error_sitekey": "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
         "error_invalid": "잘못된 요청입니다. 다시 시도해 주세요.",
         "error_unavailable": "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
@@ -162,7 +158,6 @@ def render_gate(appmod, lang: str) -> str:
             foot=t["foot"],
             lang_aria=t["lang_aria"],
             theme_aria=t["theme_aria"],
-            copyright=t["copyright"],
             error_html="",
             turnstile_html=turnstile_html,
             turnstile_src=turnstile_src,
@@ -170,6 +165,18 @@ def render_gate(appmod, lang: str) -> str:
             gate_i18n=json.dumps(GATE_I18N, ensure_ascii=False),
             host="",
             next="/",
+        )
+    return html
+
+
+def localize_lang_menu(html: str, filename: str) -> str:
+    """预览版语言菜单：onclick 前端切换（本地无 /api/i18n）→ 跳转对应语言目录的同名文件"""
+    for target in LANGS:
+        html = re.sub(
+            r'<div class="theme-option([^"]*)" data-lang="' + target + r'" onclick="setLang\(\'' + target + r'\'\)">(.*?)</div>',
+            r'<a class="theme-option\1" href="../' + target + r'/' + filename + r'">\2</a>',
+            html,
+            flags=re.S,
         )
     return html
 
@@ -263,6 +270,8 @@ def main() -> int:
         for name in os.listdir(src):
             if name.endswith(".html"):
                 html = open(os.path.join(src, name), encoding="utf-8").read()
+                # 语言菜单本地化（跳转对应语言文件）
+                html = localize_lang_menu(html, name)
                 # 资源引用本地化：https://limooo.cn/static/... → ../../static/...
                 # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
                 html = re.sub(
