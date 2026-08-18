@@ -374,10 +374,10 @@ const GATE_I18N: Record<string, Record<string, string>> = {
 
 /** 跳转页文案（与 Flask locales 的 redirect_title/redirect_text 一致） */
 const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = {
-  "zh-cn": { title: "正在跳转", text: "正在跳转…", footer_rights: "保留所有权利", footer_source: "根据 AGPL-3.0 许可证发布" },
-  "en-us": { title: "Redirecting", text: "Redirecting…", footer_rights: "", footer_source: "Released under the AGPL-3.0 License" },
-  "ja-jp": { title: "リダイレクト中", text: "リダイレクト中…", footer_rights: "無断転載禁止", footer_source: "AGPL-3.0 ライセンスに基づいて公開" },
-  "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중…", footer_rights: "모든 권리 보유", footer_source: "AGPL-3.0 라이선스에 따라 배포" },
+  "zh-cn": { title: "正在跳转", text: "正在跳转... (・ω・)", footer_rights: "保留所有权利", footer_source: "根据 AGPL-3.0 许可证发布" },
+  "en-us": { title: "Redirecting", text: "Redirecting... (・ω・)", footer_rights: "", footer_source: "Released under the AGPL-3.0 License" },
+  "ja-jp": { title: "リダイレクト中", text: "リダイレクト中... (・ω・)", footer_rights: "無断転載禁止", footer_source: "AGPL-3.0 ライセンスに基づいて公開" },
+  "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중... (・ω・)", footer_rights: "모든 권리 보유", footer_source: "AGPL-3.0 라이선스에 따라 배포" },
 };
 
 /** redirect 页预热的 limooo.cn 主站作品图（与 Flask REDIRECT_PRELOAD_IMAGES 一致） */
