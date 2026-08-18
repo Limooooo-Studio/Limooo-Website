@@ -249,17 +249,32 @@ def main() -> int:
     # 4) i18n Functions（前端语言切换接口）
     write_i18n_functions()
 
-    # 5) 子域预览（本地预览用，不入库）：preview/<lang>/ 下放所有子域页面
+    # 5) 子域预览（本地预览用，不入库）：preview/<lang>/ 下放所有子域页面，
+    #    并镜像 static/ 资源，HTML 里的图片引用改为本地相对路径（离线可看）
     if os.path.isdir(PREVIEW_DIR):
         shutil.rmtree(PREVIEW_DIR)
     os.makedirs(PREVIEW_DIR)
+    shutil.copytree(STATIC_DIR, os.path.join(PREVIEW_DIR, "static"))
     for lang in LANGS:
         dst = os.path.join(PREVIEW_DIR, lang)
         os.makedirs(dst, exist_ok=True)
         src = os.path.join(PUBLIC_DIR, lang)
         for name in os.listdir(src):
             if name.endswith(".html"):
-                shutil.copy2(os.path.join(src, name), os.path.join(dst, name))
+                html = open(os.path.join(src, name), encoding="utf-8").read()
+                # 资源引用本地化：https://limooo.cn/static/... → ../../static/...
+                # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
+                html = re.sub(
+                    r'(src|href|data-qr)="https://limooo\.cn/static/',
+                    r'\1="../../static/',
+                    html,
+                )
+                html = html.replace(
+                    'src="/Limooo-xtext.webp"',
+                    'src="../../static/icons/Limooo-xtext.webp"',
+                )
+                with open(os.path.join(dst, name), "w", encoding="utf-8") as f:
+                    f.write(html)
     with open(os.path.join(PREVIEW_DIR, ".gitkeep"), "w", encoding="utf-8") as f:
         pass
     print(f"[build] preview generated for {len(LANGS)} languages", flush=True)
