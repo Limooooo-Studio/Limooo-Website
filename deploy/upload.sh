@@ -206,12 +206,6 @@ WEOF
         exit 1
     fi
 
-    # Download GeoLite2 if missing
-    if [ ! -f "data/GeoLite2-City.mmdb" ] || [ ! -f "data/GeoLite2-ASN.mmdb" ]; then
-        echo "Downloading GeoLite2..."
-        cd /var/www/limooo/src && ../venv/bin/python geoip.py update
-    fi
-
     # Setup auto_block cron job (daily at 3:00 AM)
     if ! crontab -l 2>/dev/null | grep -q 'auto_block.py'; then
         (crontab -l 2>/dev/null; echo "0 3 * * * cd /var/www/limooo/src && ../venv/bin/python3 auto_block.py >> /var/log/auto_block.log 2>&1") | crontab -

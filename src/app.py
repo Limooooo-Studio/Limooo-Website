@@ -16,35 +16,30 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import base64
+import functools
 import hashlib
 import hmac
 import json
 import os
 import secrets
 import sqlite3
-import sys
 import time
 import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-import geoip2.database
-import geoip2.errors
 import requests
 from flask import Flask, Response, g, jsonify, redirect, render_template, request, session
 
 from common import (
-    APPLEID_DB,
     BASE_DIR,
     DATA_DIR,
     DATABASE,
     LOG_PATTERN,
     NGINX_LOG,
-    cache_geo,
     ensure_geo_cache,
     get_appleid_db,
     get_cached_geo,
@@ -106,8 +101,6 @@ app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_DOMAIN"] = ".limooo.cn"
-GEOIP_CITY_DB = os.path.join(DATA_DIR, "GeoLite2-City.mmdb")
-GEOIP_ASN_DB = os.path.join(DATA_DIR, "GeoLite2-ASN.mmdb")
 
 
 # ── authentik OIDC ──────────────────────────────────────
@@ -327,9 +320,6 @@ def _session_logged_out() -> bool:
         return False
     return last > (session.get("auth_at") or 0)
 
-_city_reader: geoip2.database.Reader | None = None
-_asn_reader: geoip2.database.Reader | None = None
-
 
 # ── 多语言支持 ──────────────────────────────────────────
 # 语言代码统一小写（与 Cloudflare Turnstile 的 language 参数格式一致）
@@ -354,12 +344,6 @@ def _load_translations() -> None:
             _translations[name] = {}
 
 
-def _country_to_lang(iso_code: str | None) -> str | None:
-    """按国家/地区 ISO 码映射默认语言，非目标国家返回 None"""
-    mapping = {"CN": "zh-cn", "JP": "ja-jp", "KR": "ko-kr"}
-    return mapping.get(iso_code or "")
-
-
 def _detect_lang() -> str:
     """语言检测优先级: Cookie > Accept-Language(zh/en/ja/ko) > IP 地理位置"""
     cookie = request.cookies.get(LANG_COOKIE)
@@ -378,16 +362,6 @@ def _detect_lang() -> str:
         if prefix.startswith("ko"):
             return "ko-kr"
 
-    ip = request.headers.get("X-Real-IP") or request.remote_addr
-    if ip and not is_private_ip(ip):
-        reader = _get_reader(GEOIP_CITY_DB, "city")
-        if reader is not None:
-            try:
-                lang = _country_to_lang(reader.city(ip).country.iso_code)
-                if lang:
-                    return lang
-            except Exception:
-                pass
     return DEFAULT_LANG
 
 
@@ -403,7 +377,7 @@ def persist_detected_lang(resp: Response) -> Response:
     此后所有子域界面都固定使用该语言,不再随浏览器语言变化"""
     if LANG_COOKIE in request.cookies:
         return resp
-    if request.path.startswith(("/api/", "/tiles/")):
+    if request.path.startswith("/api/"):
         return resp  # 纯数据接口无需语言 cookie
     lang = getattr(g, "lang", None)
     if not lang:
@@ -505,26 +479,6 @@ def _is_whitelisted(ip: str) -> bool:
         return False
 
 
-def _add_to_whitelist(ip: str, duration_seconds: int = 7776000) -> None:
-    """将 IP 加入白名单（默认 3 个月 = 90 天）"""
-    try:
-        now = datetime.now(timezone.utc)
-        expires = now.timestamp() + duration_seconds
-        db = get_db()
-        db.execute(
-            "INSERT OR REPLACE INTO ip_whitelist (ip, added_at, expires_at, source) "
-            "VALUES (?, ?, ?, 'microsoft')",
-            (ip, now.isoformat(), expires),
-        )
-        db.commit()
-        app.logger.info(
-            f"[ok] IP {ip} 已加入白名单，过期时间: "
-            f"{datetime.fromtimestamp(expires, tz=timezone.utc).isoformat()}"
-        )
-    except sqlite3.Error as e:
-        app.logger.error(f"添加白名单失败: {e}")
-
-
 def _is_blocked(ip: str) -> str | None:
     """综合检查 IP 是否被封禁，返回封禁原因字符串或 None"""
     if _is_whitelisted(ip):
@@ -559,84 +513,6 @@ def block_banned_visitors():
             f"[blocked] 已拦截被封禁请求: {ip} (原因: {reason}) 路径: {request.path}"
         )
         return Response("Forbidden", status=403)
-
-
-def _get_reader(path: str, ref: str) -> geoip2.database.Reader | None:
-    global _city_reader, _asn_reader
-    holder = _city_reader if ref == "city" else _asn_reader
-    if holder is None:
-        if not os.path.exists(path):
-            return None
-        try:
-            holder = geoip2.database.Reader(path)
-        except Exception:
-            return None
-        if ref == "city":
-            _city_reader = holder
-        else:
-            _asn_reader = holder
-    return holder
-
-
-def geolocate_ip(ip: str) -> dict | None:
-    """实时查询指定 IP 的地理位置（城市 + ASN），返回结构化 dict"""
-    if is_private_ip(ip):
-        return None
-    reader = _get_reader(GEOIP_CITY_DB, "city")
-    if reader is None:
-        return None
-    try:
-        resp = reader.city(ip)
-        lat = resp.location.latitude
-        lon = resp.location.longitude
-        if lat is None or lon is None:
-            return None
-    except (geoip2.errors.AddressNotFoundError, Exception):
-        return None
-
-    # 使用 GeoLite2 自带英文名，不做中文翻译
-    country = resp.country.name or ""
-    city = resp.city.name or ""
-
-    asn_code = ""
-    asn_org = ""
-    asn_reader = _get_reader(GEOIP_ASN_DB, "asn")
-    if asn_reader:
-        try:
-            asn_resp = asn_reader.asn(ip)
-            asn_code = (
-                f"AS{asn_resp.autonomous_system_number}"
-                if asn_resp.autonomous_system_number
-                else ""
-            )
-            asn_org = asn_resp.autonomous_system_organization or ""
-        except (geoip2.errors.AddressNotFoundError, Exception):
-            pass
-
-    return {
-        "country": country,
-        "city": city,
-        "latitude": lat,
-        "longitude": lon,
-        "isp": asn_org,
-        "asn": asn_code,
-    }
-
-
-
-
-TOKEN_TTL = 3600 * 24
-
-
-def _make_token() -> str:
-    """生成带 HMAC 签名的认证 token，任意 worker 均可验证"""
-    expiry = int(time.time()) + TOKEN_TTL
-    payload = str(expiry)
-    sig = hmac.new(
-        app.secret_key.encode(), payload.encode(), hashlib.sha256
-    ).hexdigest()
-    raw = f"{expiry}:{sig}".encode()
-    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
 def _verify_token(token: str | None) -> bool:
@@ -678,6 +554,28 @@ def _require_admin() -> bool:
     if auth.startswith("Bearer "):
         return _verify_token(auth[7:])
     return False
+
+
+def login_required(f):
+    """JSON API 登录校验装饰器：未登录返回 401"""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not _require_auth():
+            return jsonify({"error": "未登录"}), 401
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(f):
+    """JSON API 写操作权限：需登录且为 admin（Bearer 令牌视为管理员）"""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if not _require_auth():
+            return jsonify({"error": "未登录"}), 401
+        if not _require_admin():
+            return jsonify({"error": "只读账户，无写入权限"}), 403
+        return f(*args, **kwargs)
+    return wrapper
 
 
 # ── 人机验证门禁（与 Cloudflare Pages 共用 __gate cookie，nginx auth_request 调用）──
@@ -799,31 +697,6 @@ def visitor():
     if not _require_auth():
         return redirect("/login?next=" + urllib.parse.quote(_browser_url()))
     return render_template("visitor.html")
-
-
-# 将 CartoDB 的地图瓦片通过本域代理，避免跨域限制 + 缓存
-TILE_UPSTREAMS = {
-    "dark": "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all",
-    "light": "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all",
-}
-
-
-@app.route("/tiles/<theme>/<int:z>/<int:x>/<int:y>.png")
-def proxy_tile(theme: str, z: int, x: int, y: int):
-    upstream = TILE_UPSTREAMS.get(theme)
-    if not upstream:
-        return "", 404
-    url = f"{upstream}/{z}/{x}/{y}.png"
-    req = urllib.request.Request(url, headers={"User-Agent": "limooo/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            return Response(
-                resp.read(),
-                mimetype="image/png",
-                headers={"Cache-Control": "public, max-age=604800"},
-            )
-    except Exception:
-        return "", 502
 
 
 # ── authentik 登录 ──────────────────────────
@@ -1068,9 +941,8 @@ def appleid():
 
 
 @app.route("/api/appleid/accounts", methods=["GET"])
+@login_required
 def api_appleid_list():
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
     db = get_appleid_db()
     cipher = _get_appleid_cipher()
     rows = db.execute(
@@ -1098,11 +970,8 @@ def _normalize_appleid_email(raw: str) -> str:
 
 
 @app.route("/api/appleid/accounts", methods=["POST"])
+@admin_required
 def api_appleid_add():
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
-    if not _require_admin():
-        return jsonify({"error": "只读账户，无写入权限"}), 403
     data = request.get_json()
     if not data or not data.get("email") or not data.get("password"):
         return jsonify({"error": "邮箱和密码不能为空"}), 400
@@ -1123,11 +992,8 @@ def api_appleid_add():
 
 
 @app.route("/api/appleid/reorder", methods=["PUT"])
+@admin_required
 def api_appleid_reorder():
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
-    if not _require_admin():
-        return jsonify({"error": "只读账户，无写入权限"}), 403
     data = request.get_json()
     order = data.get("order", [])
     db = get_appleid_db()
@@ -1141,11 +1007,8 @@ def api_appleid_reorder():
 
 
 @app.route("/api/appleid/accounts/<int:account_id>", methods=["PUT"])
+@admin_required
 def api_appleid_update(account_id):
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
-    if not _require_admin():
-        return jsonify({"error": "只读账户，无写入权限"}), 403
     data = request.get_json()
     db = get_appleid_db()
     password = data.get("password", "")
@@ -1168,10 +1031,9 @@ def api_appleid_update(account_id):
 
 
 @app.route("/api/appleid/accounts/<int:account_id>/reveal", methods=["POST"])
+@login_required
 def api_appleid_reveal(account_id):
     """临时获取明文密码（需已登录），返回一次后即丢弃"""
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
     db = get_appleid_db()
     row = db.execute(
         "SELECT password FROM apple_accounts WHERE id = ?", (account_id,)
@@ -1187,11 +1049,8 @@ def api_appleid_reveal(account_id):
 
 
 @app.route("/api/appleid/accounts/<int:account_id>", methods=["DELETE"])
+@admin_required
 def api_appleid_delete(account_id):
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
-    if not _require_admin():
-        return jsonify({"error": "只读账户，无写入权限"}), 403
     db = get_appleid_db()
     db.execute("DELETE FROM apple_accounts WHERE id = ?", (account_id,))
     db.commit()
@@ -1204,11 +1063,9 @@ _migrate_appleid_from_geo_cache()
 
 
 @app.route("/api/visitors")
+@login_required
 def api_visitors():
-    """获取访客列表（需已登录），支持按状态码过滤，返回带地图标记的数据"""
-    if not _require_auth():
-        return jsonify({"error": "未登录"}), 401
-
+    """获取访客列表（需已登录），支持按状态码过滤"""
     status_filter = request.args.get("status", "all")
 
     logs = parse_nginx_log()
@@ -1216,6 +1073,7 @@ def api_visitors():
     countries: set[str] = set()
     status_counts: dict[str, int] = {}
     total_requests = 0
+    db = get_db()
 
     for v in logs:
         total_requests += v["count"]
@@ -1223,12 +1081,7 @@ def api_visitors():
             status_counts[code] = status_counts.get(code, 0) + cnt
         if status_filter != "all" and status_filter not in v["statuses"]:
             continue
-        db = get_db()
         geo = get_cached_geo(db, v["ip"])
-        if geo is None:
-            geo = geolocate_ip(v["ip"])
-            if geo:
-                cache_geo(db, v["ip"], geo)
         time_str = (
             v["last_time"].strftime("%Y-%m-%d %H:%M:%S") if v["last_time"] else None
         )
@@ -1266,13 +1119,6 @@ def api_visitors():
 
 init_db()
 _load_translations()
-
-if not os.path.exists(GEOIP_CITY_DB):
-    print(
-        f"\n  [warn] GeoLite2-City.mmdb 未找到: {GEOIP_CITY_DB}\n"
-        f"     请运行:  python3 geoip.py update\n",
-        file=sys.stderr,
-    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

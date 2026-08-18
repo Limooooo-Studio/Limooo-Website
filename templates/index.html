@@ -24,6 +24,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
    首页专用样式：页面层叠切换、闪光灯动画、作品展示网格
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── 首页 footer：跟随作品页滚动（不固定），置于作品网格之后 ── */
+#portfolio .global-footer {
+    position: static;
+    flex-shrink: 0;
+}
+
 /* ── 页面层叠容器（home / portfolio 两个页面叠加，通过 transform 切换） ── */
 .page-layer {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -211,7 +217,11 @@ h1 { font-weight: 600 !important; }
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
         </div>
-        {% include "_footer.html" %}
+        <footer class="global-footer" id="global-footer">
+            <div class="footer-link">
+                <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
+            </div>
+        </footer>
     </section>
 </div>
 {% endblock %}

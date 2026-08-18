@@ -1,0 +1,388 @@
+{# Limooo - 人机验证门禁页（auth.limooo.cn/__gate）
+   由 build.py 按 4 种语言预渲染为 public/<lang>/auth.html。
+   动态部分（Turnstile sitekey / 错误提示）在构建时注入，诊断信息由 /__gate/diag 实时获取。
+   此模板与 functions/_middleware.ts 的 renderGatePage 保持同一套样式与交互。 #}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#17181c">
+<title>{{ title }}</title>
+<script>
+  // 与主站共用 localStorage key "theme"：首次跟随系统，点击后固定并缓存
+  (function () {
+    var t = localStorage.getItem('theme');
+    if (t === 'light' || (!t && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+      document.documentElement.classList.add('light-mode');
+    }
+  })();
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    color-scheme: dark;
+    --bg-a: #17181c; --bg-b: #101114;
+    --text: #e2e2e3; --muted: #9ca3af;
+    --line: #2e2e32; --panel: #202127; --highlight: #2a2a2f;
+    --accent: #05A5A6;
+    --foot: #E7EBCE;
+    /* 主站同款控件变量 */
+    --bg: #1b1b1f; --panel-bg: #202127;
+    --radius-sm: 6px; --radius-md: 10px;
+    --switch-icon: #dfdfd6; --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --footer-border: #2e2e32;
+    --ls-scale: 0.65;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  html[lang^="en"] { --ls-scale: 0.3; }
+  .light-mode {
+    color-scheme: light;
+    --bg-a: #f3f4f6; --bg-b: #e5e7eb;
+    --text: #1f2328; --muted: #6b7280;
+    --line: #e2e2e3; --panel: #ffffff; --highlight: #f2f2f3;
+    --foot: #9ca3af;
+    --bg: #ffffff; --panel-bg: #f6f6f7;
+    --switch-icon: #67676c; --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    --footer-border: #e2e2e3;
+  }
+  body {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    /* 与主站底色一致（纯色，深色 #1b1b1f / 浅色 #ffffff） */
+    background: var(--bg);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100dvh;
+    min-height: 100vh;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+    transition: background 300ms var(--ease-out);
+  }
+  /* 右上角控件组（语言切换 + 深浅切换，样式与主站导航栏一致） */
+  .gate-controls {
+    position: fixed; top: 18px; right: 18px; z-index: 10;
+    display: flex; align-items: center; gap: 8px;
+  }
+  /* ── 语言切换按钮（与主站一致：文A 图标 + 下箭头） ── */
+  .theme-toggle { position: relative; display: flex; align-items: center; }
+  .lang-btn {
+    display: flex; align-items: center;
+    padding: 0 12px; height: 36px;
+    border: none; background: none; cursor: pointer;
+    color: var(--text);
+    transition: color 200ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .lang-btn:hover { color: var(--accent); }
+  }
+  .lang-btn .lang-icon { width: 16px; height: 16px; }
+  .lang-btn .lang-chevron { width: 14px; height: 14px; margin-left: 4px; opacity: 0.6; }
+  /* ── 语言菜单（与主站一致：VitePress VPFlyout 弹出层） ── */
+  .theme-menu {
+    position: absolute; top: calc(100% + 8px); right: 0; min-width: 120px;
+    background: var(--panel-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+    padding: 4px; z-index: 200;
+    opacity: 0; visibility: hidden;
+    transform: translateY(-4px) scale(0.92);
+    transform-origin: top right;
+    transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 150ms;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  }
+  .theme-menu.open {
+    opacity: 1; visibility: visible; transform: translateY(0) scale(1);
+    transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  }
+  .theme-option {
+    padding: 8px 14px; margin: 2px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    letter-spacing: calc(0.05em * var(--ls-scale)); cursor: pointer; white-space: nowrap;
+    transition: background 150ms var(--ease-out);
+    opacity: 0.5;
+  }
+  .lang-flag { margin-right: 6px; }
+  .theme-option.selected {
+    opacity: 1; background: var(--highlight);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .theme-option:hover { opacity: 1; background: var(--highlight); }
+  }
+  /* ── 深浅切换（与主站一致：太阳-月亮胶囊滑块） ── */
+  .appearance-switch {
+    position: relative; border-radius: 11px; display: block;
+    width: 40px; height: 22px; flex-shrink: 0;
+    border: 1px solid var(--line);
+    background: var(--highlight);
+    cursor: pointer; padding: 0;
+    transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .appearance-switch:hover { border-color: var(--accent); }
+  }
+  .appearance-check {
+    position: absolute; top: 1px; left: 1px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--bg);
+    box-shadow: var(--switch-shadow);
+    transform: translateX(18px); /* 默认深色：滑块在右 */
+    transition: transform 250ms var(--ease-out);
+  }
+  .appearance-icon {
+    position: relative; display: block; width: 18px; height: 18px;
+    border-radius: 50%; overflow: hidden;
+  }
+  .appearance-icon svg {
+    position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+    color: var(--switch-icon);
+    transition: opacity 250ms var(--ease-out);
+  }
+  /* 默认（深色）：月亮可见；浅色：太阳可见 */
+  .appearance-icon .sun { opacity: 0; }
+  .appearance-icon .moon { opacity: 1; }
+  .light-mode .appearance-icon .sun { opacity: 1; }
+  .light-mode .appearance-icon .moon { opacity: 0; }
+  .light-mode .appearance-check { transform: translateX(0); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+    max-width: 640px;
+    width: 100%;
+    padding: 40px 40px 28px;
+    transition: background 300ms var(--ease-out), border-color 300ms var(--ease-out);
+  }
+  .logo { display: block; margin: 0 auto 22px; max-width: 220px; height: auto; }
+  h1 {
+    font-size: 18px; font-weight: 600; text-align: center;
+    color: var(--text); line-height: 1.5; margin-bottom: 24px;
+  }
+  .turnstile-wrap { display: flex; justify-content: center; min-height: 65px; margin-bottom: 26px; }
+  .error {
+    background: rgba(185, 28, 28, 0.12); border: 1px solid rgba(185, 28, 28, 0.4);
+    color: var(--text);
+    border-radius: 6px; padding: 10px 14px; font-size: 14px;
+    margin-bottom: 18px; text-align: center;
+  }
+  .divider { border: none; border-top: 1px solid var(--line); margin: 0 0 16px; }
+  .diag {
+    display: grid; grid-template-columns: 96px 1fr; gap: 5px 14px;
+    font-size: 13px; color: var(--text); margin-bottom: 20px;
+  }
+  .diag dt { color: var(--muted); text-align: right; }
+  .diag dd { overflow-wrap: anywhere; }
+  .foot { text-align: center; font-size: 12px; color: var(--foot); }
+  /* ── 底部版权（与主站 base.html 一致） ── */
+  .global-footer {
+    position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
+    border-top: 1px solid var(--footer-border);
+    background-color: var(--bg) !important;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .footer-link {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    padding: 1.25rem 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    color: inherit; text-decoration: none;
+  }
+  .footer-text {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .global-footer { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="gate-controls">
+  <div class="theme-toggle lang-flyout">
+    <button class="lang-btn" onclick="toggleLangMenu(event)" aria-haspopup="true" aria-label="{{ lang_aria }}" data-i18n-attr="aria-label:lang_aria">
+      <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+      <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div id="langMenu" class="theme-menu">
+      <div class="theme-option{% if lang == 'zh-cn' %} selected{% endif %}" data-lang="zh-cn" onclick="setLang('zh-cn')"><span class="lang-flag">🇨🇳</span><span>简体中文</span></div>
+      <div class="theme-option{% if lang == 'en-us' %} selected{% endif %}" data-lang="en-us" onclick="setLang('en-us')"><span class="lang-flag">🇺🇸</span><span>English</span></div>
+      <div class="theme-option{% if lang == 'ja-jp' %} selected{% endif %}" data-lang="ja-jp" onclick="setLang('ja-jp')"><span class="lang-flag">🇯🇵</span><span>日本語</span></div>
+      <div class="theme-option{% if lang == 'ko-kr' %} selected{% endif %}" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span>한국어</span></div>
+    </div>
+  </div>
+  <button class="appearance-switch" type="button" role="switch" aria-checked="false" aria-label="{{ theme_aria }}" data-i18n-attr="aria-label:theme_aria" onclick="toggleTheme()">
+    <span class="appearance-check">
+      <span class="appearance-icon">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </span>
+    </span>
+  </button>
+</div>
+<main class="card">
+  <img class="logo" src="/Limooo-xtext.webp" alt="LIMOOO" width="220">
+  <h1 data-i18n="heading">{{ heading }}</h1>
+  {{ error_html|safe }}
+  <form id="gate" method="post" action="/__gate/verify">
+    <input type="hidden" name="host" value="{{ host }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="turnstile-wrap">{{ turnstile_html|safe }}</div>
+  </form>
+  <hr class="divider">
+  <dl class="diag">
+    <dt data-i18n="location">{{ location }}</dt><dd id="diag-country">—</dd>
+    <dt data-i18n="ip">{{ ip }}</dt><dd id="diag-ip">—</dd>
+    <dt data-i18n="ray">{{ ray }}</dt><dd id="diag-ray">—</dd>
+  </dl>
+  <p class="foot" data-i18n="foot">{{ foot }}</p>
+</main>
+<!-- ═══ 底部版权（与主站 base.html 一致） ═══ -->
+<footer class="global-footer" id="global-footer">
+  <div class="footer-link">
+    <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
+  </div>
+</footer>
+{{ turnstile_src|safe }}
+<script>
+  var turnstileWidget = null;
+  var CURRENT_LANG = {{ lang|tojson }};
+  var GATE_I18N = {{ gate_i18n|safe }};
+
+  function t(key) {
+    var dict = GATE_I18N[CURRENT_LANG] || GATE_I18N["en-us"];
+    return dict && dict[key] !== undefined ? dict[key] : key;
+  }
+  /* Turnstile 的 language 参数要求小写格式（zh-cn / en-us / ja / ko），
+     直接传 zh-cn 等大写值不会被识别，widget 会回退到浏览器语言 */
+  function turnstileLang(code) {
+    return { "zh-cn": "zh-cn", "en-us": "en-us", "ja-jp": "ja", "ko-kr": "ko" }[code] || "auto";
+  }
+
+  function onTurnstileSuccess() {
+    document.getElementById("gate").submit();
+  }
+
+  /* ── 主题切换（与主站一致：localStorage "theme"，首次跟随系统） ── */
+  function getSystemTheme() {
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  function effectiveTheme() {
+    var saved = localStorage.getItem("theme");
+    return (saved === "light" || saved === "dark") ? saved : getSystemTheme();
+  }
+  function applyTheme(theme) {
+    document.documentElement.classList.toggle("light-mode", theme === "light");
+    var mc = document.querySelector('meta[name="theme-color"]');
+    if (mc) mc.content = theme === "light" ? "#ffffff" : "#17181c";
+    var sw = document.querySelector(".appearance-switch");
+    if (sw) sw.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
+  }
+  function resetTurnstile() {
+    if (turnstileWidget && window.turnstile) {
+      window.turnstile.reset(turnstileWidget, {
+        theme: effectiveTheme() === "light" ? "light" : "dark",
+        language: turnstileLang(CURRENT_LANG)
+      });
+    }
+  }
+  function toggleTheme() {
+    var next = effectiveTheme() === "light" ? "dark" : "light";
+    localStorage.setItem("theme", next);
+    applyTheme(next);
+    resetTurnstile();
+  }
+
+  /* ── 语言切换（与主站一致：cookie + 纯前端切换，不刷新页面） ── */
+  function saveLangCookie(code) {
+    var domain = location.hostname.endsWith("limooo.cn") ? "domain=.limooo.cn; " : "";
+    var secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = "user_lang_preference=" + code + "; path=/; max-age=31536000; SameSite=Lax" + secure + "; " + domain;
+  }
+  function renderI18n() {
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    document.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
+      el.getAttribute("data-i18n-attr").split("|").forEach(function (seg) {
+        var colon = seg.indexOf(":");
+        if (colon === -1) return;
+        seg.slice(0, colon).split(",").forEach(function (attr) {
+          el.setAttribute(attr.trim(), t(seg.slice(colon + 1)));
+        });
+      });
+    });
+  }
+  function applyLang(lang) {
+    if (!GATE_I18N[lang]) return;
+    if (lang !== CURRENT_LANG) {
+      CURRENT_LANG = lang;
+      document.documentElement.lang = lang;
+      renderI18n();
+      document.querySelectorAll("#langMenu .theme-option").forEach(function (opt) {
+        opt.classList.toggle("selected", opt.dataset.lang === lang);
+      });
+    }
+    saveLangCookie(lang);
+    resetTurnstile();
+  }
+  function toggleLangMenu(e) {
+    if (e) e.stopPropagation();
+    var m = document.getElementById("langMenu");
+    if (m) m.classList.toggle("open");
+  }
+  function closeLangMenu() {
+    var m = document.getElementById("langMenu");
+    if (m) m.classList.remove("open");
+  }
+  function setLang(code) {
+    closeLangMenu();
+    applyLang(code);
+  }
+  /* 桌面端：语言菜单悬停自动展开/收起（与主站一致），触摸端保持点击切换 */
+  (function bindLangHover() {
+    var fly = document.querySelector(".lang-flyout");
+    if (!fly) return;
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      fly.addEventListener("mouseenter", function () {
+        var m = document.getElementById("langMenu");
+        if (m) m.classList.add("open");
+      });
+      fly.addEventListener("mouseleave", closeLangMenu);
+    }
+  })();
+  /* 点击控件外部时收起语言菜单 */
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".theme-toggle")) closeLangMenu();
+  });
+  function onloadTurnstileCallback() {
+    var wrap = document.getElementById("turnstile-wrap");
+    if (window.turnstile && wrap) {
+      turnstileWidget = window.turnstile.render(wrap, {
+        sitekey: {{ sitekey|tojson }},
+        callback: onTurnstileSuccess,
+        theme: effectiveTheme() === "light" ? "light" : "dark",
+        language: turnstileLang(CURRENT_LANG)
+      });
+    }
+  }
+  // 初始同步主题与文案（Turnstile 由 onloadTurnstileCallback 显式渲染）
+  applyTheme(effectiveTheme());
+  renderI18n();
+  // 动态诊断信息（Location/IP/Ray ID）每次实时获取，页面其余部分走缓存
+  fetch("/__gate/diag", { headers: { "Accept": "application/json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d) return;
+      var map = { "diag-country": d.country, "diag-ip": d.ip, "diag-ray": d.ray };
+      Object.keys(map).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && map[id]) el.textContent = map[id];
+      });
+    })
+    .catch(function () {});
+  /* 系统主题变化时：仅在无缓存（跟随系统）状态下自动跟随 */
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function () {
+    if (!localStorage.getItem("theme")) applyTheme(getSystemTheme());
+  });
+</script>
+</body>
+</html>

@@ -45,11 +45,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 <span class="nav-divider hidden md:block"></span>
 {% endblock %}
 
-{% block head_links %}
-    <link rel="stylesheet" href="https://limooo.cn/static/leaflet.min.css" />
-    <script src="https://limooo.cn/static/leaflet.min.js"></script>
-{% endblock %}
-
 {% block style_page %}
         /* ═══════════════════════════════════════════════════════════════
            管理端样式（导航栏 / 主题菜单 / 全局基础样式见 base.html）
@@ -71,23 +66,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         #dashboard { opacity: 0; transition: opacity 350ms var(--ease-out); }
         #dashboard.visible { opacity: 1; }
 
-        /* ── 主布局：左 IP 列表 + 右地图 ── */
+        /* ── 主布局：IP 列表 ── */
         .main-layout {
             position: fixed; top: 70px; left: 0; right: 0; bottom: 0; z-index: 10;
             display: flex;
         }
         .left-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 4px 12px 16px 20px; }
-        .map-panel { width: 430px; flex-shrink: 0; padding: 4px 20px 20px 12px; }
-        #map { width: 100%; height: 100%; border-radius: var(--radius-lg); border: 1px solid var(--line); overflow: hidden; background: #262626; }
-        .light-mode #map { background: var(--bg); }
-        .leaflet-control-zoom a {
-            background: var(--bg) !important; color: var(--text) !important; border-color: var(--line) !important;
-        }
-        /* 浅色模式显式覆盖，避免 Leaflet 默认深色按钮残留 */
-        .light-mode .leaflet-control-zoom a {
-            background: var(--bg) !important; color: var(--text) !important; border-color: var(--line) !important;
-        }
-        .light-mode .leaflet-control-zoom a:hover { background: var(--highlight) !important; }
 
         /* ── 统计卡片 ── */
         .stats-row { display: flex; gap: 10px; padding: 0 0 14px 0; flex-shrink: 0; }
@@ -190,7 +174,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             .main-layout { position: relative; top: auto; left: auto; right: auto; bottom: auto; margin-top: 70px; flex-direction: column; }
             .left-panel { flex: none; padding: 2px 14px 8px 14px; }
             .visitor-list { overflow-y: visible; }
-            .map-panel { width: 100%; height: 40vh; flex-shrink: 0; padding: 0 14px 14px 14px; order: 2; }
             .stats-row { padding-bottom: 10px; }
             .stat-card { padding: 10px 12px; }
             .stat-value { font-size: 18px; }
@@ -220,10 +203,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <div class="theme-option" data-i18n="nav_appleid" onclick="navigateTo('https://appleid.limooo.cn')">{{ _('nav_appleid') }}</div>
     </div>
 </div>
-{% endblock %}
-
-{% block theme_apply_extra %}
-        updateMapTheme();
 {% endblock %}
 
 {% block content %}
@@ -269,11 +248,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                     </div>
                 </div>
             </div>
-
-            <!-- 右侧地图 -->
-            <div class="map-panel">
-                <div id="map"></div>
-            </div>
         </div>
     </div>
 {% endblock %}
@@ -287,7 +261,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 dash.classList.add('visible');
             });
             document.getElementById('global-footer').style.display = 'none';
-            initMap();
             refresh();
         }
 
@@ -296,78 +269,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             location.href = '/logout?next=' + next;
         }
 
-        // ── 地图 & 数据 ──
-
-        let map, markerLayer, mapInitialized = false, tileLayer;
+        // ── 数据 ──
         let currentStatus = 'all';
-
-        function isMobileView() { return window.innerWidth <= 768; }
-
-        function getTileUrl() {
-            const effective = localStorage.getItem('theme') || 'system';
-            const isLight = effective === 'light' || (effective === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
-            return isLight
-                ? '/tiles/light/{z}/{x}/{y}.png'
-                : '/tiles/dark/{z}/{x}/{y}.png';
-        }
-
-        function getLeafletBg() {
-            const effective = localStorage.getItem('theme') || 'system';
-            const isLight = effective === 'light' || (effective === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches);
-            return isLight
-                ? '#D4DADC'
-                : '#262626';
-        }
-
-        function updateMapTheme() {
-            var container = document.querySelector('.leaflet-container');
-            if (container) container.style.background = getLeafletBg();
-            if (tileLayer) {
-                tileLayer.setUrl(getTileUrl());
-            }
-        }
-
-        function initMap() {
-            if (mapInitialized) return;
-            // 移动端不渲染地图（省流量/性能），拉宽窗口后可重新初始化
-            if (isMobileView()) {
-                var mp = document.querySelector('.map-panel');
-                if (mp) mp.style.display = 'none';
-                return;
-            }
-            mapInitialized = true;
-
-            map = L.map('map', {
-                center: [25, 10], zoom: 2.3, zoomControl: true,
-                attributionControl: false, minZoom: 2, maxZoom: 18, worldCopyJump: true,
-                dragging: true,
-            });
-            var container = map.getContainer();
-            container.style.background = getLeafletBg();
-            tileLayer = L.tileLayer(getTileUrl(), {
-                maxZoom: 18,
-                attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-            }).addTo(map);
-            markerLayer = L.layerGroup().addTo(map);
-
-            setTimeout(function() { map.invalidateSize(); }, 300);
-        }
-
-        // 跨 768px 断点时显示/隐藏地图（桌面↔移动切换）
-        window.addEventListener('resize', function() {
-            var mp = document.querySelector('.map-panel');
-            if (!mp) return;
-            if (isMobileView()) {
-                mp.style.display = 'none';
-            } else {
-                mp.style.display = '';
-                if (map && markerLayer) {
-                    setTimeout(function() { map.invalidateSize(); }, 100);
-                } else if (!mapInitialized) {
-                    initMap();
-                }
-            }
-        });
 
         async function refresh() {
             try {
@@ -387,34 +290,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 renderChips(sc);
                 document.getElementById('list-sub').textContent = t('ip_count', { count: data.markers.length });
 
-                if (markerLayer) {
-                    markerLayer.clearLayers();
-                    const bounds = [];
-                    data.markers.forEach(m => {
-                        if (m.latitude && m.longitude) {
-                            const marker = L.circleMarker([m.latitude, m.longitude], {
-                                radius: 5, fillColor: '#05A5A6', color: '#ffffff',
-                                weight: 1.5, fillOpacity: 0.8,
-                            });
-                            const hostText = (m.hosts || []).slice(0, 2).map(h =>
-                                h.replace('https://', '').replace('limooo.cn', '')
-                            ).join(', ') || '';
-                            marker.bindTooltip(
-                                (m.country && m.city && m.country.trim().toLowerCase() === m.city.trim().toLowerCase()
-                                    ? `<strong>${esc(m.country)}</strong><br>`
-                                    : `<strong>${esc(m.country || '')}<br>${esc(m.city || '')}</strong><br>`) +
-                                `<span style="font-size:10px;opacity:0.5;">${esc(hostText)} · ${t('times', {count: m.count})} · ${esc(formatTime(m.last_time))}</span>`,
-                                { direction: 'top', offset: [0, -6] }
-                            );
-                            marker.addTo(markerLayer);
-                            bounds.push([m.latitude, m.longitude]);
-                        }
-                    });
-                    if (bounds.length > 0) {
-                        try { map.fitBounds(bounds, { padding: [30, 30, 40, 40], maxZoom: 9 }); }
-                        catch (e) { map.setView([25, 10], 2.3); }
-                    }
-                }
                 renderList(data.markers);
             } catch (err) { console.error('加载失败:', err); }
         }
@@ -500,12 +375,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
         function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-        // 用户显式选择深浅色时，跟随系统主题变化仅刷新地图底色/瓦片（跟随系统分支由 base 的 applyTheme 钩子处理）
-        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-            var s = localStorage.getItem('theme');
-            if (s && s !== 'system') updateMapTheme();
-        });
-
         // 自动刷新：页面不可见时暂停，避免后台挂机持续请求
         var refreshTimer = null;
         function startAutoRefresh() {
@@ -520,7 +389,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             else startAutoRefresh();
         });
         startAutoRefresh();
-        // 前端切换语言后重拉数据(列表/统计/地图气泡使用 t() 动态渲染)
+        // 前端切换语言后重拉数据(列表/统计使用 t() 动态渲染)
         document.addEventListener('languagechange', function() { refresh(); });
         // 页面能加载说明后端已放行（已登录），直接显示仪表盘
         showDashboard();

@@ -35,11 +35,6 @@ const REDIRECT_HOST = "https://redirect.limooo.cn/";
 const REDIRECT_HOSTNAME = "redirect.limooo.cn";
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 8000;
-// 地图瓦片上游（与 Flask 端一致：本域代理 CartoDB，避免跨域限制 + 统一缓存）
-const TILE_UPSTREAMS: Record<string, string> = {
-  dark: "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all",
-  light: "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all",
-};
 
 // 不能被门禁拦截的路径（否则死循环）
 const SKIP_PATHS = new Set<string>([
@@ -243,7 +238,6 @@ function shouldTrackVisit(request: Request, url: URL): boolean {
     p.startsWith("/api/") ||
     p.startsWith("/static/") ||
     p.startsWith("/__gate") ||
-    p.startsWith("/tiles/") ||
     p.startsWith("/favicon") ||
     p === "/Limooo-xtext.webp"
   ) {
@@ -321,6 +315,8 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     foot: "由 Limooo 边缘安全提供保护",
     lang_aria: "切换语言",
     theme_aria: "切换主题",
+    footer_rights: "保留所有权利",
+    footer_source: "根据 AGPL-3.0 许可证发布",
     error_sitekey: "服务配置错误：未设置 TURNSTILE_SITEKEY。",
     error_invalid: "请求无效，请重试。",
     error_unavailable: "验证服务暂时不可用，请稍后重试。",
@@ -335,6 +331,8 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     foot: "Secured by Limooo Edge Security",
     lang_aria: "Switch language",
     theme_aria: "Toggle theme",
+    footer_rights: "",
+    footer_source: "Released under the AGPL-3.0 License",
     error_sitekey: "Server configuration error: TURNSTILE_SITEKEY is not set.",
     error_invalid: "Invalid request. Please try again.",
     error_unavailable: "Verification service temporarily unavailable. Please try again in a moment.",
@@ -349,6 +347,8 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     foot: "Limooo Edge Security により保護されています",
     lang_aria: "言語切替",
     theme_aria: "テーマ切替",
+    footer_rights: "無断転載禁止",
+    footer_source: "AGPL-3.0 ライセンスに基づいて公開",
     error_sitekey: "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
     error_invalid: "リクエストが無効です。もう一度お試しください。",
     error_unavailable: "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
@@ -363,6 +363,8 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     foot: "Limooo Edge Security가 보호합니다",
     lang_aria: "언어 전환",
     theme_aria: "테마 전환",
+    footer_rights: "모든 권리 보유",
+    footer_source: "AGPL-3.0 라이선스에 따라 배포",
     error_sitekey: "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
     error_invalid: "잘못된 요청입니다. 다시 시도해 주세요.",
     error_unavailable: "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
@@ -371,11 +373,11 @@ const GATE_I18N: Record<string, Record<string, string>> = {
 };
 
 /** 跳转页文案（与 Flask locales 的 redirect_title/redirect_text 一致） */
-const REDIRECT_I18N: Record<string, { title: string; text: string }> = {
-  "zh-cn": { title: "正在跳转", text: "正在跳转…" },
-  "en-us": { title: "Redirecting", text: "Redirecting…" },
-  "ja-jp": { title: "リダイレクト中", text: "リダイレクト中…" },
-  "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중…" },
+const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = {
+  "zh-cn": { title: "正在跳转", text: "正在跳转…", footer_rights: "保留所有权利", footer_source: "根据 AGPL-3.0 许可证发布" },
+  "en-us": { title: "Redirecting", text: "Redirecting…", footer_rights: "", footer_source: "Released under the AGPL-3.0 License" },
+  "ja-jp": { title: "リダイレクト中", text: "リダイレクト中…", footer_rights: "無断転載禁止", footer_source: "AGPL-3.0 ライセンスに基づいて公開" },
+  "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중…", footer_rights: "모든 권리 보유", footer_source: "AGPL-3.0 라이선스에 따라 배포" },
 };
 
 /** redirect 页预热的 limooo.cn 主站作品图（与 Flask REDIRECT_PRELOAD_IMAGES 一致） */
@@ -456,6 +458,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     --bg: #1b1b1f; --panel-bg: #202127;
     --radius-sm: 6px; --radius-md: 10px;
     --switch-icon: #dfdfd6; --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --footer-border: #2e2e32;
     --ls-scale: 0.65;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   }
@@ -468,10 +471,11 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     --foot: #9ca3af;
     --bg: #ffffff; --panel-bg: #f6f6f7;
     --switch-icon: #67676c; --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    --footer-border: #e2e2e3;
   }
   body {
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    background: linear-gradient(180deg, var(--bg-a) 0%, var(--bg-b) 100%);
+    background: var(--bg);
     color: var(--text);
     display: flex; align-items: center; justify-content: center;
     min-height: 100dvh;
@@ -592,6 +596,27 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   .diag dt { color: var(--muted); text-align: right; }
   .diag dd { overflow-wrap: anywhere; }
   .foot { text-align: center; font-size: 12px; color: var(--foot); }
+  /* ── 底部版权（与主站 base.html 一致） ── */
+  .global-footer {
+    position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
+    border-top: 1px solid var(--footer-border);
+    background-color: var(--bg) !important;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .footer-link {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    padding: 1.25rem 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    color: inherit; text-decoration: none;
+  }
+  .footer-text {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .global-footer { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -634,6 +659,11 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   </dl>
   <p class="foot" data-i18n="foot">${t("foot")}</p>
 </main>
+<footer class="global-footer" id="global-footer">
+  <div class="footer-link">
+    <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">${t("footer_rights") ? " | " + t("footer_rights") : ""}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">${t("footer_source") ? " | " + t("footer_source") : ""}</span></div>
+  </div>
+</footer>
 ${turnstileSrc}
 <script>
   var turnstileWidget = null;
@@ -785,6 +815,8 @@ ${turnstileSrc}
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": cacheControl,
+      // 语言由 cookie 决定：缓存必须按 cookie 区分，否则切换语言后刷新会命中旧语言缓存
+      "Vary": "Cookie",
     },
   }));
 }
@@ -811,6 +843,11 @@ function renderRedirectPage(context: EventContext): Response {
 <title>${t.title}</title>
     ${preloadLinks}
 <style>
+  :root {
+    --bg: #1b1b1f;
+    --footer-border: #2e2e32;
+    --ls-scale: 0.65;
+  }
   html, body { height: 100%; margin: 0; }
   body {
     display: flex; align-items: center; justify-content: center;
@@ -828,6 +865,27 @@ function renderRedirectPage(context: EventContext): Response {
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .text { opacity: 0.55; letter-spacing: 0.04em; }
+  /* ── 底部版权（与主站 base.html 一致） ── */
+  .global-footer {
+    position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
+    border-top: 1px solid var(--footer-border);
+    background-color: var(--bg) !important;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .footer-link {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+    padding: 1.25rem 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    color: inherit; text-decoration: none;
+  }
+  .footer-text {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .global-footer { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -835,6 +893,11 @@ function renderRedirectPage(context: EventContext): Response {
     <div class="spinner"></div>
     <div class="text">${t.text}</div>
   </div>
+  <footer class="global-footer" id="global-footer">
+    <div class="footer-link">
+      <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">${t.footer_rights ? " | " + t.footer_rights : ""}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">${t.footer_source ? " | " + t.footer_source : ""}</span></div>
+    </div>
+  </footer>
   <script>
     (function () {
       var target = ${JSON.stringify(to)};
@@ -868,30 +931,6 @@ function renderRedirectPage(context: EventContext): Response {
       "Cache-Control": "no-store",
     },
   }));
-}
-
-/** /tiles/<theme>/<z>/<x>/<y>.png：代理 CartoDB 地图瓦片（与 Flask proxy_tile 一致） */
-async function proxyTile(pathname: string): Promise<Response> {
-  const m = pathname.match(/^\/tiles\/(dark|light)\/(\d+)\/(\d+)\/(\d+)\.png$/);
-  if (!m) return new Response("Not Found", { status: 404 });
-  const theme = m[1];
-  const upstream = TILE_UPSTREAMS[theme];
-  const url = `${upstream}/${m[2]}/${m[3]}/${m[4]}.png`;
-  try {
-    const resp = await fetch(url, {
-      headers: { "User-Agent": "limooo/1.0" },
-      cf: { cacheTtl: 604800 },
-    });
-    if (!resp.ok) return new Response("", { status: 502 });
-    return new Response(resp.body, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=604800",
-      },
-    });
-  } catch {
-    return new Response("", { status: 502 });
-  }
 }
 
 /** POST /__gate/verify：校验 Turnstile，成功签发 cookie 并 302 回原路径 */
@@ -992,10 +1031,8 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   }
   if (
     SKIP_PATHS.has(url.pathname) ||
-    url.pathname.startsWith("/static/") ||
-    url.pathname.startsWith("/tiles/")
+    url.pathname.startsWith("/static/")
   ) {
-    if (url.pathname.startsWith("/tiles/")) return proxyTile(url.pathname);
     return next();
   }
 
@@ -1058,6 +1095,8 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "private, max-age=300",
+            // 语言由 cookie 决定：缓存必须按 cookie 区分，否则切换语言后刷新会命中旧语言缓存
+            "Vary": "Cookie",
           },
         }));
       }

@@ -18,15 +18,12 @@
 """
 共通模块
 
-将 app.py 和 geoip.py 之间重复的路径常量、工具函数和数据库操作
-抽取到这里，避免两处维护两份相同逻辑。
+将 app.py 的路径常量、工具函数和数据库操作抽取到这里统一维护。
 """
 
 import os
 import re
 import sqlite3
-import time
-from datetime import datetime, timezone
 
 # ── 路径常量 ──────────────────────────────────────────────
 # 仓库根目录（本文件位于 src/ 下，向上取一层）
@@ -114,25 +111,3 @@ def get_cached_geo(conn: sqlite3.Connection, ip: str) -> dict | None:
         "isp": row[4],
         "asn": row[5],
     }
-
-
-def cache_geo(conn: sqlite3.Connection, ip: str, geo: dict) -> None:
-    """将 IP 的地理位置查询结果写入缓存（INSERT OR REPLACE），含重试"""
-    for attempt in range(3):
-        try:
-            conn.execute(
-                "INSERT OR REPLACE INTO geo_cache "
-                "(ip, country, city, latitude, longitude, isp, asn, cached_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (ip, geo.get("country"), geo.get("city"), geo.get("latitude"),
-                 geo.get("longitude"), geo.get("isp"), geo.get("asn"),
-                 datetime.now(timezone.utc).isoformat()),
-            )
-            conn.commit()
-            return
-        except sqlite3.OperationalError:
-            if attempt < 2:
-                time.sleep(0.1 * (attempt + 1))
-                continue
-            # 三次都失败就放弃
-            return

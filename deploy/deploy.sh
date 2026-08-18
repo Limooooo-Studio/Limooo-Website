@@ -247,12 +247,6 @@ WEOF
         exit 1
     fi
 
-    # 下载 GeoLite2 数据库(如缺失)
-    if [ ! -f "data/GeoLite2-City.mmdb" ] || [ ! -f "data/GeoLite2-ASN.mmdb" ]; then
-        echo "cd /var/www/limooo/src && ../venv/bin/python geoip.py update"
-        cd /var/www/limooo/src && ../venv/bin/python geoip.py update
-    fi
-
     # 设置 auto_block 定时任务(每日 3:00)
     if ! crontab -l | grep -q 'auto_block.py'; then
         echo "(crontab -l; echo '0 3 * * * cd /var/www/limooo/src && ../venv/bin/python3 auto_block.py >> /var/log/auto_block.log 2>&1') | crontab -"
