@@ -1028,7 +1028,9 @@ export const onRequest: PagesFunction = async (context) => {
           request,
           new Response(null, {
             status: 302,
-            headers: { Location: `/login?next=${encodeURIComponent(url.pathname + url.search)}` },
+            headers: {
+              Location: `/login?next=${encodeURIComponent(`https://${url.hostname}${url.pathname}${url.search}`)}`,
+            },
           }),
         );
       }

@@ -22,7 +22,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const session = result.session;
 
   // pending.next 只可能是站内相对路径或 https://limooo.cn/ 开头的完整 URL（login.ts 已过滤）
-  const next = new URL(pending.next, "https://limooo.cn/").toString();
+  // 按当前子域解析相对路径（visitor/appleid 的 next=/ 应回本域而不是主站）
+  const next = new URL(pending.next, `https://${url.hostname}/`).toString();
   return new Response(null, {
     status: 302,
     headers: {
