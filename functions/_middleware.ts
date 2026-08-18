@@ -851,7 +851,7 @@ function renderRedirectPage(context: EventContext): Response {
   html, body { height: 100%; margin: 0; }
   body {
     display: flex; align-items: center; justify-content: center;
-    background: #0f1216; color: #e5e9ef;
+    background: #1b1b1f; color: #e5e9ef;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 14px;
   }
