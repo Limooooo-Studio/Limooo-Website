@@ -40,7 +40,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
      FROM visitors v
      GROUP BY v.ip, v.country
      ORDER BY last_ts DESC
-     LIMIT 200`
+     LIMIT 500`
       : `SELECT v.ip,
             v.country,
             COUNT(*) AS count,
@@ -49,7 +49,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
      WHERE v.status = ?
      GROUP BY v.ip, v.country
      ORDER BY last_ts DESC
-     LIMIT 200`,
+     LIMIT 500`,
     ...(statusNum === null ? [] : [statusNum]),
   );
 
