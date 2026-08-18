@@ -3,7 +3,12 @@
 import type { Env } from "./env";
 import type { SessionData } from "./session";
 
-export const REDIRECT_URI = "https://limooo.cn/login/callback";
+/** 按子域返回 OIDC 回调地址（authentik 里已按域配置 redirect_uri 白名单） */
+export function redirectUriFor(host: string): string {
+  if (host === "visitor.limooo.cn") return "https://visitor.limooo.cn/login/callback";
+  if (host === "appleid.limooo.cn") return "https://appleid.limooo.cn/login/callback";
+  return "https://limooo.cn/login/callback";
+}
 
 function b64urlDecodeJson(input: string): unknown {
   const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -22,25 +27,25 @@ interface IdTokenClaims {
   groups?: string[] | string;
 }
 
-export function buildAuthorizeUrl(env: Env, state: string): string {
+export function buildAuthorizeUrl(env: Env, state: string, redirectUri: string): string {
   const base = (env.AUTHENTIK_URL || "https://identity.limooo.cn").replace(/\/$/, "");
   const params = new URLSearchParams({
     client_id: env.AUTHENTIK_CLIENT_ID ?? "",
     response_type: "code",
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     scope: "openid profile email groups",
     state,
   });
   return `${base}/application/o/authorize/?${params.toString()}`;
 }
 
-export async function exchangeCode(env: Env, code: string): Promise<SessionData | null> {
+export async function exchangeCode(env: Env, code: string, redirectUri: string): Promise<SessionData | null> {
   const tokenUrl = (env.AUTHENTIK_URL || "https://identity.limooo.cn").replace(/\/$/, "") + "/application/o/token/";
   const body = new URLSearchParams({
     client_id: env.AUTHENTIK_CLIENT_ID ?? "",
     client_secret: env.AUTHENTIK_CLIENT_SECRET ?? "",
     code,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     grant_type: "authorization_code",
   });
 

@@ -30,8 +30,15 @@ const GATE_COOKIE = "__gate";
 const GATE_HOST = "auth.limooo.cn";
 // 统一跳转页（与 Flask 端 /r 共用同一服务，?to= 目标需为 https URL）
 const REDIRECT_HOST = "https://redirect.limooo.cn/";
+// 跳转子域：纯中转页，豁免人机验证（否则验证通过后经它回跳会再被拦，死循环）
+const REDIRECT_HOSTNAME = "redirect.limooo.cn";
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 8000;
+// 地图瓦片上游（与 Flask 端一致：本域代理 CartoDB，避免跨域限制 + 统一缓存）
+const TILE_UPSTREAMS: Record<string, string> = {
+  dark: "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all",
+  light: "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all",
+};
 
 // 不能被门禁拦截的路径（否则死循环）
 const SKIP_PATHS = new Set<string>([
@@ -181,6 +188,16 @@ function pageAsset(host: string, pathname: string, lang: string): string | null 
   if (host === "contact.limooo.cn") {
     return p === "/" || p === "/index.html" || p === "/contact"
       ? `/${lang}/contact.html`
+      : null;
+  }
+  if (host === "visitor.limooo.cn") {
+    return p === "/" || p === "/index.html" || p === "/visitor"
+      ? `/${lang}/visitor.html`
+      : null;
+  }
+  if (host === "appleid.limooo.cn") {
+    return p === "/" || p === "/index.html" || p === "/appleid"
+      ? `/${lang}/appleid.html`
       : null;
   }
   if (host === "limooo.cn" || host === "www.limooo.cn") {
@@ -342,6 +359,24 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     error_failed: "인증에 실패했습니다. 다시 시도해 주세요.",
   },
 };
+
+/** 跳转页文案（与 Flask locales 的 redirect_title/redirect_text 一致） */
+const REDIRECT_I18N: Record<string, { title: string; text: string }> = {
+  "zh-cn": { title: "正在跳转", text: "正在跳转…" },
+  "en-us": { title: "Redirecting", text: "Redirecting…" },
+  "ja-jp": { title: "リダイレクト中", text: "リダイレクト中…" },
+  "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중…" },
+};
+
+/** redirect 页预热的 limooo.cn 主站作品图（与 Flask REDIRECT_PRELOAD_IMAGES 一致） */
+const REDIRECT_PRELOAD_IMAGES = [
+  "https://limooo.cn/static/portfolio/IMG_0203.webp",
+  "https://limooo.cn/static/portfolio/IMG_0146.webp",
+  "https://limooo.cn/static/portfolio/IMG_0130.webp",
+  "https://limooo.cn/static/portfolio/IMG_0244.webp",
+  "https://limooo.cn/static/portfolio/IMG_0115.webp",
+  "https://limooo.cn/static/portfolio/IMG_0179.webp",
+];
 
 interface GateRenderOptions {
   next?: string;
@@ -727,6 +762,111 @@ ${turnstileSrc}
   }));
 }
 
+/** 统一跳转页（redirect.limooo.cn）：纯中转，不经过人机验证 */
+function renderRedirectPage(context: EventContext): Response {
+  const { request } = context;
+  const url = new URL(request.url);
+  let to = url.searchParams.get("to") ?? "";
+  // 与 Flask _safe_next 一致：只放行 https://（含站外），否则回主站
+  if (!/^https:\/\//.test(to)) to = "https://limooo.cn/";
+  const lang = detectLang(request);
+  const t = REDIRECT_I18N[lang] ?? REDIRECT_I18N["en-us"];
+  const preload = to.startsWith("https://limooo.cn/");
+  const rels = preload ? REDIRECT_PRELOAD_IMAGES : [];
+  const preloadLinks = rels.map((r) => `<link rel="preload" as="image" href="${r}">`).join("\n    ");
+
+  const html = `<!doctype html>
+<html lang="${lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="1; url=${escapeHtml(to)}">
+<title>${t.title}</title>
+    ${preloadLinks}
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    background: #0f1216; color: #e5e9ef;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+  }
+  .card { text-align: center; }
+  .spinner {
+    width: 22px; height: 22px; margin: 0 auto 14px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-top-color: #05A5A6;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .text { opacity: 0.55; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <div class="text">${t.text}</div>
+  </div>
+  <script>
+    (function () {
+      var target = ${JSON.stringify(to)};
+      var rels = ${JSON.stringify(rels)};
+      function go() { location.replace(target); }
+      if (rels.length === 0) { go(); return; }
+      var pending = rels.length;
+      var fired = false;
+      function finish() {
+        if (fired) return;
+        fired = true;
+        go();
+      }
+      rels.forEach(function (rel) {
+        var img = new Image();
+        img.onload = img.onerror = function () {
+          pending -= 1;
+          if (pending <= 0) finish();
+        };
+        img.src = rel;
+      });
+      setTimeout(finish, 800);
+    })();
+  </script>
+</body>
+</html>`;
+
+  return withLangCookie(request, new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  }));
+}
+
+/** /tiles/<theme>/<z>/<x>/<y>.png：代理 CartoDB 地图瓦片（与 Flask proxy_tile 一致） */
+async function proxyTile(pathname: string): Promise<Response> {
+  const m = pathname.match(/^\/tiles\/(dark|light)\/(\d+)\/(\d+)\/(\d+)\.png$/);
+  if (!m) return new Response("Not Found", { status: 404 });
+  const theme = m[1];
+  const upstream = TILE_UPSTREAMS[theme];
+  const url = `${upstream}/${m[2]}/${m[3]}/${m[4]}.png`;
+  try {
+    const resp = await fetch(url, {
+      headers: { "User-Agent": "limooo/1.0" },
+      cf: { cacheTtl: 604800 },
+    });
+    if (!resp.ok) return new Response("", { status: 502 });
+    return new Response(resp.body, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=604800",
+      },
+    });
+  } catch {
+    return new Response("", { status: 502 });
+  }
+}
+
 /** POST /__gate/verify：校验 Turnstile，成功签发 cookie 并 302 回原路径 */
 async function handleVerify(context: EventContext): Promise<Response> {
   const { request, env } = context;
@@ -786,11 +926,21 @@ export const onRequest: PagesFunction = async (context) => {
   const { request, env, next } = context;
   const url = new URL(request.url);
 
+  // 跳转子域：纯中转页，豁免人机验证（否则验证通过后经它回跳会再被拦，死循环）
+  if (url.hostname === REDIRECT_HOSTNAME) {
+    return renderRedirectPage(context);
+  }
+
   // /__gate/verify 与静态放行路径不能被门禁拦（否则死循环）
   if (url.pathname === "/__gate/verify") {
     return handleVerify(context);
   }
-  if (SKIP_PATHS.has(url.pathname) || url.pathname.startsWith("/static/")) {
+  if (
+    SKIP_PATHS.has(url.pathname) ||
+    url.pathname.startsWith("/static/") ||
+    url.pathname.startsWith("/tiles/")
+  ) {
+    if (url.pathname.startsWith("/tiles/")) return proxyTile(url.pathname);
     return next();
   }
 

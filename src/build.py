@@ -34,6 +34,9 @@ PAGES = (
     ("index.html", "index.html", "/"),
     ("services.html", "services.html", "/services"),
     ("contact.html", "contact.html", "/contact"),
+    # 子域专属管理页（visitor.limooo.cn / appleid.limooo.cn），由中间件按主机名吐出
+    ("visitor.html", "visitor.html", "/visitor"),
+    ("appleid.html", "appleid.html", "/appleid"),
 )
 
 

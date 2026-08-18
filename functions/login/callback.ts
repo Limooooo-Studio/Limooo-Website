@@ -1,6 +1,6 @@
 /** GET /login/callback → 兑换 code，签发会话 cookie，回跳 next */
 
-import { exchangeCode } from "../_lib/oidc";
+import { exchangeCode, redirectUriFor } from "../_lib/oidc";
 import { clearPendingCookie, createSessionCookie, readPending } from "../_lib/session";
 import type { Env } from "../_lib/env";
 
@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.redirect("https://limooo.cn/?error=bad_state", 302);
   }
 
-  const session = await exchangeCode(env, code);
+  const session = await exchangeCode(env, code, redirectUriFor(url.hostname));
   if (!session) {
     return Response.redirect("https://limooo.cn/?error=auth_failed", 302);
   }

@@ -1,6 +1,6 @@
 /** GET /login → 跳转 authentik 授权（state 存 pending cookie） */
 
-import { buildAuthorizeUrl } from "./_lib/oidc";
+import { buildAuthorizeUrl, redirectUriFor } from "./_lib/oidc";
 import { createPendingCookie } from "./_lib/session";
 import type { Env } from "./_lib/env";
 
@@ -16,11 +16,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(request.url);
   const next = safeNext(url.searchParams.get("next"));
   const state = crypto.randomUUID().replace(/-/g, "");
+  const redirectUri = redirectUriFor(url.hostname);
 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: buildAuthorizeUrl(env, state),
+      Location: buildAuthorizeUrl(env, state, redirectUri),
       "Set-Cookie": await createPendingCookie(env, state, next),
     },
   });
