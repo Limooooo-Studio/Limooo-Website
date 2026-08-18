@@ -98,14 +98,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         .btn-danger { background:#f43f5e;color:white; }
         .btn-danger:hover { opacity:0.8; }
         .btn-sm { padding:4px 12px;font-size:11px; }
-        .icon-btn {
+        .row-btn {
             background:none;border:none;color:var(--text);opacity:0.35;
             cursor:pointer;padding:5px;border-radius:var(--radius-sm);display:flex;
             transition:opacity 0.2s,background 0.2s;
         }
-        .icon-btn:hover { opacity:0.8;background:var(--highlight); }
-        .icon-btn.danger:hover { opacity:1;background:rgba(255,71,87,0.12);color:#ff4757; }
-        .icon-btn.active { opacity:0.7;color:var(--accent); }
+        .row-btn:hover { opacity:0.8;background:var(--highlight); }
+        .row-btn.danger:hover { opacity:1;background:rgba(255,71,87,0.12);color:#ff4757; }
+        .row-btn.active { opacity:0.7;color:var(--accent); }
 
         .empty-state { text-align:center;padding:60px 20px;opacity:0.3; }
         .empty-state .big-icon { font-size:48px;margin-bottom:12px; }
@@ -156,7 +156,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 {% block nav_dropdown %}
 <div class="theme-toggle">
-    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+    <button class="theme-btn nav-mobile-menu" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
         <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -421,29 +421,29 @@ function renderList() {
             <div class="account-body">
                 <div class="account-row">
                     <span class="account-email">${esc(a.email)}</span>
-                    <button class="icon-btn" onclick="copyEmail(${a.id})" title="${t('copy_email')}">
+                    <button class="row-btn" onclick="copyEmail(${a.id})" title="${t('copy_email')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     </button>
                 </div>
                 <div class="account-row">
                     <span class="account-pw">${pwShown ? esc(pwVisible[a.id]) : esc(a.password)}</span>
-                    <button class="icon-btn ${pwShown ? 'active' : ''}" onclick="togglePw(${a.id})" title="${pwShown ? t('hide_password') : t('show_password')}">
+                    <button class="row-btn ${pwShown ? 'active' : ''}" onclick="togglePw(${a.id})" title="${pwShown ? t('hide_password') : t('show_password')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${pwShown
                             ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
                             : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
                         </svg>
                     </button>
-                    <button class="icon-btn" onclick="copyPw(${a.id})" title="${t('copy_pw')}">
+                    <button class="row-btn" onclick="copyPw(${a.id})" title="${t('copy_pw')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     </button>
                 </div>
                 ${a.notes ? '<div class="account-notes">' + esc(a.notes) + '</div>' : ''}
             </div>
             ${isAdmin ? `<div class="account-actions">
-                <button class="icon-btn" onclick="openEditModal(${a.id})" title="${t('edit')}">
+                <button class="row-btn" onclick="openEditModal(${a.id})" title="${t('edit')}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button class="icon-btn danger" onclick="deleteAccount(${a.id})" title="${t('delete')}">
+                <button class="row-btn danger" onclick="deleteAccount(${a.id})" title="${t('delete')}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                 </button>
             </div>` : ''}
