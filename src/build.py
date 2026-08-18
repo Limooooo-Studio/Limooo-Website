@@ -169,27 +169,22 @@ def render_gate(appmod, lang: str) -> str:
     return html
 
 
-def remove_lang_menu(html: str) -> str:
-    """单语言预览：移除语言切换菜单（本地无 /api/i18n，且只有一种语言）"""
-    start = html.find('<div class="theme-toggle lang-flyout">')
-    if start == -1:
-        return html
-    depth = 0
-    i = start
-    while i < len(html):
-        open_i = html.find("<div", i)
-        close_i = html.find("</div>", i)
-        if open_i != -1 and (close_i == -1 or open_i < close_i):
-            depth += 1
-            i = open_i + 4
-        elif close_i != -1:
-            depth -= 1
-            if depth == 0:
-                return html[:start] + html[close_i + 6 :]
-            i = close_i + 6
-        else:
-            break
-    return html
+def preview_i18n_patch() -> str:
+    """预览版语言切换补丁：内联 4 语言字典，切换语言不依赖 /api/i18n"""
+    data: dict[str, dict[str, str]] = {}
+    for lang in LANGS:
+        with open(os.path.join(LOCALES_DIR, f"{lang}.json"), encoding="utf-8") as f:
+            data[lang] = json.load(f)
+    return (
+        "<script>"
+        "(function(){"
+        "var ALL=" + json.dumps(data, ensure_ascii=False) + ";"
+        'if (typeof I18N_CACHE === "undefined") { window.I18N_CACHE = {}; }'
+        "Object.keys(ALL).forEach(function(l){I18N_CACHE[l]=ALL[l];});"
+        "window.fetchI18n=function(lang,cb){cb(I18N_CACHE[lang]||null);};"
+        "})();"
+        "</script>"
+    )
 
 
 def write_i18n_functions() -> None:
@@ -280,7 +275,6 @@ def main() -> int:
     for name in os.listdir(src):
         if name.endswith(".html"):
             html = open(os.path.join(src, name), encoding="utf-8").read()
-            html = remove_lang_menu(html)
             # 资源引用本地化：https://limooo.cn/static/... → ../static/...
             # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
             html = re.sub(
@@ -304,6 +298,8 @@ def main() -> int:
             # redirect 预览默认目标也指向本地首页
             html = re.sub(r'url=https://limooo\.cn/', 'url=index.html', html)
             html = html.replace('"https://limooo.cn/"', '"index.html"')
+            # 语言切换本地化：内联 4 语言字典（页面内可切换语言，无需 /api/i18n）
+            html = html.replace("</body>", preview_i18n_patch() + "</body>")
             with open(os.path.join(PREVIEW_OUT, name), "w", encoding="utf-8") as f:
                 f.write(html)
     # 预览索引（列出所有子域页面，模板在 Flask/templates/preview.html）
