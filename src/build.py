@@ -169,15 +169,26 @@ def render_gate(appmod, lang: str) -> str:
     return html
 
 
-def localize_lang_menu(html: str, filename: str) -> str:
-    """预览版语言菜单：onclick 前端切换（本地无 /api/i18n）→ 跳转对应语言目录的同名文件"""
-    for target in LANGS:
-        html = re.sub(
-            r'<div class="theme-option([^"]*)" data-lang="' + target + r'" onclick="setLang\(\'' + target + r'\'\)">(.*?)</div>',
-            r'<a class="theme-option\1" href="../' + target + r'/' + filename + r'">\2</a>',
-            html,
-            flags=re.S,
-        )
+def remove_lang_menu(html: str) -> str:
+    """单语言预览：移除语言切换菜单（本地无 /api/i18n，且只有一种语言）"""
+    start = html.find('<div class="theme-toggle lang-flyout">')
+    if start == -1:
+        return html
+    depth = 0
+    i = start
+    while i < len(html):
+        open_i = html.find("<div", i)
+        close_i = html.find("</div>", i)
+        if open_i != -1 and (close_i == -1 or open_i < close_i):
+            depth += 1
+            i = open_i + 4
+        elif close_i != -1:
+            depth -= 1
+            if depth == 0:
+                return html[:start] + html[close_i + 6 :]
+            i = close_i + 6
+        else:
+            break
     return html
 
 
@@ -256,52 +267,49 @@ def main() -> int:
     # 4) i18n Functions（前端语言切换接口）
     write_i18n_functions()
 
-    # 5) 子域预览（本地预览用，不入库）：生成的预览输出到 preview/templates/<lang>/，
+    # 5) 子域预览（本地预览用，不入库）：生成的预览输出到 preview/templates/，
+    #    每个子域页面一个文件（预览默认语言），不按语言分文件夹，
     #    并镜像 static/ 资源，HTML 里的图片引用改为本地相对路径（离线可看）
     PREVIEW_OUT = os.path.join(PREVIEW_DIR, "templates")
     if os.path.isdir(PREVIEW_DIR):
         shutil.rmtree(PREVIEW_DIR)
     os.makedirs(PREVIEW_OUT)
     shutil.copytree(STATIC_DIR, os.path.join(PREVIEW_DIR, "static"))
-    for lang in LANGS:
-        dst = os.path.join(PREVIEW_OUT, lang)
-        os.makedirs(dst, exist_ok=True)
-        src = os.path.join(PUBLIC_DIR, lang)
-        for name in os.listdir(src):
-            if name.endswith(".html"):
-                html = open(os.path.join(src, name), encoding="utf-8").read()
-                # 语言菜单本地化（跳转对应语言文件）
-                html = localize_lang_menu(html, name)
-                # 资源引用本地化：https://limooo.cn/static/... → ../../static/...
-                # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
-                html = re.sub(
-                    r'(src|href|data-qr)="https://limooo\.cn/static/',
-                    r'\1="../../static/',
-                    html,
-                )
-                html = html.replace(
-                    'src="/Limooo-xtext.webp"',
-                    'src="../../static/icons/Limooo-xtext.webp"',
-                )
-                # 站内导航本地化：https://<子域>.limooo.cn → 同目录本地文件
-                for sub, page in (
-                    ("services", "services.html"),
-                    ("contact", "contact.html"),
-                    ("visitor", "visitor.html"),
-                    ("appleid", "appleid.html"),
-                ):
-                    html = re.sub(rf'href="https://{sub}\.limooo\.cn/?', f'href="{page}"', html)
-                html = re.sub(r'href="https://limooo\.cn/?', 'href="index.html"', html)
-                # redirect 预览默认目标也指向本地首页
-                html = re.sub(r'url=https://limooo\.cn/', 'url=index.html', html)
-                html = html.replace('"https://limooo.cn/"', '"index.html"')
-                with open(os.path.join(dst, name), "w", encoding="utf-8") as f:
-                    f.write(html)
-    # 预览总索引（列出 4 语言 × 所有子域页面，模板在 Flask/templates/preview.html）
+    PREVIEW_LANG = "zh-cn"
+    src = os.path.join(PUBLIC_DIR, PREVIEW_LANG)
+    for name in os.listdir(src):
+        if name.endswith(".html"):
+            html = open(os.path.join(src, name), encoding="utf-8").read()
+            html = remove_lang_menu(html)
+            # 资源引用本地化：https://limooo.cn/static/... → ../static/...
+            # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
+            html = re.sub(
+                r'(src|href|data-qr)="https://limooo\.cn/static/',
+                r'\1="../static/',
+                html,
+            )
+            html = html.replace(
+                'src="/Limooo-xtext.webp"',
+                'src="../static/icons/Limooo-xtext.webp"',
+            )
+            # 站内导航本地化：https://<子域>.limooo.cn → 同目录本地文件
+            for sub, page in (
+                ("services", "services.html"),
+                ("contact", "contact.html"),
+                ("visitor", "visitor.html"),
+                ("appleid", "appleid.html"),
+            ):
+                html = re.sub(rf'href="https://{sub}\.limooo\.cn/?', f'href="{page}"', html)
+            html = re.sub(r'href="https://limooo\.cn/?', 'href="index.html"', html)
+            # redirect 预览默认目标也指向本地首页
+            html = re.sub(r'url=https://limooo\.cn/', 'url=index.html', html)
+            html = html.replace('"https://limooo.cn/"', '"index.html"')
+            with open(os.path.join(PREVIEW_OUT, name), "w", encoding="utf-8") as f:
+                f.write(html)
+    # 预览索引（列出所有子域页面，模板在 Flask/templates/preview.html）
     with appmod.app.test_request_context("/", headers={"Host": "limooo.cn"}):
         index_html = appmod.render_template(
             "preview.html",
-            langs=LANGS,
             pages=[
                 "index.html",
                 "services.html",
@@ -312,7 +320,7 @@ def main() -> int:
                 "gate.html",
             ],
         )
-    with open(os.path.join(PREVIEW_OUT, "index.html"), "w", encoding="utf-8") as f:
+    with open(os.path.join(PREVIEW_OUT, "preview.html"), "w", encoding="utf-8") as f:
         f.write(index_html)
     with open(os.path.join(PREVIEW_DIR, ".gitkeep"), "w", encoding="utf-8") as f:
         pass

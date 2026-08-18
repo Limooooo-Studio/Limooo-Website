@@ -26,14 +26,11 @@
 </head>
 <body>
     <h1>Limooo 页面预览</h1>
-    <p class="desc">所有子域页面按语言归档，点击在本地浏览器中预览（图片/导航均为本地文件）。</p>
-    {% for lang in langs %}
-    <h2>{{ lang }}</h2>
+    <p class="desc">所有子域页面（单语言），点击在本地浏览器中预览（图片/导航均为本地文件）。</p>
     <ul>
         {% for page in pages %}
-        <li><a href="{{ lang }}/{{ page }}">{{ page.replace('.html', '') }}</a></li>
+        <li><a href="{{ page }}">{{ page.replace('.html', '') }}</a></li>
         {% endfor %}
     </ul>
-    {% endfor %}
 </body>
 </html>
