@@ -298,6 +298,13 @@ def main() -> int:
             # redirect 预览默认目标也指向本地首页
             html = re.sub(r'url=https://limooo\.cn/', 'url=index.html', html)
             html = html.replace('"https://limooo.cn/"', '"index.html"')
+            # redirect 预览：静止展示跳转页，不自动跳走
+            if name == "redirect.html":
+                html = re.sub(r'<meta http-equiv="refresh"[^>]*>', '', html)
+                html = html.replace(
+                    "function go() { location.replace(target); }",
+                    "function go() {}",
+                )
             # 语言切换本地化：内联 4 语言字典（页面内可切换语言，无需 /api/i18n）
             html = html.replace("</body>", preview_i18n_patch() + "</body>")
             with open(os.path.join(PREVIEW_OUT, name), "w", encoding="utf-8") as f:
