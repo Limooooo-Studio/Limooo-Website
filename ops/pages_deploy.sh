@@ -50,7 +50,7 @@ BUILD_PY=".venv-build/bin/python"
 if [ ! -x "$BUILD_PY" ]; then
     echo "首次构建：创建 .venv-build 并安装依赖..."
     python3 -m venv .venv-build
-    .venv-build/bin/pip install -q flask cryptography geoip2 certifi httpx requests aiohttp click pydantic msal
+    .venv-build/bin/pip install -q flask cryptography geoip2 certifi httpx requests aiohttp click pydantic msal pillow
 fi
 if [ "$VERBOSE" = 1 ]; then
     echo "$BUILD_PY src/build.py"

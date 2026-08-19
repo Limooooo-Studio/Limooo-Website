@@ -1,0 +1,11 @@
+# image.limooo.cn 图片水印 Worker（纯路由，不做图片处理）
+# 部署：CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... npx wrangler deploy
+# 路由：image.limooo.cn/* → image-watermark
+name = "image-watermark"
+main = "src/index.js"
+compatibility_date = "2026-08-15"
+account_id = "4a7fd8c8f1a59a265981a73e631b9e3f"
+
+# 说明：水印变体由构建时生成（src/build.py → public/static/wm/），
+# Worker 只按 Referer 在「原图」与「水印变体」之间做选择，CPU 开销接近零，
+# 适配 Workers Free 套餐 10ms CPU 限制（运行时 Canvas/图片重编码不可行）。

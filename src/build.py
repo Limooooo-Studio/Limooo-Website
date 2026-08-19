@@ -16,6 +16,11 @@ import re
 import shutil
 import sys
 
+try:
+    from PIL import Image, ImageDraw
+except ImportError:
+    Image = ImageDraw = None
+
 # 仓库根目录（本文件位于 src/ 下，向上取一层）
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
@@ -230,6 +235,99 @@ def write_i18n_functions() -> None:
         )
 
 
+def generate_watermarks() -> int:
+    """为 image.limooo.cn Worker 生成左下角水印变体到 public/static/wm/。
+
+    规则（与 Worker 里的 shouldWatermark 保持一致）：
+      - 只处理 png / jpg / jpeg / webp（gif/avif/svg/ico 不做，避免破坏动画等）
+      - 排除 qr-codes/（水印会遮挡二维码，且这类图经常被直接分享）
+      - 排除 favicon.*
+    水印尺寸：图片短边的 25%（下限 96px），左下角 2% 边距（下限 12px）。
+    水印原文件约 40% 透明度，这里提高到约 72%，并垫一块半透明深色圆角底衬，
+    保证浅色照片上也能看清。想调整显眼程度直接改下面的常量。
+    """
+    # 显眼程度参数（可按喜好调整）
+    WATERMARK_SCALE = 0.25       # 水印宽度 = 图片短边的比例
+    WATERMARK_MIN_W = 96         # 水印宽度下限（px）
+    WATERMARK_ALPHA_BOOST = 1.8  # 水印本身透明度增强系数（40% → ~72%）
+    BACKDROP_ALPHA = 105         # 深色底衬不透明度（0-255，0 = 不要底衬）
+    PAD_RATIO = 0.08             # 底衬相对水印宽度的内边距
+
+    if Image is None:
+        print("[build] warning: Pillow 未安装，跳过水印变体生成", flush=True)
+        return 0
+
+    wm_path = os.path.join(STATIC_DIR, "icons", "Limooo-watermark.webp")
+    out_root = os.path.join(PUBLIC_DIR, "static", "wm")
+    os.makedirs(out_root, exist_ok=True)
+
+    wm = Image.open(wm_path).convert("RGBA")
+    wm_w0, wm_h0 = wm.size
+    count = 0
+
+    for root, _dirs, files in os.walk(STATIC_DIR):
+        for name in files:
+            if not re.search(r"\.(png|jpe?g|webp)$", name, re.I):
+                continue
+            if name.lower().startswith("favicon"):
+                continue
+            rel = os.path.relpath(os.path.join(root, name), STATIC_DIR)
+            if rel.replace(os.sep, "/").startswith("qr-codes/"):
+                continue
+            try:
+                im = Image.open(os.path.join(root, name)).convert("RGBA")
+            except Exception as exc:  # 无法解码的图直接跳过
+                print(f"[build] watermark skip {rel}: {exc}", flush=True)
+                continue
+
+            base = min(im.size)
+            target_w = max(WATERMARK_MIN_W, round(base * WATERMARK_SCALE))
+            wm_h = max(1, round(wm_h0 * target_w / wm_w0))
+            margin = max(12, round(base * 0.02))
+            wm_resized = wm.resize((target_w, wm_h), Image.LANCZOS)
+            # 提高水印本身的不透明度（原文件约 40% → ~72%）
+            if WATERMARK_ALPHA_BOOST != 1:
+                r, g, b, a = wm_resized.split()
+                a = a.point(lambda v: min(255, round(v * WATERMARK_ALPHA_BOOST)))
+                wm_resized = Image.merge("RGBA", (r, g, b, a))
+
+            canvas = im.copy()
+            # 半透明深色圆角底衬：浅色照片上水印也清晰
+            if BACKDROP_ALPHA > 0:
+                pad = max(8, round(target_w * PAD_RATIO))
+                bg = Image.new("RGBA", im.size, (0, 0, 0, 0))
+                box = (
+                    max(0, margin - pad),
+                    max(0, im.size[1] - wm_h - margin - pad),
+                    min(im.size[0], margin + target_w + pad),
+                    im.size[1] - margin + pad,
+                )
+                ImageDraw.Draw(bg).rounded_rectangle(
+                    box, radius=max(8, pad), fill=(12, 16, 20, BACKDROP_ALPHA)
+                )
+                canvas = Image.alpha_composite(canvas, bg)
+            canvas.alpha_composite(
+                wm_resized,
+                (margin, im.size[1] - wm_h - margin),
+            )
+
+            ext = name.rsplit(".", 1)[-1].lower()
+            if ext == "png":
+                fmt, save_im, kwargs = "PNG", canvas, {}
+            elif ext in ("jpg", "jpeg"):
+                fmt, save_im, kwargs = "JPEG", canvas.convert("RGB"), {"quality": 92}
+            else:
+                fmt, save_im, kwargs = "WEBP", canvas.convert("RGB"), {"quality": 92}
+
+            out_path = os.path.join(out_root, rel)
+            os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            save_im.save(out_path, fmt, **kwargs)
+            count += 1
+
+    print(f"[build] watermarked variants: {count}", flush=True)
+    return count
+
+
 def main() -> int:
     # 引入 Flask app（本机依赖齐全；渲染完不启动服务）
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -255,6 +353,8 @@ def main() -> int:
 
     # 3) 静态资源镜像
     shutil.copytree(STATIC_DIR, os.path.join(PUBLIC_DIR, "static"))
+    # 3.1) 水印变体（image.limooo.cn Worker 按 Referer 选择原图 / 水印图）
+    generate_watermarks()
     # 门禁验证页引用的根路径 logo（放行路径之一）
     shutil.copy2(
         os.path.join(STATIC_DIR, "icons", "Limooo-xtext.webp"),
@@ -278,10 +378,10 @@ def main() -> int:
         if name.endswith(".html"):
             html = open(os.path.join(src, name), encoding="utf-8").read()
             # 资源引用本地化：https://limooo.cn/static/... 与
-            # https://images.limooo.cn/...（不带 /static 前缀）→ ../static/...
+            # https://image.limooo.cn/...（不带 /static 前缀）→ ../static/...
             # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
             html = re.sub(
-                r'(src|href|data-qr)="https://(?:limooo\.cn/static|images\.limooo\.cn)/',
+                r'(src|href|data-qr)="https://(?:limooo\.cn/static|image\.limooo\.cn)/',
                 r'\1="../static/',
                 html,
             )

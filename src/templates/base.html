@@ -551,24 +551,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
        跨页预取:当前页加载完成后后台预取另外两个主页(HTML + 图片)
        - HTML 用 <link rel=prefetch> 原生缓存(带 cookie 保持语言一致,
          不支持/不缓存时优雅降级)
-       - 图片用 new Image() 预热 HTTP 缓存(images.limooo.cn 由 VPS nginx
-         直接出 /static 文件,30 天缓存头,跳转后秒出图)
+       - 图片用 new Image() 预热 HTTP 缓存(image.limooo.cn 由 Worker
+         路由到 limooo.cn/static,跳转后秒出图)
        - 移动端不预取二维码(contact 页二维码仅桌面悬停展示)
        - 图片清单与 index.html / contact.html 的 src 保持同步
        ═══════════════════════════════════════════════════════════════ */
     var PAGE_MANIFEST = {
         '/':        { host: 'limooo.cn',          path: '/',        images: [
-                        'https://images.limooo.cn/portfolio/IMG_0203.webp',
-                        'https://images.limooo.cn/portfolio/IMG_0146.webp',
-                        'https://images.limooo.cn/portfolio/IMG_0130.webp',
-                        'https://images.limooo.cn/portfolio/IMG_0244.webp',
-                        'https://images.limooo.cn/portfolio/IMG_0115.webp',
-                        'https://images.limooo.cn/portfolio/IMG_0179.webp' ] },
+                        'https://image.limooo.cn/portfolio/IMG_0203.webp',
+                        'https://image.limooo.cn/portfolio/IMG_0146.webp',
+                        'https://image.limooo.cn/portfolio/IMG_0130.webp',
+                        'https://image.limooo.cn/portfolio/IMG_0244.webp',
+                        'https://image.limooo.cn/portfolio/IMG_0115.webp',
+                        'https://image.limooo.cn/portfolio/IMG_0179.webp' ] },
         '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
         '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
-                        'https://images.limooo.cn/qr-codes/bilibili.webp',
-                        'https://images.limooo.cn/qr-codes/qq.webp',
-                        'https://images.limooo.cn/qr-codes/wechat.webp' ], qr: true }
+                        'https://image.limooo.cn/qr-codes/bilibili.webp',
+                        'https://image.limooo.cn/qr-codes/qq.webp',
+                        'https://image.limooo.cn/qr-codes/wechat.webp' ], qr: true }
     };
 
     /* 当前所在主页键;生产按子域判断,本地开发按路径 */
@@ -581,9 +581,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         return location.pathname;                    /* 本地开发:'/'|'/services'|'/contact' */
     }
 
-    /* 生产图片统一走 images.limooo.cn(VPS nginx 直出 /static,URL 不带 /static 前缀),本地走当前 origin */
+    /* 生产图片统一走 image.limooo.cn(Worker 路由到 limooo.cn/static,URL 不带 /static 前缀),本地走当前 origin */
     function pageOrigin() {
-        return location.hostname.endsWith('limooo.cn') ? 'https://images.limooo.cn' : location.origin;
+        return location.hostname.endsWith('limooo.cn') ? 'https://image.limooo.cn' : location.origin;
     }
 
     /* 兄弟页 HTML 地址:生产为子域根(nginx 根即页面),本地为同源 + 路径 */

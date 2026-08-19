@@ -411,14 +411,14 @@ const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights
 };
 
 /** redirect 页预热的 limooo.cn 主站作品图（与 Flask REDIRECT_PRELOAD_IMAGES 一致；
- *  统一走 https://images.limooo.cn/，不带 /static 前缀） */
+ *  统一走 https://image.limooo.cn/，不带 /static 前缀） */
 const REDIRECT_PRELOAD_IMAGES = [
-  "https://images.limooo.cn/portfolio/IMG_0203.webp",
-  "https://images.limooo.cn/portfolio/IMG_0146.webp",
-  "https://images.limooo.cn/portfolio/IMG_0130.webp",
-  "https://images.limooo.cn/portfolio/IMG_0244.webp",
-  "https://images.limooo.cn/portfolio/IMG_0115.webp",
-  "https://images.limooo.cn/portfolio/IMG_0179.webp",
+  "https://image.limooo.cn/portfolio/IMG_0203.webp",
+  "https://image.limooo.cn/portfolio/IMG_0146.webp",
+  "https://image.limooo.cn/portfolio/IMG_0130.webp",
+  "https://image.limooo.cn/portfolio/IMG_0244.webp",
+  "https://image.limooo.cn/portfolio/IMG_0115.webp",
+  "https://image.limooo.cn/portfolio/IMG_0179.webp",
 ];
 
 interface GateRenderOptions {
@@ -707,7 +707,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   </button>
 </div>
 <main class="card">
-  <img class="logo" src="https://images.limooo.cn/icons/Limooo-xtext.webp" alt="LIMOOO" width="220">
+  <img class="logo" src="https://image.limooo.cn/icons/Limooo-xtext.webp" alt="LIMOOO" width="220">
   <h1 data-i18n="heading">${t("heading")}</h1>
   ${errorHtml}
   <form id="gate" method="post" action="/__gate/verify">
