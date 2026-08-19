@@ -268,6 +268,34 @@ async function recordVisit(env: Env, request: Request, status: number): Promise<
   }
 }
 
+/** 记录每次请求的 Ray ID 与请求信息（供按 Ray ID 反查；DB 异常时放行） */
+async function recordRay(env: Env, request: Request, status: number): Promise<void> {
+  if (!env.DB) return;
+  const url = new URL(request.url);
+  // 查询接口自身的请求不记录，避免自查询递归
+  if (url.pathname.startsWith("/api/ray/")) return;
+  const ray = request.headers.get("CF-Ray") ?? "";
+  if (!ray) return;
+  const cf = (request as Request & { cf?: { country?: string } }).cf;
+  try {
+    await execute(
+      env.DB,
+      `INSERT OR IGNORE INTO ray_log (ray, ts, host, path, method, status, ip, country, ua)
+       VALUES (?, unixepoch(), ?, ?, ?, ?, ?, ?, ?)`,
+      ray,
+      url.hostname,
+      url.pathname + url.search,
+      request.method,
+      status,
+      request.headers.get("CF-Connecting-IP") ?? "",
+      cf?.country ?? "",
+      (request.headers.get("User-Agent") ?? "").slice(0, 300),
+    );
+  } catch {
+    // fail-open：记录失败不阻塞请求
+  }
+}
+
 /** 调 Turnstile siteverify，带超时；网络/HTTP 错误向上抛，由调用方给明确报错页 */
 async function verifyTurnstile(token: string, remoteip: string, secret: string): Promise<boolean> {
   const controller = new AbortController();
@@ -677,6 +705,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
 ${turnstileSrc}
 <script>
   var turnstileWidget = null;
+  var TURNSTILE_SITEKEY = ${JSON.stringify(sitekey)};
   var CURRENT_LANG = ${JSON.stringify(lang)};
   var GATE_I18N = ${JSON.stringify(GATE_I18N)};
 
@@ -710,12 +739,20 @@ ${turnstileSrc}
     if (sw) sw.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
   }
   function resetTurnstile() {
-    if (turnstileWidget && window.turnstile) {
-      window.turnstile.reset(turnstileWidget, {
-        theme: effectiveTheme() === "light" ? "light" : "dark",
-        language: turnstileLang(CURRENT_LANG)
-      });
+    var wrap = document.getElementById("turnstile-wrap");
+    if (!wrap || !window.turnstile) return;
+    // turnstile.reset() 不接受配置项，语言/主题只能在 render 时生效，
+    // 因此切换语言或主题时必须先移除旧 widget，再用新配置重新渲染。
+    if (turnstileWidget) {
+      window.turnstile.remove(turnstileWidget);
+      turnstileWidget = null;
     }
+    turnstileWidget = window.turnstile.render(wrap, {
+      sitekey: TURNSTILE_SITEKEY,
+      callback: onTurnstileSuccess,
+      theme: effectiveTheme() === "light" ? "light" : "dark",
+      language: turnstileLang(CURRENT_LANG)
+    });
   }
   function toggleTheme() {
     var next = effectiveTheme() === "light" ? "dark" : "light";
@@ -793,15 +830,7 @@ ${turnstileSrc}
     if (!e.target.closest(".theme-toggle")) closeLangMenu();
   });
   function onloadTurnstileCallback() {
-    var wrap = document.getElementById("turnstile-wrap");
-    if (window.turnstile && wrap) {
-      turnstileWidget = window.turnstile.render(wrap, {
-        sitekey: ${JSON.stringify(sitekey)},
-        callback: onTurnstileSuccess,
-        theme: effectiveTheme() === "light" ? "light" : "dark",
-        language: turnstileLang(CURRENT_LANG)
-      });
-    }
+    resetTurnstile();
   }
   // 初始同步主题与文案（Turnstile 由 onloadTurnstileCallback 显式渲染）
   applyTheme(effectiveTheme());
@@ -1008,17 +1037,22 @@ async function handleVerify(context: EventContext): Promise<Response> {
 export const onRequest: PagesFunction = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
+  const resp = await handleOnRequest(context);
   // 响应发出后再埋点（拿真实状态码），未验证 / 封禁 / 正常页面都记
   if (shouldTrackVisit(request, url)) {
-    const resp = await handleOnRequest(context);
     if (typeof context.waitUntil === "function") {
       context.waitUntil(recordVisit(env, request, resp.status));
     } else {
       void recordVisit(env, request, resp.status);
     }
-    return resp;
   }
-  return handleOnRequest(context);
+  // 所有请求（含 API / 静态 / 门禁）都记 Ray ID，供 check-ray-id 按 ID 反查
+  if (typeof context.waitUntil === "function") {
+    context.waitUntil(recordRay(env, request, resp.status));
+  } else {
+    void recordRay(env, request, resp.status);
+  }
+  return resp;
 };
 
 async function handleOnRequest(context: EventContext): Promise<Response> {
@@ -1048,7 +1082,8 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   }
   if (
     SKIP_PATHS.has(url.pathname) ||
-    url.pathname.startsWith("/static/")
+    url.pathname.startsWith("/static/") ||
+    url.pathname.startsWith("/api/ray/") // Ray ID 查询接口，供 check-ray-id 反查 Pages 侧请求
   ) {
     return next();
   }
@@ -1072,7 +1107,8 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     url.pathname.startsWith("/appleid") ||
     url.pathname.startsWith("/visitor") ||
     url.pathname.startsWith("/api/appleid") ||
-    url.pathname.startsWith("/api/auth");
+    url.pathname.startsWith("/api/auth") ||
+    url.pathname.startsWith("/api/ray");
   if (!exempt && ip && (await isBlocked(env, ip))) {
     return new Response("Forbidden", { status: 403 });
   }

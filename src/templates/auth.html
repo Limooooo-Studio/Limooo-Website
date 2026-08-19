@@ -244,6 +244,7 @@
 {{ turnstile_src|safe }}
 <script>
   var turnstileWidget = null;
+  var TURNSTILE_SITEKEY = {{ sitekey|tojson }};
   var CURRENT_LANG = {{ lang|tojson }};
   var GATE_I18N = {{ gate_i18n|safe }};
 
@@ -277,12 +278,20 @@
     if (sw) sw.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
   }
   function resetTurnstile() {
-    if (turnstileWidget && window.turnstile) {
-      window.turnstile.reset(turnstileWidget, {
-        theme: effectiveTheme() === "light" ? "light" : "dark",
-        language: turnstileLang(CURRENT_LANG)
-      });
+    var wrap = document.getElementById("turnstile-wrap");
+    if (!wrap || !window.turnstile) return;
+    // turnstile.reset() 不接受配置项，语言/主题只能在 render 时生效，
+    // 因此切换语言或主题时必须先移除旧 widget，再用新配置重新渲染。
+    if (turnstileWidget) {
+      window.turnstile.remove(turnstileWidget);
+      turnstileWidget = null;
     }
+    turnstileWidget = window.turnstile.render(wrap, {
+      sitekey: TURNSTILE_SITEKEY,
+      callback: onTurnstileSuccess,
+      theme: effectiveTheme() === "light" ? "light" : "dark",
+      language: turnstileLang(CURRENT_LANG)
+    });
   }
   function toggleTheme() {
     var next = effectiveTheme() === "light" ? "dark" : "light";
@@ -354,15 +363,7 @@
     if (!e.target.closest(".theme-toggle")) closeLangMenu();
   });
   function onloadTurnstileCallback() {
-    var wrap = document.getElementById("turnstile-wrap");
-    if (window.turnstile && wrap) {
-      turnstileWidget = window.turnstile.render(wrap, {
-        sitekey: {{ sitekey|tojson }},
-        callback: onTurnstileSuccess,
-        theme: effectiveTheme() === "light" ? "light" : "dark",
-        language: turnstileLang(CURRENT_LANG)
-      });
-    }
+    resetTurnstile();
   }
   // 初始同步主题与文案（Turnstile 由 onloadTurnstileCallback 显式渲染）
   applyTheme(effectiveTheme());
