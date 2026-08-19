@@ -489,6 +489,14 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     position: fixed; top: 18px; right: 18px; z-index: 10;
     display: flex; align-items: center; gap: 8px;
   }
+  /* 语言/深浅切换之间的竖线分隔符（与主站导航栏一致） */
+  .nav-divider {
+    width: 1px; height: 24px;
+    background: var(--line);
+    margin: 0 12px;
+    flex-shrink: 0;
+  }
+  @media (max-width: 767px) { .nav-divider { display: none; } }
   /* ── 语言切换按钮（与主站一致：文A 图标 + 下箭头） ── */
   .theme-toggle { position: relative; display: flex; align-items: center; }
   .lang-btn {
@@ -634,6 +642,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
       <div class="theme-option${lang === "ko-kr" ? " selected" : ""}" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span>한국어</span></div>
     </div>
   </div>
+  <span class="nav-divider hidden md:block"></span>
   <button class="appearance-switch" type="button" role="switch" aria-checked="false" aria-label="${t("theme_aria")}" data-i18n-attr="aria-label:theme_aria" onclick="toggleTheme()">
     <span class="appearance-check">
       <span class="appearance-icon">
