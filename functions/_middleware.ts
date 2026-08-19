@@ -312,7 +312,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     location: "位置",
     ip: "IP",
     ray: "Ray ID",
-    foot: "由 Limooo 边缘安全提供保护",
+    foot: "由 <strong>Limooo</strong> 边缘安全提供保护",
     lang_aria: "切换语言",
     theme_aria: "切换主题",
     footer_rights: "保留所有权利",
@@ -328,7 +328,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     location: "Location",
     ip: "IP",
     ray: "Ray ID",
-    foot: "Secured by Limooo Edge Security",
+    foot: "Secured by <strong>Limooo</strong> Edge Security",
     lang_aria: "Switch language",
     theme_aria: "Toggle theme",
     footer_rights: "ALL RIGHTS RESERVED",
@@ -344,7 +344,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     location: "場所",
     ip: "IP",
     ray: "Ray ID",
-    foot: "Limooo Edge Security により保護されています",
+    foot: "<strong>Limooo</strong> Edge Security により保護されています",
     lang_aria: "言語切替",
     theme_aria: "テーマ切替",
     footer_rights: "無断転載禁止",
@@ -360,7 +360,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     location: "위치",
     ip: "IP",
     ray: "Ray ID",
-    foot: "Limooo Edge Security가 보호합니다",
+    foot: "<strong>Limooo</strong> Edge Security가 보호합니다",
     lang_aria: "언어 전환",
     theme_aria: "테마 전환",
     footer_rights: "모든 권리 보유",
@@ -658,7 +658,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     <dt data-i18n="ip">${t("ip")}</dt><dd id="diag-ip">—</dd>
     <dt data-i18n="ray">${t("ray")}</dt><dd id="diag-ray">—</dd>
   </dl>
-  <p class="foot" data-i18n="foot">${t("foot")}</p>
+  <p class="foot" data-i18n-html="foot">${t("foot")}</p>
 </main>
 <footer class="global-footer" id="global-footer">
   <div class="footer-link">
@@ -727,6 +727,9 @@ ${turnstileSrc}
       var prefix = el.getAttribute("data-i18n-prefix");
       if (prefix != null) text = text ? prefix + text : "";
       el.textContent = text;
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(function (el) {
+      el.innerHTML = t(el.getAttribute("data-i18n-html"));
     });
     document.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
       el.getAttribute("data-i18n-attr").split("|").forEach(function (seg) {
