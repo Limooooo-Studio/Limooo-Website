@@ -116,15 +116,15 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF' 2>&1 | grep -vE "^Linux limooo|^Debian GNU"
         python3 -m venv venv
     fi
     ./venv/bin/pip install --upgrade pip -q
-    ./venv/bin/pip install --upgrade -r deploy/requirements.txt -q
+    ./venv/bin/pip install --upgrade -r ops/requirements.txt -q
 
     # Restore Cloudflare Origin CA certificates (nginx ssl_certificate points here)
-    if [ ! -f "/etc/nginx/ssl/origin-cert.pem" ] && [ -f "/var/www/limooo/certs/origin-cert.pem" ]; then
+    if [ ! -f "/etc/nginx/ssl/origin-cert.pem" ] && [ -f "/var/www/limooo/secrets/origin-cert.pem" ]; then
         echo "Restoring Cloudflare Origin CA certificates..."
         mkdir -p /etc/nginx/ssl
         chmod 700 /etc/nginx/ssl
-        cp /var/www/limooo/certs/origin-cert.pem /etc/nginx/ssl/
-        cp /var/www/limooo/certs/origin-key.pem /etc/nginx/ssl/
+        cp /var/www/limooo/secrets/origin-cert.pem /etc/nginx/ssl/
+        cp /var/www/limooo/secrets/origin-key.pem /etc/nginx/ssl/
         chmod 600 /etc/nginx/ssl/origin-cert.pem /etc/nginx/ssl/origin-key.pem
         echo "Origin CA certificates restored"
     fi
@@ -135,8 +135,8 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF' 2>&1 | grep -vE "^Linux limooo|^Debian GNU"
     sudo chmod 700 /etc/limooo
     for kf in flask_secret.key appleid_encryption.key; do
         if [ ! -f "/etc/limooo/$kf" ]; then
-            if [ -f "keys/$kf" ]; then
-                sudo cp -p "keys/$kf" "/etc/limooo/$kf"
+            if [ -f "secrets/$kf" ]; then
+                sudo cp -p "secrets/$kf" "/etc/limooo/$kf"
                 echo "[info] moved $kf to /etc/limooo/"
             else
                 sudo touch "/etc/limooo/$kf"   # 占位,由 Flask 首次启动生成
@@ -144,8 +144,8 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF' 2>&1 | grep -vE "^Linux limooo|^Debian GNU"
         fi
         sudo chmod 600 "/etc/limooo/$kf"
         # 迁移成功后清除项目目录残留密钥,避免与密文同目录
-        if [ -f "keys/$kf" ]; then
-            rm -f "keys/$kf"
+        if [ -f "secrets/$kf" ]; then
+            rm -f "secrets/$kf"
             echo "[info] removed $kf from project dir"
         fi
     done
@@ -160,10 +160,10 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF' 2>&1 | grep -vE "^Linux limooo|^Debian GNU"
         rm -f data/geo_cache.db
     fi
 
-    # Env file (secrets + API keys) — normally synced from local to keys/; fallback if missing
-    mkdir -p keys
-    if [ ! -f "keys/webauthn.env" ]; then
-        cat > keys/webauthn.env << 'WEOF'
+    # Env file (secrets + API keys) — normally synced from local to secrets/; fallback if missing
+    mkdir -p secrets
+    if [ ! -f "secrets/webauthn.env" ]; then
+        cat > secrets/webauthn.env << 'WEOF'
 REST_COUNTRIES_KEY=rc_live_xxx_replace_with_real_key
 GEONAMES_USERNAME=limooo
 LIBRETRANSLATE_URL=
@@ -171,27 +171,27 @@ ENTRA_CLIENT_SECRET=
 AUTHENTIK_CLIENT_ID=
 AUTHENTIK_CLIENT_SECRET=
 WEOF
-        echo "[info] 部分密钥为空 — 在服务器上编辑 keys/webauthn.env 填写"
+        echo "[info] 部分密钥为空 — 在服务器上编辑 secrets/webauthn.env 填写"
     else
-        grep -q '^REST_COUNTRIES_KEY=' keys/webauthn.env || echo 'REST_COUNTRIES_KEY=rc_live_xxx_replace_with_real_key' >> keys/webauthn.env
-        grep -q '^GEONAMES_USERNAME=' keys/webauthn.env || echo 'GEONAMES_USERNAME=limooo' >> keys/webauthn.env
-        grep -q '^LIBRETRANSLATE_URL=' keys/webauthn.env || echo 'LIBRETRANSLATE_URL=' >> keys/webauthn.env
-        grep -q '^ENTRA_CLIENT_SECRET=' keys/webauthn.env || echo 'ENTRA_CLIENT_SECRET=' >> keys/webauthn.env
-        grep -q '^AUTHENTIK_CLIENT_ID=' keys/webauthn.env || echo 'AUTHENTIK_CLIENT_ID=' >> keys/webauthn.env
-        grep -q '^AUTHENTIK_CLIENT_SECRET=' keys/webauthn.env || echo 'AUTHENTIK_CLIENT_SECRET=' >> keys/webauthn.env
-        grep -q '^AUTHENTIK_INTERNAL_URL=' keys/webauthn.env || echo 'AUTHENTIK_INTERNAL_URL=http://127.0.0.1:9000' >> keys/webauthn.env
+        grep -q '^REST_COUNTRIES_KEY=' secrets/webauthn.env || echo 'REST_COUNTRIES_KEY=rc_live_xxx_replace_with_real_key' >> secrets/webauthn.env
+        grep -q '^GEONAMES_USERNAME=' secrets/webauthn.env || echo 'GEONAMES_USERNAME=limooo' >> secrets/webauthn.env
+        grep -q '^LIBRETRANSLATE_URL=' secrets/webauthn.env || echo 'LIBRETRANSLATE_URL=' >> secrets/webauthn.env
+        grep -q '^ENTRA_CLIENT_SECRET=' secrets/webauthn.env || echo 'ENTRA_CLIENT_SECRET=' >> secrets/webauthn.env
+        grep -q '^AUTHENTIK_CLIENT_ID=' secrets/webauthn.env || echo 'AUTHENTIK_CLIENT_ID=' >> secrets/webauthn.env
+        grep -q '^AUTHENTIK_CLIENT_SECRET=' secrets/webauthn.env || echo 'AUTHENTIK_CLIENT_SECRET=' >> secrets/webauthn.env
+        grep -q '^AUTHENTIK_INTERNAL_URL=' secrets/webauthn.env || echo 'AUTHENTIK_INTERNAL_URL=http://127.0.0.1:9000' >> secrets/webauthn.env
     fi
 
-    sudo cp deploy/limooo.service /etc/systemd/system/limooo.service
+    sudo cp ops/limooo.service /etc/systemd/system/limooo.service
     sudo systemctl daemon-reload
     sudo systemctl enable limooo >/dev/null 2>&1
     sudo systemctl start limooo
     sleep 2
     sudo systemctl is-active limooo | sed 's/^/limooo: /'
 
-    sudo cp deploy/limooo.conf /etc/nginx/sites-available/limooo.conf
+    sudo cp ops/limooo.conf /etc/nginx/sites-available/limooo.conf
     sudo ln -sf /etc/nginx/sites-available/limooo.conf /etc/nginx/sites-enabled/
-    sudo cp deploy/location-security.inc /etc/nginx/conf.d/location-security.inc
+    sudo cp ops/location-security.inc /etc/nginx/conf.d/location-security.inc
 
     # Remove default site to avoid port conflicts
     if [ -f /etc/nginx/sites-enabled/default ]; then
@@ -217,6 +217,6 @@ EOF
 
 # Cloudflare Pages 部署（auth/limooo 站点由 Pages 托管，VPS rsync 不影响它）
 echo "Deploying to Cloudflare Pages..."
-"$LOCAL_DIR/deploy/pages_deploy.sh"
+"$LOCAL_DIR/ops/pages_deploy.sh"
 
 echo "Deploy: done"

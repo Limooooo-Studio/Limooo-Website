@@ -31,6 +31,7 @@
   "platform_wechat": "WeChat",
   "platform_email": "Email",
   "email_mailto": "mailto:services@limooo.cn?cc=limooo.studio@icloud.com&subject=Photography%20Booking",
+  "email_qr": "https://limooo.cn/static/qr-codes/mail-servives-en-us.webp",
   "services_title": "What We Offer",
   "service_convention": "Convention Shooting",
   "service_outdoor": "Outdoor Shooting",

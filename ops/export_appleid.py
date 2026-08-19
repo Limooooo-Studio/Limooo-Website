@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """导出 appleid.db → D1 导入 SQL/JSON（密码字段原样保留，不解密）
 
-用法：python3 scripts/export_appleid.py [appleid.db 路径]
-输出：scripts/out/appleid.sql、scripts/out/appleid.json
-导入：wrangler d1 execute limooo --file=scripts/out/appleid.sql
+用法：python3 ops/export_appleid.py [appleid.db 路径]
+输出：ops/out/appleid.sql、ops/out/appleid.json
+导入：wrangler d1 execute limooo --file=ops/out/appleid.sql
 """
 
 import json
@@ -12,7 +12,7 @@ import sqlite3
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT_DIR = os.path.join(BASE_DIR, "scripts", "out")
+OUT_DIR = os.path.join(BASE_DIR, "ops", "out")
 
 
 def esc(value) -> str:
@@ -53,7 +53,7 @@ def main() -> int:
         ]
         f.write(",\n".join(values) + ";\n")
 
-    print(f"[export] {len(rows)} rows -> scripts/out/appleid.sql / appleid.json", flush=True)
+    print(f"[export] {len(rows)} rows -> ops/out/appleid.sql / appleid.json", flush=True)
     return 0
 
 

@@ -20,7 +20,7 @@ import sys
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
 PREVIEW_DIR = os.path.join(BASE_DIR, "preview")
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+STATIC_DIR = os.path.join(BASE_DIR, "src", "static")
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
 FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
 
@@ -309,7 +309,7 @@ def main() -> int:
             html = html.replace("</body>", preview_i18n_patch() + "</body>")
             with open(os.path.join(PREVIEW_OUT, name), "w", encoding="utf-8") as f:
                 f.write(html)
-    # 预览索引（列出所有子域页面，模板在 Flask/templates/preview.html）
+    # 预览索引（列出所有子域页面，模板在 Flask/src/templates/preview.html）
     with appmod.app.test_request_context("/", headers={"Host": "limooo.cn"}):
         index_html = appmod.render_template(
             "preview.html",

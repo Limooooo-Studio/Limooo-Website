@@ -138,7 +138,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         </div>
 
         <!-- 邮箱 -->
-        <div class="reveal-item copyable pressable cursor-pointer group relative" onclick="handleCopy(this, 'services@limooo.cn')">
+        <div class="reveal-item copyable pressable qr-trigger cursor-pointer group relative" onclick="handleCopy(this, 'services@limooo.cn')"
+            data-qr="{{ _('email_qr') }}"
+            data-i18n-attr="data-qr:email_qr">
             <div class="bubble-tip" data-i18n="click_to_copy">{{ _('click_to_copy') }}</div>
             <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_email">{{ _('platform_email') }}</p>
             <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium">

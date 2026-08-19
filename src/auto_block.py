@@ -179,7 +179,7 @@ def sync_ipset() -> None:
 # ── Cloudflare IP List 同步（原 sync_blocklist_cf.py） ──
 # 读 webauthn.env 里的 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，
 # 不存在则跳过。使用纯标准库(urllib)。
-ENV_FILE = os.path.join(BASE_DIR, "keys", "webauthn.env")
+ENV_FILE = os.path.join(BASE_DIR, "secrets", "webauthn.env")
 LIST_NAME = "limooo_blocklist"
 API = "https://api.cloudflare.com/client/v4"
 BATCH = 200  # safe POST/DELETE batch size

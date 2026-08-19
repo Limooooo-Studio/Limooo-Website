@@ -132,19 +132,19 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF'
     fi
     echo "./venv/bin/pip install --upgrade pip"
     ./venv/bin/pip install --upgrade pip
-    echo "./venv/bin/pip install --upgrade -r deploy/requirements.txt"
-    ./venv/bin/pip install --upgrade -r deploy/requirements.txt
+    echo "./venv/bin/pip install --upgrade -r ops/requirements.txt"
+    ./venv/bin/pip install --upgrade -r ops/requirements.txt
 
     # 恢复 Cloudflare Origin CA 证书(nginx ssl_certificate 指向此处)
-    if [ ! -f "/etc/nginx/ssl/origin-cert.pem" ] && [ -f "/var/www/limooo/certs/origin-cert.pem" ]; then
+    if [ ! -f "/etc/nginx/ssl/origin-cert.pem" ] && [ -f "/var/www/limooo/secrets/origin-cert.pem" ]; then
         echo "mkdir -p /etc/nginx/ssl"
         mkdir -p /etc/nginx/ssl
         echo "chmod 700 /etc/nginx/ssl"
         chmod 700 /etc/nginx/ssl
-        echo "cp /var/www/limooo/certs/origin-cert.pem /etc/nginx/ssl/"
-        cp /var/www/limooo/certs/origin-cert.pem /etc/nginx/ssl/
-        echo "cp /var/www/limooo/certs/origin-key.pem /etc/nginx/ssl/"
-        cp /var/www/limooo/certs/origin-key.pem /etc/nginx/ssl/
+        echo "cp /var/www/limooo/secrets/origin-cert.pem /etc/nginx/ssl/"
+        cp /var/www/limooo/secrets/origin-cert.pem /etc/nginx/ssl/
+        echo "cp /var/www/limooo/secrets/origin-key.pem /etc/nginx/ssl/"
+        cp /var/www/limooo/secrets/origin-key.pem /etc/nginx/ssl/
         echo "chmod 600 /etc/nginx/ssl/origin-cert.pem /etc/nginx/ssl/origin-key.pem"
         chmod 600 /etc/nginx/ssl/origin-cert.pem /etc/nginx/ssl/origin-key.pem
     fi
@@ -157,9 +157,9 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF'
     sudo chmod 700 /etc/limooo
     for kf in flask_secret.key appleid_encryption.key; do
         if [ ! -f "/etc/limooo/$kf" ]; then
-            if [ -f "keys/$kf" ]; then
-                echo "sudo cp -p keys/$kf /etc/limooo/$kf"
-                sudo cp -p "keys/$kf" "/etc/limooo/$kf"
+            if [ -f "secrets/$kf" ]; then
+                echo "sudo cp -p secrets/$kf /etc/limooo/$kf"
+                sudo cp -p "secrets/$kf" "/etc/limooo/$kf"
             else
                 echo "sudo touch /etc/limooo/$kf"
                 sudo touch "/etc/limooo/$kf"   # 占位,由 Flask 首次启动生成
@@ -168,9 +168,9 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF'
         echo "sudo chmod 600 /etc/limooo/$kf"
         sudo chmod 600 "/etc/limooo/$kf"
         # 迁移成功后清除项目目录残留密钥,避免与密文同目录
-        if [ -f "keys/$kf" ]; then
-            echo "rm -f keys/$kf"
-            rm -f "keys/$kf"
+        if [ -f "secrets/$kf" ]; then
+            echo "rm -f secrets/$kf"
+            rm -f "secrets/$kf"
         fi
     done
 
@@ -188,12 +188,12 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF'
         rm -f data/geo_cache.db
     fi
 
-    # Env file(secrets + API keys)— 正常由本地同步到 keys/;缺失时兜底
-    echo "mkdir -p keys"
-    mkdir -p keys
-    if [ ! -f "keys/webauthn.env" ]; then
-        echo "cat > keys/webauthn.env << 'WEOF'"
-        cat > keys/webauthn.env << 'WEOF'
+    # Env file(secrets + API keys)— 正常由本地同步到 secrets/;缺失时兜底
+    echo "mkdir -p secrets"
+    mkdir -p secrets
+    if [ ! -f "secrets/webauthn.env" ]; then
+        echo "cat > secrets/webauthn.env << 'WEOF'"
+        cat > secrets/webauthn.env << 'WEOF'
 REST_COUNTRIES_KEY=rc_live_xxx_replace_with_real_key
 GEONAMES_USERNAME=limooo
 LIBRETRANSLATE_URL=
@@ -202,17 +202,17 @@ AUTHENTIK_CLIENT_ID=
 AUTHENTIK_CLIENT_SECRET=
 WEOF
     else
-        grep -q '^REST_COUNTRIES_KEY=' keys/webauthn.env || echo 'REST_COUNTRIES_KEY=rc_live_xxx_replace_with_real_key' >> keys/webauthn.env
-        grep -q '^GEONAMES_USERNAME=' keys/webauthn.env || echo 'GEONAMES_USERNAME=limooo' >> keys/webauthn.env
-        grep -q '^LIBRETRANSLATE_URL=' keys/webauthn.env || echo 'LIBRETRANSLATE_URL=' >> keys/webauthn.env
-        grep -q '^ENTRA_CLIENT_SECRET=' keys/webauthn.env || echo 'ENTRA_CLIENT_SECRET=' >> keys/webauthn.env
-        grep -q '^AUTHENTIK_CLIENT_ID=' keys/webauthn.env || echo 'AUTHENTIK_CLIENT_ID=' >> keys/webauthn.env
-        grep -q '^AUTHENTIK_CLIENT_SECRET=' keys/webauthn.env || echo 'AUTHENTIK_CLIENT_SECRET=' >> keys/webauthn.env
-        grep -q '^AUTHENTIK_INTERNAL_URL=' keys/webauthn.env || echo 'AUTHENTIK_INTERNAL_URL=http://127.0.0.1:9000' >> keys/webauthn.env
+        grep -q '^REST_COUNTRIES_KEY=' secrets/webauthn.env || echo 'REST_COUNTRIES_KEY=rc_live_xxx_replace_with_real_key' >> secrets/webauthn.env
+        grep -q '^GEONAMES_USERNAME=' secrets/webauthn.env || echo 'GEONAMES_USERNAME=limooo' >> secrets/webauthn.env
+        grep -q '^LIBRETRANSLATE_URL=' secrets/webauthn.env || echo 'LIBRETRANSLATE_URL=' >> secrets/webauthn.env
+        grep -q '^ENTRA_CLIENT_SECRET=' secrets/webauthn.env || echo 'ENTRA_CLIENT_SECRET=' >> secrets/webauthn.env
+        grep -q '^AUTHENTIK_CLIENT_ID=' secrets/webauthn.env || echo 'AUTHENTIK_CLIENT_ID=' >> secrets/webauthn.env
+        grep -q '^AUTHENTIK_CLIENT_SECRET=' secrets/webauthn.env || echo 'AUTHENTIK_CLIENT_SECRET=' >> secrets/webauthn.env
+        grep -q '^AUTHENTIK_INTERNAL_URL=' secrets/webauthn.env || echo 'AUTHENTIK_INTERNAL_URL=http://127.0.0.1:9000' >> secrets/webauthn.env
     fi
 
-    echo "sudo cp deploy/limooo.service /etc/systemd/system/limooo.service"
-    sudo cp deploy/limooo.service /etc/systemd/system/limooo.service
+    echo "sudo cp ops/limooo.service /etc/systemd/system/limooo.service"
+    sudo cp ops/limooo.service /etc/systemd/system/limooo.service
     echo "sudo systemctl daemon-reload"
     sudo systemctl daemon-reload
     echo "sudo systemctl enable limooo"
@@ -226,12 +226,12 @@ WEOF
 
     # nginx 主配置只 include /etc/nginx/conf.d/*.conf,必须放到 conf.d/ 才会生效
     # (sites-available/ + sites-enabled/ 的旧做法从未被加载,已废弃)
-    echo "sudo cp deploy/limooo.conf /etc/nginx/conf.d/limooo.conf"
-    sudo cp deploy/limooo.conf /etc/nginx/conf.d/limooo.conf
+    echo "sudo cp ops/limooo.conf /etc/nginx/conf.d/limooo.conf"
+    sudo cp ops/limooo.conf /etc/nginx/conf.d/limooo.conf
     echo "sudo rm -f /etc/nginx/sites-enabled/limooo.conf /etc/nginx/sites-available/limooo.conf"
     sudo rm -f /etc/nginx/sites-enabled/limooo.conf /etc/nginx/sites-available/limooo.conf
-    echo "sudo cp deploy/location-security.inc /etc/nginx/conf.d/location-security.inc"
-    sudo cp deploy/location-security.inc /etc/nginx/conf.d/location-security.inc
+    echo "sudo cp ops/location-security.inc /etc/nginx/conf.d/location-security.inc"
+    sudo cp ops/location-security.inc /etc/nginx/conf.d/location-security.inc
 
     # 删除默认站点,避免端口冲突
     if [ -f /etc/nginx/sites-enabled/default ]; then
@@ -257,5 +257,5 @@ WEOF
     cd /var/www/limooo/src && ../venv/bin/python3 auto_block.py ipset
 EOF
 
-echo "bash deploy/pages_deploy.sh --verbose"
-bash deploy/pages_deploy.sh --verbose
+echo "bash ops/pages_deploy.sh --verbose"
+bash ops/pages_deploy.sh --verbose

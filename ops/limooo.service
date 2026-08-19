@@ -31,7 +31,7 @@ WorkingDirectory=/var/www/limooo
 # 指定虚拟环境 Python 路径
 Environment="PATH=/var/www/limooo/venv/bin"
 # 注册密钥配置文件（部署后编辑此文件设置你的密钥，不会被 rsync 覆盖）
-EnvironmentFile=-/var/www/limooo/keys/webauthn.env
+EnvironmentFile=-/var/www/limooo/secrets/webauthn.env
 # 使用 gunicorn 运行，监听 8080 端口与你的 src/app.py 一致
 ExecStart=/var/www/limooo/venv/bin/gunicorn --chdir /var/www/limooo/src --workers 3 --bind 127.0.0.1:8080 app:app
 

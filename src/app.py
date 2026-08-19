@@ -67,12 +67,12 @@ BLOCKED_IPS: set[str] = set()  # all merged into /24, kept for compatibility
 
 app = Flask(
     __name__,
-    template_folder=os.path.join(BASE_DIR, "templates"),
-    static_folder=os.path.join(BASE_DIR, "static"),
+    template_folder=os.path.join(BASE_DIR, "src", "templates"),
+    static_folder=os.path.join(BASE_DIR, "src", "static"),
 )
 
 SECRET_KEY_ETC = "/etc/limooo/flask_secret.key"
-SECRET_KEY_FILE = os.path.join(BASE_DIR, "keys", "flask_secret.key")
+SECRET_KEY_FILE = os.path.join(BASE_DIR, "secrets", "flask_secret.key")
 
 # 持久化 secret key（跨 gunicorn 重启保持 session 有效）
 # 优先级:环境变量 FLASK_SECRET_KEY > /etc/limooo/(chmod 600) > 项目目录(兼容旧部署)
@@ -904,7 +904,7 @@ def _migrate_appleid_from_geo_cache() -> None:
 
 # ── Apple ID 密码加密 ──────────────────────────────
 APPLEID_KEY_ETC = "/etc/limooo/appleid_encryption.key"
-APPLEID_KEY_FILE = os.path.join(BASE_DIR, "keys", "appleid_encryption.key")
+APPLEID_KEY_FILE = os.path.join(BASE_DIR, "secrets", "appleid_encryption.key")
 
 def _get_appleid_cipher():
     """获取 Fernet 加密器，密钥优先级:环境变量 > /etc/limooo/ > 项目目录(兼容旧部署)"""

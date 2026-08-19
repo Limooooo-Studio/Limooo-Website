@@ -2,8 +2,8 @@
 """把 data/blocklist.txt 规范化成 blocked_ips 的 D1 种子 SQL
 
 支持三种格式：单 IP、CIDR、裸 /24 前缀（a.b.c）。行内 # 注释会被剥离。
-用法：python3 scripts/export_blocklist.py
-输出：scripts/out/blocklist.sql
+用法：python3 ops/export_blocklist.py
+输出：ops/out/blocklist.sql
 """
 
 import os
@@ -12,7 +12,7 @@ import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(BASE_DIR, "data", "blocklist.txt")
-OUT_DIR = os.path.join(BASE_DIR, "scripts", "out")
+OUT_DIR = os.path.join(BASE_DIR, "ops", "out")
 
 
 def normalize(line: str) -> str | None:
