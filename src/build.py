@@ -35,6 +35,8 @@ PAGES = (
     ("index.html", "index.html", "/", None),
     ("services.html", "services.html", "/services", None),
     ("contact.html", "contact.html", "/contact", None),
+    # images.limooo.cn 门面页（继承 base.html），由中间件按主机名吐出到 / 与三个前端路径
+    ("images.html", "images.html", "/images", None),
     # 子域专属管理页（visitor.limooo.cn / appleid.limooo.cn），由中间件按主机名吐出
     ("visitor.html", "visitor.html", "/visitor", None),
     ("appleid.html", "appleid.html", "/appleid", None),

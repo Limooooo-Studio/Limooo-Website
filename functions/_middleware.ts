@@ -234,6 +234,7 @@ async function isBlocked(env: Env, ip: string): Promise<boolean> {
 /** 页面 GET 且非噪音类目：才做访客埋点（静态资源 / API / 门禁路径 / 跳转子域不记） */
 function shouldTrackVisit(request: Request, url: URL): boolean {
   if (request.method !== "GET") return false;
+  if (url.hostname === "images.limooo.cn") return false; // 图片子域全量不埋点
   const p = url.pathname;
   if (
     p.startsWith("/api/") ||
@@ -1111,6 +1112,45 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     url.pathname.startsWith("/api/ray/") // Ray ID 查询接口，供 check-ray-id 反查 Pages 侧请求
   ) {
     return next();
+  }
+
+  // images.limooo.cn：图片子域，公开访问（不过人机验证）。URL 不带 /static 前缀：
+  // /portfolio/x.webp → /static/portfolio/x.webp；/ 与三个前端路径（SPA）出
+  // 预渲染门面页（继承 base.html）；/api/*（i18n 等）交给 Functions 正常处理。
+  if (url.hostname === "images.limooo.cn") {
+    if (url.pathname.startsWith("/api/")) return next();
+    const lang = detectLang(request);
+    const clean = url.pathname.replace(/\/+$/, "") || "/";
+    const isPage =
+      clean === "/" ||
+      clean === "/index.html" ||
+      clean === "/portfolio" ||
+      clean === "/qr-codes" ||
+      clean === "/icons";
+    const asset = isPage ? `/${lang}/images.html` : "/static" + url.pathname;
+    if (env.ASSETS) {
+      const resp = await env.ASSETS.fetch(new URL(asset, "https://limooo.cn/"));
+      if (resp.ok) {
+        if (isPage) {
+          return withLangCookie(request, new Response(resp.body, {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "private, max-age=300",
+              // 语言由 cookie 决定：缓存必须按 cookie 区分
+              "Vary": "Cookie",
+            },
+          }));
+        }
+        return new Response(resp.body, {
+          headers: {
+            "Content-Type": resp.headers.get("Content-Type") ?? "",
+            "Cache-Control": "public, max-age=2592000",
+            "ETag": resp.headers.get("ETag") ?? "",
+          },
+        });
+      }
+    }
+    return new Response("Not Found", { status: 404 });
   }
 
   // www 保持原 nginx 行为：先 301 到主站（保留路径），再由主站决定是否送门禁
