@@ -723,7 +723,10 @@ ${turnstileSrc}
   }
   function renderI18n() {
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
-      el.textContent = t(el.getAttribute("data-i18n"));
+      var text = t(el.getAttribute("data-i18n"));
+      var prefix = el.getAttribute("data-i18n-prefix");
+      if (prefix != null) text = text ? prefix + text : "";
+      el.textContent = text;
     });
     document.querySelectorAll("[data-i18n-attr]").forEach(function (el) {
       el.getAttribute("data-i18n-attr").split("|").forEach(function (seg) {
