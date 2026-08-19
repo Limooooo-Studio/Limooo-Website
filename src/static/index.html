@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#1E1E1E">
+<title>Limooo</title>
+<!-- 预加载主题脚本：渲染前检测 localStorage，防止浅色模式白屏闪烁（与主站一致） -->
+<script>(function(){var t=localStorage.getItem('theme');if(t==='light'||(!t&&window.matchMedia('(prefers-color-scheme:light)').matches))document.documentElement.classList.add('light-mode')})();</script>
+<!-- Inter 自托管字体（相对路径，images.limooo.cn 与 /static/ 下均可解析） -->
+<link rel="stylesheet" href="fonts.css">
+<link rel="icon" href="icons/favicon.png" type="image/png" sizes="256x256">
+<style>
+    :root {
+        --bg: #1b1b1f;
+        --text: #e2e2e3;
+        --line: #2e2e32;
+        --panel-bg: #202127;
+        --highlight: #2a2a2f;
+        --footer-border: #2e2e32;
+        --accent: #05A5A6;
+        --accent-glow: rgba(5, 165, 166, 0.2);
+        --switch-icon: #dfdfd6;
+        --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+        --radius-sm: 6px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+    }
+    .light-mode {
+        --bg: #ffffff;
+        --text: #1f2328;
+        --line: #e2e2e3;
+        --panel-bg: #f6f6f7;
+        --highlight: #f2f2f3;
+        --footer-border: #e2e2e3;
+        --switch-icon: #67676c;
+        --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        margin: 0; padding: 0;
+        background: var(--bg) !important;
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-weight: 500;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── 顶部导航（主站风格：字标 + 路径选择 + 深浅切换） ── */
+    nav {
+        position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+        width: 100%; max-width: 80rem; z-index: 100;
+        display: flex; align-items: center; gap: 1rem;
+        padding: 0 1.25rem; height: 70px;
+        background: var(--bg);
+    }
+    @media (min-width: 768px) { nav { height: 90px; padding: 0 2rem; } }
+    .wordmark {
+        display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0;
+        font-size: 1.125rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    @media (min-width: 768px) { .wordmark { font-size: 1.5rem; } }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+
+    /* 路径选择（可点击，切换内容但不跳转 URL） */
+    .path-tabs {
+        display: flex; align-items: center; gap: 2px;
+        padding: 3px; border: 1px solid var(--line); border-radius: 999px;
+        background: var(--panel-bg);
+        overflow-x: auto; scrollbar-width: none;
+    }
+    .path-tabs::-webkit-scrollbar { display: none; }
+    .path-tab {
+        border: none; background: none; cursor: pointer; white-space: nowrap;
+        padding: 7px 14px; border-radius: 999px;
+        font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+        color: var(--text); opacity: 0.55;
+        transition: color 180ms var(--ease-out), background 180ms var(--ease-out), opacity 180ms var(--ease-out);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .path-tab:hover { opacity: 1; }
+    }
+    .path-tab.active {
+        opacity: 1; color: var(--accent); background: var(--highlight);
+    }
+    .path-tab .path-code {
+        font-size: 10px; opacity: 0.65; margin-left: 4px;
+        font-weight: 500;
+    }
+
+    /* 深浅切换（主站同款太阳-月亮胶囊滑块） */
+    .appearance-switch {
+        position: relative; border-radius: 11px; display: block;
+        width: 40px; height: 22px; flex-shrink: 0;
+        border: 1px solid var(--line);
+        background: var(--highlight);
+        cursor: pointer; padding: 0;
+        transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .appearance-switch:hover { border-color: var(--accent); }
+    }
+    .appearance-check {
+        position: absolute; top: 1px; left: 1px;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: var(--bg);
+        box-shadow: var(--switch-shadow);
+        transform: translateX(18px);
+        transition: transform 250ms var(--ease-out);
+    }
+    .appearance-icon { position: relative; display: block; width: 18px; height: 18px; border-radius: 50%; overflow: hidden; }
+    .appearance-icon svg {
+        position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+        color: var(--switch-icon);
+        transition: opacity 250ms var(--ease-out);
+    }
+    .appearance-icon .sun { opacity: 0; }
+    .appearance-icon .moon { opacity: 1; }
+    .light-mode .appearance-icon .sun { opacity: 1; }
+    .light-mode .appearance-icon .moon { opacity: 0; }
+    .light-mode .appearance-check { transform: translateX(0); }
+
+    /* ── 主体 ── */
+    main { padding: 110px 1.25rem 120px; max-width: 80rem; margin: 0 auto; }
+    @media (min-width: 768px) { main { padding: 130px 2rem 140px; } }
+    .hero { text-align: center; padding: 0.5rem 0 2rem; }
+    .hero h1 {
+        margin: 0; font-size: 1.75rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    @media (min-width: 768px) { .hero h1 { font-size: 2.75rem; } }
+    .hero .bracket { color: var(--accent); }
+    .hero p {
+        margin: 0.6rem 0 0; font-size: 11px; text-transform: uppercase;
+        letter-spacing: 0.4em; opacity: 0.5; font-weight: 700;
+    }
+
+    /* 当前路径 */
+    .path-bar {
+        display: flex; align-items: center; gap: 0.6rem;
+        margin-bottom: 1.25rem; font-size: 12px; font-weight: 600;
+        letter-spacing: 0.08em; opacity: 0.8;
+    }
+    .path-bar .slash { color: var(--accent); }
+    .path-bar code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px; padding: 3px 8px; border-radius: var(--radius-sm);
+        background: var(--panel-bg); border: 1px solid var(--line);
+    }
+
+    /* 文件网格（路径下的文件网页链接） */
+    .path-panel { display: none; }
+    .path-panel.active { display: block; }
+    .file-grid {
+        display: grid; gap: 0.9rem;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    @media (min-width: 768px) { .file-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); } }
+    .file-card {
+        display: block; overflow: hidden;
+        background: var(--panel-bg); border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .file-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    }
+    .file-card.thumb img {
+        display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    }
+    .file-card.thumb.qr img, .file-card.thumb.icon img {
+        aspect-ratio: 1 / 1; object-fit: contain; padding: 12px;
+    }
+    .file-card .name {
+        display: block; padding: 0.55rem 0.7rem 0.6rem;
+        font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+        border-top: 1px solid var(--line);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .file-card.no-thumb {
+        display: flex; align-items: center; justify-content: center;
+        min-height: 72px; text-align: center;
+    }
+    .file-card.no-thumb .name { border-top: none; white-space: normal; }
+
+    /* ── 底部版权（主站同款） ── */
+    footer {
+        position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
+        border-top: 1px solid var(--footer-border);
+        background: var(--bg) !important;
+    }
+    footer a {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; height: 100%; padding: 1.25rem 0;
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+        font-size: 10px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.05em; opacity: 0.75;
+        transition: color 160ms var(--ease-out);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        footer a:hover { color: var(--accent); opacity: 1; }
+    }
+</style>
+</head>
+<body>
+<nav>
+    <a class="wordmark" href="https://limooo.cn">LIMOOO</a>
+    <div class="nav-right">
+        <div class="path-tabs" role="tablist" aria-label="图片路径">
+            <button class="path-tab active" data-path="portfolio" onclick="showPath('portfolio')" role="tab" aria-selected="true">作品集<span class="path-code">/portfolio</span></button>
+            <button class="path-tab" data-path="qr-codes" onclick="showPath('qr-codes')" role="tab" aria-selected="false">二维码<span class="path-code">/qr-codes</span></button>
+            <button class="path-tab" data-path="icons" onclick="showPath('icons')" role="tab" aria-selected="false">图标<span class="path-code">/icons</span></button>
+        </div>
+        <button class="appearance-switch" type="button" role="switch" aria-checked="true" onclick="toggleTheme()" aria-label="切换深浅主题">
+            <span class="appearance-check">
+                <span class="appearance-icon">
+                    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </span>
+            </span>
+        </button>
+    </div>
+</nav>
+
+<main>
+    <section class="hero">
+        <h1><span class="bracket">「</span>LIMOOO<span class="bracket">」</span></h1>
+        <p>Images · 图片资源站</p>
+    </section>
+
+    <div class="path-bar">
+        <span>当前路径</span><span class="slash">/</span><code id="currentPath">portfolio</code>
+    </div>
+
+    <section class="path-panel active" id="panel-portfolio" data-files="portfolio">
+        <div class="file-grid">
+            <a class="file-card thumb" href="portfolio/IMG_0064.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0064.webp" alt="IMG_0064.webp" loading="lazy" decoding="async"><span class="name">IMG_0064.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0076.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0076.webp" alt="IMG_0076.webp" loading="lazy" decoding="async"><span class="name">IMG_0076.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0079.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0079.webp" alt="IMG_0079.webp" loading="lazy" decoding="async"><span class="name">IMG_0079.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0084.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0084.webp" alt="IMG_0084.webp" loading="lazy" decoding="async"><span class="name">IMG_0084.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0097.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0097.webp" alt="IMG_0097.webp" loading="lazy" decoding="async"><span class="name">IMG_0097.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0102.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0102.webp" alt="IMG_0102.webp" loading="lazy" decoding="async"><span class="name">IMG_0102.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0107.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0107.webp" alt="IMG_0107.webp" loading="lazy" decoding="async"><span class="name">IMG_0107.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0115.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0115.webp" alt="IMG_0115.webp" loading="lazy" decoding="async"><span class="name">IMG_0115.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0122.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0122.webp" alt="IMG_0122.webp" loading="lazy" decoding="async"><span class="name">IMG_0122.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0130.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0130.webp" alt="IMG_0130.webp" loading="lazy" decoding="async"><span class="name">IMG_0130.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0146.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0146.webp" alt="IMG_0146.webp" loading="lazy" decoding="async"><span class="name">IMG_0146.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0163.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0163.webp" alt="IMG_0163.webp" loading="lazy" decoding="async"><span class="name">IMG_0163.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0179.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0179.webp" alt="IMG_0179.webp" loading="lazy" decoding="async"><span class="name">IMG_0179.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0186.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0186.webp" alt="IMG_0186.webp" loading="lazy" decoding="async"><span class="name">IMG_0186.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0203.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0203.webp" alt="IMG_0203.webp" loading="lazy" decoding="async"><span class="name">IMG_0203.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0210.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0210.webp" alt="IMG_0210.webp" loading="lazy" decoding="async"><span class="name">IMG_0210.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0217.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0217.webp" alt="IMG_0217.webp" loading="lazy" decoding="async"><span class="name">IMG_0217.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0230.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0230.webp" alt="IMG_0230.webp" loading="lazy" decoding="async"><span class="name">IMG_0230.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0237.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0237.webp" alt="IMG_0237.webp" loading="lazy" decoding="async"><span class="name">IMG_0237.webp</span></a>
+            <a class="file-card thumb" href="portfolio/IMG_0244.webp" target="_blank" rel="noopener"><img src="portfolio/IMG_0244.webp" alt="IMG_0244.webp" loading="lazy" decoding="async"><span class="name">IMG_0244.webp</span></a>
+        </div>
+    </section>
+
+    <section class="path-panel" id="panel-qr-codes" data-files="qr-codes">
+        <div class="file-grid">
+            <a class="file-card thumb qr" href="qr-codes/wechat.webp" target="_blank" rel="noopener"><img src="qr-codes/wechat.webp" alt="wechat.webp" loading="lazy" decoding="async"><span class="name">wechat.webp</span></a>
+            <a class="file-card thumb qr" href="qr-codes/qq.webp" target="_blank" rel="noopener"><img src="qr-codes/qq.webp" alt="qq.webp" loading="lazy" decoding="async"><span class="name">qq.webp</span></a>
+            <a class="file-card thumb qr" href="qr-codes/bilibili.webp" target="_blank" rel="noopener"><img src="qr-codes/bilibili.webp" alt="bilibili.webp" loading="lazy" decoding="async"><span class="name">bilibili.webp</span></a>
+            <a class="file-card thumb qr" href="qr-codes/mail-services-zh-cn.webp" target="_blank" rel="noopener"><img src="qr-codes/mail-services-zh-cn.webp" alt="mail-services-zh-cn.webp" loading="lazy" decoding="async"><span class="name">mail-services-zh-cn.webp</span></a>
+            <a class="file-card thumb qr" href="qr-codes/mail-services-en-us.webp" target="_blank" rel="noopener"><img src="qr-codes/mail-services-en-us.webp" alt="mail-services-en-us.webp" loading="lazy" decoding="async"><span class="name">mail-services-en-us.webp</span></a>
+            <a class="file-card thumb qr" href="qr-codes/mail-services-ja-jp.webp" target="_blank" rel="noopener"><img src="qr-codes/mail-services-ja-jp.webp" alt="mail-services-ja-jp.webp" loading="lazy" decoding="async"><span class="name">mail-services-ja-jp.webp</span></a>
+            <a class="file-card thumb qr" href="qr-codes/mail-services-ko-kr.webp" target="_blank" rel="noopener"><img src="qr-codes/mail-services-ko-kr.webp" alt="mail-services-ko-kr.webp" loading="lazy" decoding="async"><span class="name">mail-services-ko-kr.webp</span></a>
+        </div>
+    </section>
+
+    <section class="path-panel" id="panel-icons" data-files="icons">
+        <div class="file-grid">
+            <a class="file-card thumb icon" href="icons/favicon.png" target="_blank" rel="noopener"><img src="icons/favicon.png" alt="favicon.png" loading="lazy" decoding="async"><span class="name">favicon.png</span></a>
+            <a class="file-card thumb icon" href="icons/logo.webp" target="_blank" rel="noopener"><img src="icons/logo.webp" alt="logo.webp" loading="lazy" decoding="async"><span class="name">logo.webp</span></a>
+            <a class="file-card thumb icon" href="icons/logo-lineart.webp" target="_blank" rel="noopener"><img src="icons/logo-lineart.webp" alt="logo-lineart.webp" loading="lazy" decoding="async"><span class="name">logo-lineart.webp</span></a>
+            <a class="file-card thumb icon" href="icons/logo-lineart-white.webp" target="_blank" rel="noopener"><img src="icons/logo-lineart-white.webp" alt="logo-lineart-white.webp" loading="lazy" decoding="async"><span class="name">logo-lineart-white.webp</span></a>
+            <a class="file-card thumb icon" href="icons/Limooo-xtext.webp" target="_blank" rel="noopener"><img src="icons/Limooo-xtext.webp" alt="Limooo-xtext.webp" loading="lazy" decoding="async"><span class="name">Limooo-xtext.webp</span></a>
+            <a class="file-card thumb icon" href="icons/Limooo-xtext-down.webp" target="_blank" rel="noopener"><img src="icons/Limooo-xtext-down.webp" alt="Limooo-xtext-down.webp" loading="lazy" decoding="async"><span class="name">Limooo-xtext-down.webp</span></a>
+            <a class="file-card thumb icon" href="icons/azure.webp" target="_blank" rel="noopener"><img src="icons/azure.webp" alt="azure.webp" loading="lazy" decoding="async"><span class="name">azure.webp</span></a>
+            <a class="file-card thumb icon" href="icons/social-preview.png" target="_blank" rel="noopener"><img src="icons/social-preview.png" alt="social-preview.png" loading="lazy" decoding="async"><span class="name">social-preview.png</span></a>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <a href="https://github.com/Limooooo-Studio" target="_blank" rel="noopener noreferrer">&copy; 2026 LIMOOO | images.limooo.cn</a>
+</footer>
+
+<script>
+    /* ═══════ 主题（与主站一致） ═══════ */
+    function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    function effectiveTheme() {
+        var saved = localStorage.getItem('theme');
+        return (saved === 'light' || saved === 'dark') ? saved : getSystemTheme();
+    }
+    function applyTheme(theme) {
+        document.documentElement.classList.toggle('light-mode', theme === 'light');
+        document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#FFFFFF' : '#1E1E1E';
+        document.querySelector('meta[name="color-scheme"]').content = theme;
+        var sw = document.querySelector('.appearance-switch');
+        if (sw) sw.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
+    }
+    function toggleTheme() {
+        var next = effectiveTheme() === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+    }
+
+    /* ═══════ 路径切换：点击导航路径，原地显示该路径下的文件链接，URL 不跳转 ═══════ */
+    function showPath(path) {
+        document.querySelectorAll('.path-tab').forEach(function(tab) {
+            var on = tab.dataset.path === path;
+            tab.classList.toggle('active', on);
+            tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.path-panel').forEach(function(panel) {
+            panel.classList.toggle('active', panel.id === 'panel-' + path);
+        });
+        document.getElementById('currentPath').textContent = path;
+    }
+
+    applyTheme(effectiveTheme());
+</script>
+</body>
+</html>
