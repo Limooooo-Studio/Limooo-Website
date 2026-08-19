@@ -716,14 +716,14 @@ def api_auth_status():
 REDIRECT_HOST = "https://redirect.limooo.cn/"
 
 # redirect 页预热的 limooo.cn 主站图片（与 base.html PAGE_MANIFEST['/'] 保持同步）
-# 全部用裸域绝对 URL（资源统一走 https://limooo.cn/static/）
+# 全部用裸域绝对 URL（资源统一走 https://images.limooo.cn/，不带 /static 前缀）
 REDIRECT_PRELOAD_IMAGES = [
-    "https://limooo.cn/static/portfolio/IMG_0203.webp",
-    "https://limooo.cn/static/portfolio/IMG_0146.webp",
-    "https://limooo.cn/static/portfolio/IMG_0130.webp",
-    "https://limooo.cn/static/portfolio/IMG_0244.webp",
-    "https://limooo.cn/static/portfolio/IMG_0115.webp",
-    "https://limooo.cn/static/portfolio/IMG_0179.webp",
+    "https://images.limooo.cn/portfolio/IMG_0203.webp",
+    "https://images.limooo.cn/portfolio/IMG_0146.webp",
+    "https://images.limooo.cn/portfolio/IMG_0130.webp",
+    "https://images.limooo.cn/portfolio/IMG_0244.webp",
+    "https://images.limooo.cn/portfolio/IMG_0115.webp",
+    "https://images.limooo.cn/portfolio/IMG_0179.webp",
 ]
 
 

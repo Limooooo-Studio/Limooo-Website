@@ -275,13 +275,16 @@ def main() -> int:
     for name in os.listdir(src):
         if name.endswith(".html"):
             html = open(os.path.join(src, name), encoding="utf-8").read()
-            # 资源引用本地化：https://limooo.cn/static/... → ../static/...
+            # 资源引用本地化：https://limooo.cn/static/... 与
+            # https://images.limooo.cn/...（不带 /static 前缀）→ ../static/...
             # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
             html = re.sub(
-                r'(src|href|data-qr)="https://limooo\.cn/static/',
+                r'(src|href|data-qr)="https://(?:limooo\.cn/static|images\.limooo\.cn)/',
                 r'\1="../static/',
                 html,
             )
+            # 内联 CSS 里的根路径资源（门禁页 @font-face 的 url(/static/...)）同步本地化
+            html = html.replace("url(/static/", "url(../static/")
             html = html.replace(
                 'src="/Limooo-xtext.webp"',
                 'src="../static/icons/Limooo-xtext.webp"',
