@@ -68,6 +68,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     .footer-text {
         font-size: 10px; font-weight: 600; text-transform: uppercase;
         letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     }
     @media (hover: none) and (pointer: coarse) {
         .global-footer { display: none !important; }
@@ -82,7 +83,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <!-- ═══ 底部版权（与主站 base.html 一致） ═══ -->
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
-            <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
+            <div class="footer-text">&copy; 2026 LIMOOO<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
         </div>
     </footer>
     <script>

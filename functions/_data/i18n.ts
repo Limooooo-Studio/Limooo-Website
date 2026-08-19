@@ -146,7 +146,7 @@ export const translations: Record<string, Record<string, string>> = {
     "nav_contact": "Contact",
     "nav_visitor": "Visitor Panel",
     "nav_appleid": "Apple ID Manager",
-    "footer_rights": "",
+    "footer_rights": "ALL RIGHTS RESERVED",
     "footer_source": "Released under the AGPL-3.0 License",
     "scroll_down": "Scroll Down",
     "portfolio_title": "Portfolio",
