@@ -56,7 +56,9 @@
         display: flex; align-items: center; gap: 1rem;
         padding: 0 1.25rem; height: 70px;
         background: var(--bg);
+        overflow-x: auto; scrollbar-width: none;
     }
+    nav::-webkit-scrollbar { display: none; }
     @media (min-width: 768px) { nav { height: 90px; padding: 0 2rem; } }
     .wordmark {
         display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0;
@@ -90,6 +92,56 @@
     .path-tab .path-code {
         font-size: 10px; opacity: 0.65; margin-left: 4px;
         font-weight: 500;
+    }
+
+    /* 导航分隔线 / 工具类 */
+    .hidden { display: none !important; }
+    @media (min-width: 768px) { .md\:block { display: block !important; } }
+    .nav-divider {
+        width: 1px; height: 24px; background: var(--line);
+        margin: 0 12px; flex-shrink: 0;
+    }
+
+    /* 语言切换（主站同款：文A 图标 + 下箭头 + 下拉菜单） */
+    .lang-btn {
+        display: flex; align-items: center;
+        padding: 0 10px; height: 36px;
+        border: none; background: none; cursor: pointer;
+        color: var(--text);
+        transition: color 200ms var(--ease-out);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .lang-btn:hover { color: var(--accent); }
+    }
+    .lang-btn .lang-icon { width: 16px; height: 16px; }
+    .lang-btn .lang-chevron { width: 14px; height: 14px; margin-left: 4px; opacity: 0.6; }
+    .theme-toggle { position: relative; display: flex; align-items: center; }
+    .theme-menu {
+        position: absolute; top: calc(100% + 8px); right: 0; min-width: 132px;
+        background: var(--panel-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+        padding: 4px; z-index: 200;
+        opacity: 0; visibility: hidden;
+        transform: translateY(-4px) scale(0.92);
+        transform-origin: top right;
+        transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 150ms;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+    }
+    .theme-menu.open {
+        opacity: 1; visibility: visible; transform: translateY(0) scale(1);
+        transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+    }
+    .theme-option {
+        display: flex; align-items: center;
+        padding: 8px 14px; margin: 2px 0; border-radius: var(--radius-sm);
+        font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+        cursor: pointer; white-space: nowrap;
+        transition: background 150ms var(--ease-out);
+        opacity: 0.5;
+    }
+    .lang-flag { margin-right: 6px; }
+    .theme-option.selected { opacity: 1; background: var(--highlight); }
+    @media (hover: hover) and (pointer: fine) {
+        .theme-option:hover { opacity: 1; background: var(--highlight); }
     }
 
     /* 深浅切换（主站同款太阳-月亮胶囊滑块） */
@@ -211,10 +263,24 @@
     <a class="wordmark" href="https://limooo.cn">LIMOOO</a>
     <div class="nav-right">
         <div class="path-tabs" role="tablist" aria-label="图片路径">
-            <button class="path-tab active" data-path="portfolio" onclick="showPath('portfolio')" role="tab" aria-selected="true">作品集<span class="path-code">/portfolio</span></button>
-            <button class="path-tab" data-path="qr-codes" onclick="showPath('qr-codes')" role="tab" aria-selected="false">二维码<span class="path-code">/qr-codes</span></button>
-            <button class="path-tab" data-path="icons" onclick="showPath('icons')" role="tab" aria-selected="false">图标<span class="path-code">/icons</span></button>
+            <button class="path-tab active" data-path="portfolio" onclick="showPath('portfolio')" role="tab" aria-selected="true"><span data-i18n="tab_portfolio">作品集</span><span class="path-code">/portfolio</span></button>
+            <button class="path-tab" data-path="qr-codes" onclick="showPath('qr-codes')" role="tab" aria-selected="false"><span data-i18n="tab_qr">二维码</span><span class="path-code">/qr-codes</span></button>
+            <button class="path-tab" data-path="icons" onclick="showPath('icons')" role="tab" aria-selected="false"><span data-i18n="tab_icons">图标</span><span class="path-code">/icons</span></button>
         </div>
+        <span class="nav-divider hidden md:block"></span>
+        <div class="theme-toggle lang-flyout">
+            <button class="lang-btn" onclick="toggleLangMenu(event)" aria-label="切换语言" aria-haspopup="true">
+                <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+                <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="langMenu" class="theme-menu">
+                <div class="theme-option selected" data-lang="zh-cn" onclick="setLang('zh-cn')"><span class="lang-flag">🇨🇳</span><span data-i18n="lang_zh">简体中文</span></div>
+                <div class="theme-option" data-lang="en-us" onclick="setLang('en-us')"><span class="lang-flag">🇺🇸</span><span data-i18n="lang_en">English</span></div>
+                <div class="theme-option" data-lang="ja-jp" onclick="setLang('ja-jp')"><span class="lang-flag">🇯🇵</span><span data-i18n="lang_ja">日本語</span></div>
+                <div class="theme-option" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span data-i18n="lang_ko">한국어</span></div>
+            </div>
+        </div>
+        <span class="nav-divider hidden md:block"></span>
         <button class="appearance-switch" type="button" role="switch" aria-checked="true" onclick="toggleTheme()" aria-label="切换深浅主题">
             <span class="appearance-check">
                 <span class="appearance-icon">
@@ -229,11 +295,11 @@
 <main>
     <section class="hero">
         <h1><span class="bracket">「</span>LIMOOO<span class="bracket">」</span></h1>
-        <p>Images · 图片资源站</p>
+        <p data-i18n="hero_sub">Images · 图片资源站</p>
     </section>
 
     <div class="path-bar">
-        <span>当前路径</span><span class="slash">/</span><code id="currentPath">portfolio</code>
+        <span data-i18n="path_label">当前路径</span><span class="slash">/</span><code id="currentPath">portfolio</code>
     </div>
 
     <section class="path-panel active" id="panel-portfolio" data-files="portfolio">
@@ -288,7 +354,7 @@
 </main>
 
 <footer>
-    <a href="https://github.com/Limooooo-Studio" target="_blank" rel="noopener noreferrer">&copy; 2026 LIMOOO | images.limooo.cn</a>
+    <a href="https://github.com/Limooooo-Studio" target="_blank" rel="noopener noreferrer" data-i18n="footer_text">&copy; 2026 LIMOOO | images.limooo.cn | 开源</a>
 </footer>
 
 <script>
@@ -313,6 +379,58 @@
         applyTheme(next);
     }
 
+    /* ═══════ 语言切换（主站同款：文A 下拉，cookie 跨 .limooo.cn 子域共享） ═══════ */
+    var I18N = {
+        'zh-cn': { lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '作品集', tab_qr: '二维码', tab_icons: '图标', hero_sub: 'Images · 图片资源站', path_label: '当前路径', footer_text: '© 2026 LIMOOO | images.limooo.cn | 开源' },
+        'en-us': { lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: 'Portfolio', tab_qr: 'QR Codes', tab_icons: 'Icons', hero_sub: 'Images · Asset Hub', path_label: 'Current Path', footer_text: '© 2026 LIMOOO | images.limooo.cn | Open Source' },
+        'ja-jp': { lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '作品集', tab_qr: 'QRコード', tab_icons: 'アイコン', hero_sub: 'Images · 画像リソース', path_label: '現在のパス', footer_text: '© 2026 LIMOOO | images.limooo.cn | オープンソース' },
+        'ko-kr': { lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '작품 전시', tab_qr: 'QR 코드', tab_icons: '아이콘', hero_sub: 'Images · 이미지 리소스', path_label: '현재 경로', footer_text: '© 2026 LIMOOO | images.limooo.cn | 오픈소스' }
+    };
+    var CURRENT_LANG = 'zh-cn';
+
+    function getLangCookie() {
+        var m = document.cookie.match(/(?:^|;\s*)user_lang_preference=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : null;
+    }
+    function saveLangCookie(code) {
+        var domain = location.hostname.endsWith('limooo.cn') ? 'domain=.limooo.cn; ' : '';
+        var secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = 'user_lang_preference=' + code + '; path=/; max-age=31536000; SameSite=Lax' + secure + '; ' + domain;
+    }
+    function renderI18n() {
+        var dict = I18N[CURRENT_LANG] || I18N['zh-cn'];
+        document.querySelectorAll('[data-i18n]').forEach(function(el) {
+            var key = el.getAttribute('data-i18n');
+            if (dict[key] != null) el.textContent = dict[key];
+        });
+        document.querySelectorAll('#langMenu .theme-option').forEach(function(opt) {
+            opt.classList.toggle('selected', opt.dataset.lang === CURRENT_LANG);
+        });
+    }
+    function applyLang(lang) {
+        if (!I18N[lang]) return;
+        CURRENT_LANG = lang;
+        document.documentElement.lang = lang;
+        renderI18n();
+        saveLangCookie(lang);
+    }
+    function setLang(code) {
+        closeLangMenu();
+        applyLang(code);
+    }
+    function toggleLangMenu(e) {
+        if (e) e.stopPropagation();
+        var m = document.getElementById('langMenu');
+        if (m) m.classList.toggle('open');
+    }
+    function closeLangMenu() {
+        var m = document.getElementById('langMenu');
+        if (m) m.classList.remove('open');
+    }
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.lang-flyout')) closeLangMenu();
+    });
+
     /* ═══════ 路径切换：点击导航路径，原地显示该路径下的文件链接，URL 不跳转 ═══════ */
     function showPath(path) {
         document.querySelectorAll('.path-tab').forEach(function(tab) {
@@ -327,6 +445,8 @@
     }
 
     applyTheme(effectiveTheme());
+    var initLang = getLangCookie();
+    if (initLang && I18N[initLang]) applyLang(initLang);
 </script>
 </body>
 </html>
