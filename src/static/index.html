@@ -180,17 +180,6 @@
     /* ═══ 主体 ═══ */
     main { padding: 110px 1.25rem 120px; max-width: 80rem; margin: 0 auto; }
     @media (min-width: 768px) { main { padding: 140px 2rem 140px; } }
-    .hero { text-align: center; padding: 0.5rem 0 2rem; }
-    .hero h1 {
-        margin: 0; font-size: 1.75rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    @media (min-width: 768px) { .hero h1 { font-size: 2.75rem; } }
-    .hero .bracket { color: var(--accent); }
-    .hero p {
-        margin: 0.6rem 0 0; font-size: 11px; text-transform: uppercase;
-        letter-spacing: 0.4em; opacity: 0.5; font-weight: 700;
-    }
 
     /* 三个可点击路径（不是图片预览） */
     .path-cards {
@@ -340,11 +329,6 @@
 </nav>
 
 <main>
-    <section class="hero">
-        <h1><span class="bracket">「</span>LIMOOO<span class="bracket">」</span></h1>
-        <p data-i18n="hero_sub">Images · 图片资源站</p>
-    </section>
-
     <!-- 三个可点击路径：点击后前端 URL 变为 /路径，并打开该路径的界面（不真实跳转） -->
     <div class="path-cards">
         <a class="path-card active" data-path="portfolio" href="/portfolio" onclick="return showPath('portfolio', event)">
@@ -476,10 +460,10 @@
 
     /* ═══════ 语言（与主站一致：cookie 跨 .limooo.cn 子域共享） ═══════ */
     var I18N = {
-        'zh-cn': { nav_home: '主页', nav_services: '服务', nav_contact: '联系方式', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '作品集', tab_qr: '二维码', tab_icons: '图标', hero_sub: 'Images · 图片资源站', path_label: '当前路径', footer_text: '© 2026 LIMOOO | images.limooo.cn | 开源' },
-        'en-us': { nav_home: 'Home', nav_services: 'Services', nav_contact: 'Contact', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: 'Portfolio', tab_qr: 'QR Codes', tab_icons: 'Icons', hero_sub: 'Images · Asset Hub', path_label: 'Current Path', footer_text: '© 2026 LIMOOO | images.limooo.cn | Open Source' },
-        'ja-jp': { nav_home: 'ホーム', nav_services: 'サービス', nav_contact: 'お問い合わせ', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '作品集', tab_qr: 'QRコード', tab_icons: 'アイコン', hero_sub: 'Images · 画像リソース', path_label: '現在のパス', footer_text: '© 2026 LIMOOO | images.limooo.cn | オープンソース' },
-        'ko-kr': { nav_home: '홈', nav_services: '서비스', nav_contact: '문의', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '작품 전시', tab_qr: 'QR 코드', tab_icons: '아이콘', hero_sub: 'Images · 이미지 리소스', path_label: '현재 경로', footer_text: '© 2026 LIMOOO | images.limooo.cn | 오픈소스' }
+        'zh-cn': { nav_home: '主页', nav_services: '服务', nav_contact: '联系方式', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '作品集', tab_qr: '二维码', tab_icons: '图标', path_label: '当前路径', footer_text: '© 2026 LIMOOO | images.limooo.cn | 开源' },
+        'en-us': { nav_home: 'Home', nav_services: 'Services', nav_contact: 'Contact', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: 'Portfolio', tab_qr: 'QR Codes', tab_icons: 'Icons', path_label: 'Current Path', footer_text: '© 2026 LIMOOO | images.limooo.cn | Open Source' },
+        'ja-jp': { nav_home: 'ホーム', nav_services: 'サービス', nav_contact: 'お問い合わせ', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '作品集', tab_qr: 'QRコード', tab_icons: 'アイコン', path_label: '現在のパス', footer_text: '© 2026 LIMOOO | images.limooo.cn | オープンソース' },
+        'ko-kr': { nav_home: '홈', nav_services: '서비스', nav_contact: '문의', lang_zh: '简体中文', lang_en: 'English', lang_ja: '日本語', lang_ko: '한국어', tab_portfolio: '작품 전시', tab_qr: 'QR 코드', tab_icons: '아이콘', path_label: '현재 경로', footer_text: '© 2026 LIMOOO | images.limooo.cn | 오픈소스' }
     };
     var CURRENT_LANG = 'zh-cn';
 
