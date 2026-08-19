@@ -331,7 +331,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     foot: "Secured by Limooo Edge Security",
     lang_aria: "Switch language",
     theme_aria: "Toggle theme",
-    footer_rights: "",
+    footer_rights: "ALL RIGHTS RESERVED",
     footer_source: "Released under the AGPL-3.0 License",
     error_sitekey: "Server configuration error: TURNSTILE_SITEKEY is not set.",
     error_invalid: "Invalid request. Please try again.",
@@ -375,7 +375,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
 /** 跳转页文案（与 Flask locales 的 redirect_title/redirect_text 一致） */
 const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = {
   "zh-cn": { title: "正在跳转", text: "正在跳转... (・ω・)", footer_rights: "保留所有权利", footer_source: "根据 AGPL-3.0 许可证发布" },
-  "en-us": { title: "Redirecting", text: "Redirecting... (・ω・)", footer_rights: "", footer_source: "Released under the AGPL-3.0 License" },
+  "en-us": { title: "Redirecting", text: "Redirecting... (・ω・)", footer_rights: "ALL RIGHTS RESERVED", footer_source: "Released under the AGPL-3.0 License" },
   "ja-jp": { title: "リダイレクト中", text: "リダイレクト中... (・ω・)", footer_rights: "無断転載禁止", footer_source: "AGPL-3.0 ライセンスに基づいて公開" },
   "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중... (・ω・)", footer_rights: "모든 권리 보유", footer_source: "AGPL-3.0 라이선스에 따라 배포" },
 };
@@ -613,6 +613,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   .footer-text {
     font-size: 10px; font-weight: 600; text-transform: uppercase;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
@@ -661,7 +662,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
 </main>
 <footer class="global-footer" id="global-footer">
   <div class="footer-link">
-    <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">${t("footer_rights") ? " | " + t("footer_rights") : ""}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">${t("footer_source") ? " | " + t("footer_source") : ""}</span></div>
+    <div class="footer-text">&copy; 2026 LIMOOO<span data-i18n="footer_rights" data-i18n-prefix=" | ">${t("footer_rights") ? " | " + t("footer_rights") : ""}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">${t("footer_source") ? " | " + t("footer_source") : ""}</span></div>
   </div>
 </footer>
 ${turnstileSrc}
@@ -882,6 +883,7 @@ function renderRedirectPage(context: EventContext): Response {
   .footer-text {
     font-size: 10px; font-weight: 600; text-transform: uppercase;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
@@ -895,7 +897,7 @@ function renderRedirectPage(context: EventContext): Response {
   </div>
   <footer class="global-footer" id="global-footer">
     <div class="footer-link">
-      <div class="footer-text">&copy; 2026 LIMOOO ALL RIGHTS RESERVED<span data-i18n="footer_rights" data-i18n-prefix=" | ">${t.footer_rights ? " | " + t.footer_rights : ""}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">${t.footer_source ? " | " + t.footer_source : ""}</span></div>
+      <div class="footer-text">&copy; 2026 LIMOOO<span data-i18n="footer_rights" data-i18n-prefix=" | ">${t.footer_rights ? " | " + t.footer_rights : ""}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">${t.footer_source ? " | " + t.footer_source : ""}</span></div>
     </div>
   </footer>
   <script>
