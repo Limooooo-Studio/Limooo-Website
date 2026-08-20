@@ -88,6 +88,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     display: block; width: 100%; height: 100%;
     object-fit: cover;
 }
+/* 作品图在 load 后才赋 src：无 src 时先隐藏，避免占位区显示 alt 文本 */
+.work-img:not([src]) { opacity: 0; }
 /* ── 标题字重 ── */
 h1 { font-weight: 600 !important; }
 
@@ -176,37 +178,37 @@ h1 { font-weight: 600 !important; }
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-6xl px-4">
             <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" src="https://image.limooo.cn/portfolio/IMG_0203.webp" alt="{{ _('alt_outdoor_shot', num='01') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=01">
+                    <img class="work-img" data-src="https://image.limooo.cn/portfolio/IMG_0203.webp" alt="{{ _('alt_outdoor_shot', num='01') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=01">
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" src="https://image.limooo.cn/portfolio/IMG_0146.webp" alt="{{ _('alt_outdoor_shot', num='02') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=02">
+                    <img class="work-img" data-src="https://image.limooo.cn/portfolio/IMG_0146.webp" alt="{{ _('alt_outdoor_shot', num='02') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=02">
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" src="https://image.limooo.cn/portfolio/IMG_0130.webp" alt="{{ _('alt_outdoor_shot', num='03') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=03">
+                    <img class="work-img" data-src="https://image.limooo.cn/portfolio/IMG_0130.webp" alt="{{ _('alt_outdoor_shot', num='03') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=03">
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" src="https://image.limooo.cn/portfolio/IMG_0244.webp" alt="{{ _('alt_outdoor_shot', num='04') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=04">
+                    <img class="work-img" data-src="https://image.limooo.cn/portfolio/IMG_0244.webp" alt="{{ _('alt_outdoor_shot', num='04') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=04">
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" src="https://image.limooo.cn/portfolio/IMG_0115.webp" alt="{{ _('alt_outdoor_shot', num='05') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=05">
+                    <img class="work-img" data-src="https://image.limooo.cn/portfolio/IMG_0115.webp" alt="{{ _('alt_outdoor_shot', num='05') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=05">
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" onclick="window.open('https://services.limooo.cn#outdoor', '_blank')" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" src="https://image.limooo.cn/portfolio/IMG_0179.webp" alt="{{ _('alt_outdoor_shot', num='06') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=06">
+                    <img class="work-img" data-src="https://image.limooo.cn/portfolio/IMG_0179.webp" alt="{{ _('alt_outdoor_shot', num='06') }}" loading="lazy" referrerpolicy="unsafe-url" data-i18n-attr="alt:alt_outdoor_shot;num=06">
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
@@ -219,6 +221,19 @@ h1 { font-weight: 600 !important; }
 
 {% block scripts %}
 {{ super() }}
+/* ═══════════════════════════════════════════════════════════════
+   作品图加载（不影响任何动画）：
+   work-img 初始不带 src，等 window load 触发（标题/滚动提示入场
+   动画照常在其后播放）再赋 src，避免 6 张作品图把 load 拖到
+   图片下载完，造成"只有菜单没有画面"的空窗。
+   ═══════════════════════════════════════════════════════════════ */
+window.addEventListener('load', function () {
+    document.querySelectorAll('.work-img[data-src]').forEach(function (img) {
+        img.removeAttribute('loading'); /* load 已过，立即下载，不等懒加载视口判定 */
+        img.src = img.dataset.src;
+    });
+});
+
 /* ═══════════════════════════════════════════════════════════════
    首页滚动切换动画
    - 滚轮 / 触摸下滑 → 切换到作品展示页（portfolio）
