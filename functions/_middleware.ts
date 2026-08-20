@@ -1049,9 +1049,8 @@ async function handleVerify(context: EventContext): Promise<Response> {
     });
   }
 
-  // 中国大陆用户单次认证 30 分钟；其它地区 5 分钟
-  const cf = (request as Request & { cf?: { country?: string } }).cf;
-  const ttlSeconds = cf?.country === "CN" ? 30 * 60 : 5 * 60;
+  // 所有地区用户单次认证有效 1 小时（3600 秒）
+  const ttlSeconds = 3600;
   const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
   const signature = await hmacSha256Hex(env.GATE_HMAC_KEY, String(expiry));
   // Domain=.limooo.cn：验证页在 auth.limooo.cn 签发，主站子域都能识别
