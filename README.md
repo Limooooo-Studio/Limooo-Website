@@ -165,7 +165,7 @@ limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期
 
 ### 门禁行为
 
-所有请求先检查 `__gate` cookie（HMAC-SHA256 签名）。未验证的请求 302 到专用验证子域 `auth.limooo.cn/__gate`（附原始主机与路径，Turnstile widget 只需允许该域名），验证页 `Cache-Control: no-store` 且带 `noindex`；Turnstile 通过后签发 24h cookie（`Domain=.limooo.cn`，跨子域有效）并经 `redirect.limooo.cn/?to=...` 回到原主机原路径。`/__gate/verify` 与 `/Limooo-xtext.webp` 放行，避免死循环。中间件同时做 D1 封禁名单拦截和访客前向统计埋点。验证页支持深浅切换（与主站共用 `localStorage.theme`）。
+所有请求先检查 `__gate` cookie（HMAC-SHA256 签名）。低风险流量（中国电信 / 移动 / 联通 ASN）由 Cloudflare WAF 非交互挑战（`js_challenge`）先行过滤，通过后浏览器带 `cf_clearance`（苹果设备自动走 Private Access Tokens 通道），中间件视为已验证直接放行；其余（中高风险）请求 302 到专用验证子域 `auth.limooo.cn/__gate`（附原始主机与路径，Turnstile widget 只需允许该域名），验证页 `Cache-Control: no-store` 且带 `noindex`；Turnstile 通过后签发 24h cookie（`Domain=.limooo.cn`，跨子域有效）并经 `redirect.limooo.cn/?to=...` 回到原主机原路径。`/__gate/verify` 与 `/Limooo-xtext.webp` 放行，避免死循环。中间件同时做 D1 封禁名单拦截和访客前向统计埋点。验证页支持深浅切换（与主站共用 `localStorage.theme`）。
 
 ### 页面服务方式（干净 URL，无语言路径前缀）
 

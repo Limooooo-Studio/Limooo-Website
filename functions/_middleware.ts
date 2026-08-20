@@ -1186,7 +1186,11 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   }
 
   const cookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
-  const gated = !(cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY)));
+  // 低风险（中国电信/移动/联通 ASN）由 Cloudflare 非交互挑战（js_challenge）先行过滤，
+  // 通过后浏览器带 cf_clearance（苹果设备走 PAT 通道同样签发），视为已验证直接放行，
+  // 不再重复跳 auth.limooo.cn/__gate 的 Turnstile 门禁。
+  const cfCleared = (request.headers.get("Cookie") ?? "").includes("cf_clearance=");
+  const gated = !(cfCleared || (cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY))));
 
   if (!gated) {
     // 已通过门禁；若还停在验证子域，送回原主机原路径
