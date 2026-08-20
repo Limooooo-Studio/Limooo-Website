@@ -466,6 +466,10 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#17181c">
+<!-- ── 图标（与主站 base.html 一致） ── -->
+<link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
+<link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="https://images.limooo.cn/icons/favicon.png">
 <title>${t("title")}</title>
 <script>
   // 与主站共用 localStorage key "theme"：首次跟随系统，点击后固定并缓存
@@ -911,6 +915,10 @@ function renderRedirectPage(context: EventContext): Response {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="1; url=${escapeHtml(to)}">
+<!-- ── 图标（与主站 base.html 一致） ── -->
+<link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
+<link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="https://images.limooo.cn/icons/favicon.png">
 <title>${t.title}</title>
     ${preloadLinks}
 <style>

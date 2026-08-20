@@ -22,6 +22,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {# 1s 作为无 JS 兜底/硬上限；正常路径由页尾脚本立即或预热完成后跳转 #}
 <meta http-equiv="refresh" content="1; url={{ to }}">
+<!-- ── 图标（与主站 base.html 一致） ── -->
+<link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
+<link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="https://images.limooo.cn/icons/favicon.png">
 <title>{{ _('redirect_title') }}</title>
 {% if preload %}
     {% for rel in preload_images %}

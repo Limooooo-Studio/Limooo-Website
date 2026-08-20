@@ -139,9 +139,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
         <!-- 邮箱 -->
         <div class="reveal-item copyable pressable qr-trigger cursor-pointer group relative" onclick="handleCopy(this, 'services@limooo.cn')"
+            data-copy-tip="click_mailto_copy"
             data-qr="{{ _('email_qr') }}"
             data-i18n-attr="data-qr:email_qr">
-            <div class="bubble-tip" data-i18n="click_to_copy">{{ _('click_to_copy') }}</div>
+            <div class="bubble-tip" data-i18n="click_mailto_copy">{{ _('click_mailto_copy') }}</div>
             <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_email">{{ _('platform_email') }}</p>
             <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium">
                 <a href="{{ _('email_mailto') }}"
@@ -197,7 +198,8 @@ function handleCopy(el, text) {
         var tip = el.querySelector('.bubble-tip');
         if (tip) {
             showTip(tip, t('copied'), true);
-            setTimeout(function() { showTip(tip, t('click_to_copy'), false); }, COPY_HINT_DURATION);
+            var tipKey = el.dataset.copyTip || 'click_to_copy';
+            setTimeout(function() { showTip(tip, t(tipKey), false); }, COPY_HINT_DURATION);
         }
     });
 }
