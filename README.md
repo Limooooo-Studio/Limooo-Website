@@ -14,7 +14,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
   - Syncs to a Cloudflare IP List for edge interception on the CDN
   - Application-layer global filter as a fallback — banned IPs get a direct 403
 - **GeoIP geolocation**: GeoLite2 database (city + ASN); place names shown in English
-- **Unified redirect page** (`/r`): shows an interstitial on redirect.limooo.cn before redirecting to any HTTPS destination; when the target is limooo.cn it prefetches the homepage portfolio images（经 `images.limooo.cn` 预热）during the brief hold (~0.8s max) so they render instantly after the jump
+- **Unified redirect page** (`/r`): shows an interstitial on redirect.limooo.cn before redirecting to any HTTPS destination; when the target is limooo.cn it prefetches the homepage portfolio images (served via `images.limooo.cn`) during the brief hold (~0.8s max) so they render instantly after the jump
 
 ## Tech stack
 
@@ -37,13 +37,14 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 │   ├── app.py             # Flask main app: routes, auth, API, block filter
 │   ├── common.py          # path constants, DB connection, IP utilities
 │   ├── auto_block.py      # scans logs, auto-bans malicious /24s, syncs to ipset + Cloudflare (cron daily 03:00; subcommands: ipset/cf/sync)
-│   └── build.py           # Pages 静态化构建（python3 src/build.py）
+│   └── build.py           # Pages static build (python3 src/build.py)
 │   ├── static/            # static assets (icons, portfolio, QR codes)
 │   └── templates/         # Jinja2 page templates
 ├── README.md              # this file
 ├── LICENSE.md             # AGPL-3.0
-├── data/                  # runtime data (generated; git-ignored except blocklist.txt)
+├── data/                  # runtime data (generated; git-ignored except blocklist.txt / whitelist.txt)
 │   ├── blocklist.txt      # list of banned /24 subnets
+│   ├── whitelist.txt      # trusted ASNs (low-risk) + fully allowed IPs/CIDRs
 │   ├── geo_cache.db       # geolocation cache database
 │   ├── appleid.db         # Apple ID business database (accounts + encrypted passwords)
 │   └── GeoLite2-*.mmdb    # MaxMind GeoLite2 databases (city + ASN)
@@ -55,18 +56,18 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 ├── ops/                   # deployment & ops tooling
 │   ├── deploy.sh          # one-command deployment script
 │   ├── upload.sh          # quiet variant of deploy.sh
-│   ├── pages_deploy.sh    # Cloudflare Pages 构建 + 部署
+│   ├── pages_deploy.sh    # Cloudflare Pages build + deploy
 │   ├── requirements.txt   # Python dependencies
 │   ├── limooo.conf        # Nginx site configuration
 │   ├── location-security.inc      # Nginx security hardening snippet
 │   ├── limooo.service     # systemd service unit
 │   ├── migrations/        # D1 schema migrations
-│   ├── export_*.py        # D1 导入 SQL/JSON 导出脚本
-│   └── sync-worker/       # Cloudflare Worker：D1 blocked_ips → IP List 每日同步
+│   ├── export_*.py        # D1 import SQL/JSON export scripts
+│   └── sync-worker/       # Cloudflare Worker: daily D1 blocked_ips → IP List sync
 ├── functions/             # Cloudflare Pages Functions
 ├── locales/               # i18n / translation catalogs
-├── public/                # Pages 构建产物（git 只保留 .gitkeep）
-└── preview/               # 本地预览（构建生成，git 只保留 .gitkeep）
+├── public/                # Pages build output (git keeps only .gitkeep)
+└── preview/               # local preview (build-generated; git keeps only .gitkeep)
 ```
 
 ## Quick start
@@ -125,74 +126,85 @@ The script: rsyncs the code → installs missing dependencies (nginx/rsync/pytho
 - Admin writes (create/update/delete) require the admin role; viewer is read-only
 - Allowlist: admins logging in from a blocked IP are auto-whitelisted to avoid false positives
 
-## Cloudflare Pages 迁移（进行中）
+## Whitelist
 
-limooo.cn 正在从 VPS（Flask + nginx）迁移到 Cloudflare Pages。过渡期 VPS 继续运行，Pages 稳定后切换 DNS。
+Trusted sources are maintained in [`data/whitelist.txt`](data/whitelist.txt), one entry per line:
 
-新架构：
-
-| 层 | 技术 |
+| Entry | Effect |
 | --- | --- |
-| 边缘 / 人机门禁 | Pages Functions（`functions/_middleware.ts`） |
-| 页面 | 构建时预渲染的静态 HTML（多语言） |
-| 数据 | D1（访客前向统计、封禁名单、Apple ID 管理） |
-| 人机验证 | Cloudflare Turnstile |
+| `ASN/<number>` | Low-risk source (China Telecom / China Mobile / China Unicom, incl. Tietong and backbone AS9929). Served a Cloudflare Non-Interactive Challenge (`js_challenge`) instead of the Turnstile gate. |
+| `IP-CIDR/<ip>/<mask>` | Fully allowed source (e.g. `IP-CIDR/97.64.18.11/32`); skips both the blocklist and the challenge gate. |
 
-### 构建与目录
+The ASN list is sourced from [china-mainland-asn](https://github.com/xingpingcn/china-mainland-asn) (updated daily) and mirrored to the WAF low-risk `js_challenge` rule. Allowed IPs are mirrored to `functions/_middleware.ts` (`GATE_WHITELIST`) and to a Cloudflare WAF skip rule.
 
-- `python3 src/build.py`：按 4 种语言预渲染三页到 `public/`，并把 `locales/*.json` 内联为 `functions/api/i18n/[lang].ts`
-- `ops/migrations/001_init.sql`：D1 初始 schema（apple_accounts / blocked_ips / visitors）
-- `ops/export_appleid.py`、`ops/export_blocklist.py`：生成 D1 导入 SQL（输出在 `ops/out/`，已 gitignore）
-- `ops/sync-worker/`：每日 03:00 Cron 把 D1 `blocked_ips` 增量同步到 Cloudflare IP List（原 auto_block.py 的 CF 部分；ipset/iptables 已放弃）
-- 注意：authentik backchannel logout 暂未移植到 Pages（`logout_events` 表随 VPS 保留）
+## Cloudflare Pages migration (in progress)
 
-### 环境变量
+limooo.cn is being migrated from the VPS (Flask + nginx) to Cloudflare Pages. During the transition the VPS keeps running; DNS is switched once Pages is stable.
 
-在 **Pages 项目设置 → Environment variables → Encrypt（Secret）** 里配置，不要放进仓库：
+New architecture:
 
-| 变量 | 用途 |
+| Layer | Technology |
 | --- | --- |
-| `TURNSTILE_SITEKEY` | 验证页 Turnstile 组件的公开 sitekey |
-| `TURNSTILE_SECRET` | 服务端 siteverify 校验密钥 |
-| `GATE_HMAC_KEY` | `__gate` cookie 的 HMAC-SHA256 签名密钥（`openssl rand -hex 32`） |
-| `AUTHENTIK_URL` | authentik 公网地址（默认 `https://identity.limooo.cn`） |
-| `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | authentik OIDC 客户端（复用现有） |
-| `AUTHENTIK_ADMIN_GROUPS` | 管理员组（默认 `authentik Admins`） |
-| `SESSION_HMAC_KEY` | Pages 会话 cookie 签名密钥（与 `GATE_HMAC_KEY` 分开） |
-| `APPLEID_ENCRYPTION_KEY` | Fernet 密钥（取 `secrets/appleid_encryption.key`，与 Flask 端共用） |
+| Edge / human verification | Pages Functions (`functions/_middleware.ts`) |
+| Pages | Pre-rendered static HTML at build time (multi-language) |
+| Data | D1 (visitor analytics, blocklist, Apple ID management) |
+| Human verification | Cloudflare Turnstile |
 
-本地开发：复制 `.dev.vars.example` 为 `.dev.vars` 填入真实值（已 gitignore）。`ops/sync-worker` 的 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` 用 `wrangler secret put` 配置。
+### Build & directory layout
 
-### 门禁行为
+- `python3 src/build.py`: pre-renders the three pages in 4 languages into `public/`, and inlines `locales/*.json` as `functions/api/i18n/[lang].ts`
+- `ops/migrations/001_init.sql`: D1 initial schema (`apple_accounts` / `blocked_ips` / `visitors`)
+- `ops/export_appleid.py` / `ops/export_blocklist.py`: generate D1 import SQL (output in `ops/out/`, git-ignored)
+- `ops/sync-worker/`: a daily 03:00 cron incrementally syncs D1 `blocked_ips` to the Cloudflare IP List (the Cloudflare part of the former auto_block.py; ipset/iptables has been dropped)
+- Note: authentik backchannel logout is not yet ported to Pages (the `logout_events` table stays with the VPS)
 
-所有请求先检查 `__gate` cookie（HMAC-SHA256 签名）。低风险流量（中国电信 / 移动 / 联通 ASN）由 Cloudflare WAF 非交互挑战（`js_challenge`）先行过滤，通过后浏览器带 `cf_clearance`（苹果设备自动走 Private Access Tokens 通道），中间件视为已验证直接放行；其余（中高风险）请求 302 到专用验证子域 `auth.limooo.cn/__gate`（附原始主机与路径，Turnstile widget 只需允许该域名），验证页 `Cache-Control: no-store` 且带 `noindex`；Turnstile 通过后签发 24h cookie（`Domain=.limooo.cn`，跨子域有效）并经 `redirect.limooo.cn/?to=...` 回到原主机原路径。`/__gate/verify` 与 `/Limooo-xtext.webp` 放行，避免死循环。中间件同时做 D1 封禁名单拦截和访客前向统计埋点。验证页支持深浅切换（与主站共用 `localStorage.theme`）。
+### Environment variables
 
-### 页面服务方式（干净 URL，无语言路径前缀）
+Configured under **Pages project settings → Environment variables → Encrypt (Secret)**, not committed to the repo:
 
-`src/build.py` 按 4 种语言预渲染到 `public/<lang>/`；中间件在放行后按「cookie > Accept-Language > CF 地区 > en-US」选语言，用 `env.ASSETS.fetch()` 取对应语言页面内容，URL 保持干净：
+| Variable | Purpose |
+| --- | --- |
+| `TURNSTILE_SITEKEY` | Public sitekey of the Turnstile widget on the gate page |
+| `TURNSTILE_SECRET` | Server-side siteverify secret |
+| `GATE_HMAC_KEY` | HMAC-SHA256 signing key for the `__gate` cookie (`openssl rand -hex 32`) |
+| `AUTHENTIK_URL` | Public authentik URL (default `https://identity.limooo.cn`) |
+| `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | authentik OIDC client (reuses the existing one) |
+| `AUTHENTIK_ADMIN_GROUPS` | Admin group (default `authentik Admins`) |
+| `SESSION_HMAC_KEY` | Pages session-cookie signing key (separate from `GATE_HMAC_KEY`) |
+| `APPLEID_ENCRYPTION_KEY` | Fernet key (from `secrets/appleid_encryption.key`, shared with the Flask side) |
 
-- `limooo.cn/` → 首页；`limooo.cn/services` / `limooo.cn/contact` → 对应页
-- `services.limooo.cn/` → 服务页；`contact.limooo.cn/` → 联系页（子域直接出内容，不 301 到主站）
-- `www.limooo.cn` → 301 到主站（保留原 nginx 行为）
-- 导航链接保留子域绝对地址（`https://services.limooo.cn` 等），语言切换为纯前端 `applyLang()`，不刷新不换 URL
+Local development: copy `.dev.vars.example` to `.dev.vars` and fill in real values (git-ignored). Configure `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` for `ops/sync-worker` via `wrangler secret put`.
 
-### 迁移进度
+### Gate behavior
 
-已完成：
+Every request is first checked for the `__gate` cookie (HMAC-SHA256 signed). Low-risk traffic (China Telecom / China Mobile / China Unicom ASNs) is pre-filtered by a Cloudflare WAF Non-Interactive Challenge (`js_challenge`); once it passes, the browser carries `cf_clearance` (Apple devices automatically take the Private Access Tokens channel) and the middleware lets the request straight through. All other (medium/high-risk) requests are 302-redirected to the dedicated verification subdomain `auth.limooo.cn/__gate` (original host and path attached; the Turnstile widget only needs that domain allow-listed). The gate page is served with `Cache-Control: no-store` and `noindex`; once Turnstile passes, a 24h cookie (`Domain=.limooo.cn`, shared across subdomains) is issued and the visitor is routed back to the original host and path via `redirect.limooo.cn/?to=...`. `/__gate/verify` and `/Limooo-xtext.webp` are exempt to avoid loops. The middleware also enforces the D1 blocklist and records visitor analytics. The whitelist lives in `data/whitelist.txt`: `ASN/<number>` entries are low-risk sources (China Telecom / Mobile / Unicom, served a CF Non-Interactive Challenge), while `IP-CIDR/<ip>/<mask>` entries are fully allowed (e.g. `97.64.18.11` skips both the blocklist and the gate). The gate page supports dark/light theme switching (shares `localStorage.theme` with the main site).
 
-1. Pages 项目（`limooo`，`limooo.pages.dev`）与 D1 数据库（`limooo`，APAC）已创建，D1 绑定 `DB` 已挂到项目
-2. `ops/migrations/001_init.sql` 已执行；`ops/out/appleid.sql`（5 条）、`blocklist.sql`（1255 条）已导入
-3. Secret 已配置：`TURNSTILE_SITEKEY` / `TURNSTILE_SECRET`（Turnstile widget 为 Managed 模式、域名需含 `auth.limooo.cn`）、`GATE_HMAC_KEY` / `SESSION_HMAC_KEY`（`openssl rand -hex 32`）、`AUTHENTIK_*`、`APPLEID_ENCRYPTION_KEY`
-4. 已部署到 Pages，线上验证：根路径 403 验证页 + `Cache-Control: no-store`、logo 200、`/__gate/verify` 失败重渲染、Location/IP/Ray ID 诊断正常；用 Turnstile 官方测试密钥跑通"提交 → siteverify → 签发 cookie → 放行页面"全链路，伪造 cookie 会被拒绝
-5. WAF 自定义规则已生效：`ip.src in $limooo_blocklist` → block
-6. **DNS 已切换**：`limooo.cn` / `www` / `services` / `contact` / `auth` / `visitor` / `appleid` / `redirect` → CNAME `limooo.pages.dev`（proxied），自定义域名全部 active；`identity` / `xmpp` 保持服务器 A 记录，`*.limooo.cn` 通配 A 保留作为兜底；`images.limooo.cn` 无单独 DNS 记录，靠通配 A 落到 VPS，由 nginx 直接出 `/static` 图片资源（URL 不带 `/static` 前缀，如 `https://images.limooo.cn/portfolio/IMG_0203.webp`）
-7. 门禁托管在 `auth.limooo.cn`（原 `verify.limooo.cn` 已停用）；子域直接出内容、URL 无 `/zh-CN/` 语言前缀，未验证请求会在门禁页保留原始主机与路径并在通过后原路返回
-8. **visitor / appleid / redirect 已迁到 Pages**：visitor（访客统计）、appleid（Apple ID 管理器）与主站共用同一套 Pages Functions（登录 / API / D1）；`redirect.limooo.cn` 作为纯中转跳转页**豁免人机验证**（避免验证后回跳死循环）
-9. **identity 保留在 VPS**：它承载 authentik（OIDC 身份提供者，Docker 自托管），Pages 无法替代；VPS nginx 仍对其做 `auth_request` 人机验证
+### Page serving (clean URLs, no language path prefix)
 
-待完成（一个外部依赖）：
+`src/build.py` pre-renders `public/<lang>/` in 4 languages; after the gate passes, the middleware picks a language by **cookie > Accept-Language > CF region > en-US** and fetches the matching page via `env.ASSETS.fetch()`, keeping the URL clean:
 
-- **ops/sync-worker 部署**：需要给 API Token 加 `Workers Scripts: Edit`（含 triggers）权限后 `wrangler deploy`；在此之前服务器 `auto_block.py` 的 Cloudflare IP List 同步继续运行，WAF 规则照常生效
+- `limooo.cn/` → home page; `limooo.cn/services` / `limooo.cn/contact` → corresponding pages
+- `services.limooo.cn/` → services page; `contact.limooo.cn/` → contact page (subdomains serve content directly, no 301 to the main site)
+- `www.limooo.cn` → 301 to the main site (preserving the former nginx behavior)
+- Nav links keep absolute subdomain URLs (`https://services.limooo.cn` etc.); language switching is a pure frontend `applyLang()`, no reload, no URL change
+
+### Migration progress
+
+Done:
+
+1. Pages project (`limooo`, `limooo.pages.dev`) and D1 database (`limooo`, APAC) created; D1 binding `DB` attached to the project
+2. `ops/migrations/001_init.sql` executed; `ops/out/appleid.sql` (5 rows) and `blocklist.sql` (1255 rows) imported
+3. Secrets configured: `TURNSTILE_SITEKEY` / `TURNSTILE_SECRET` (Turnstile widget in Managed mode; domain must include `auth.limooo.cn`), `GATE_HMAC_KEY` / `SESSION_HMAC_KEY` (`openssl rand -hex 32`), `AUTHENTIK_*`, `APPLEID_ENCRYPTION_KEY`
+4. Deployed to Pages and verified live: root path 403 gate page + `Cache-Control: no-store`, logo 200, `/__gate/verify` re-renders on failure, Location/IP/Ray ID diagnostics OK; full chain tested with Turnstile test keys (submit → siteverify → issue cookie → page served), forged cookies are rejected
+5. WAF custom rules live: `ip.src in $limooo_blocklist` → block
+6. **DNS switched**: `limooo.cn` / `www` / `services` / `contact` / `auth` / `visitor` / `appleid` / `redirect` → CNAME `limooo.pages.dev` (proxied), all custom domains active; `identity` / `xmpp` keep server A records; `*.limooo.cn` wildcard A kept as fallback; `images.limooo.cn` has no separate DNS record and falls to the wildcard A (VPS), with nginx serving `/static` images directly (URLs have no `/static` prefix, e.g. `https://images.limooo.cn/portfolio/IMG_0203.webp`)
+7. The gate is hosted at `auth.limooo.cn` (former `verify.limooo.cn` retired); subdomains serve content directly with no `/zh-CN/` language prefix; unverified requests keep the original host and path on the gate page and return to it after passing
+8. **visitor / appleid / redirect migrated to Pages**: visitor (analytics) and appleid (Apple ID manager) share the same Pages Functions (login / API / D1) with the main site; `redirect.limooo.cn` is a pure relay page **exempt from human verification** (to avoid a redirect loop after verification)
+9. **identity stays on the VPS**: it runs authentik (self-hosted Docker OIDC IdP), which Pages cannot replace; the VPS nginx still applies `auth_request` human verification to it
+
+Remaining (one external dependency):
+
+- **ops/sync-worker deployment**: add `Workers Scripts: Edit` (incl. triggers) permission to the API token, then `wrangler deploy`; until then the server-side `auto_block.py` keeps syncing the Cloudflare IP List and the WAF rules keep working
 
 ## License
 
