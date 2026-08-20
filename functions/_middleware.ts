@@ -43,6 +43,8 @@ const SKIP_PATHS = new Set<string>([
   "/Limooo-xtext.webp",
   "/favicon.ico",
 ]);
+// 门禁/封禁白名单（信任来源，如测试机/管理机）：直接放行，不依赖 CF 挑战与 Turnstile
+const GATE_WHITELIST = new Set<string>(["97.64.18.11"]);
 // /static/ 下的 CSS/字体等公开静态资源也放行：
 // 主站页面本身已由门禁保护，但外部引用（如 authentik 登录页 logo 指向
 // limooo.cn/static/...，作品图/二维码走 images.limooo.cn）不带 __gate
@@ -1173,6 +1175,7 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
 
   // 应用层封禁（放行登录/管理路径，避免管理员从被封 IP 无法登录）
   const ip = request.headers.get("CF-Connecting-IP") ?? "";
+  const whitelisted = GATE_WHITELIST.has(ip);
   const exempt =
     url.pathname.startsWith("/login") ||
     url.pathname.startsWith("/logout") ||
@@ -1181,7 +1184,7 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     url.pathname.startsWith("/api/appleid") ||
     url.pathname.startsWith("/api/auth") ||
     url.pathname.startsWith("/api/ray");
-  if (!exempt && ip && (await isBlocked(env, ip))) {
+  if (!whitelisted && !exempt && ip && (await isBlocked(env, ip))) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -1190,7 +1193,7 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   // 通过后浏览器带 cf_clearance（苹果设备走 PAT 通道同样签发），视为已验证直接放行，
   // 不再重复跳 auth.limooo.cn/__gate 的 Turnstile 门禁。
   const cfCleared = (request.headers.get("Cookie") ?? "").includes("cf_clearance=");
-  const gated = !(cfCleared || (cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY))));
+  const gated = !(whitelisted || cfCleared || (cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY))));
 
   if (!gated) {
     // 已通过门禁；若还停在验证子域，送回原主机原路径
