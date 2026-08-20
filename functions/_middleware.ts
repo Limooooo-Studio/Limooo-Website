@@ -170,11 +170,21 @@ function langCookieHeader(host: string, lang: string): string {
   return `${LANG_COOKIE}=${lang}; Path=/; Max-Age=31536000; SameSite=Lax; Secure; ${domain}`;
 }
 
-/** 首次访问（无语言 cookie）时把检测出的语言写回，此后各子域固定使用该语言 */
+/**
+ * 首次访问（无语言 cookie）时把检测出的语言写回，此后各子域固定使用该语言。
+ * 注意不能原地修改传入响应的 headers：Response.redirect() 等构造的响应头是
+ * 不可变的，生产环境 append 会抛 TypeError（本地 miniflare 不报）。统一改为
+ * 拷贝头 + 新建 Response，所有调用点（含重定向）都安全。
+ */
 function withLangCookie(request: Request, resp: Response): Response {
   if (getCookie(LANG_COOKIE, request.headers.get("Cookie"))) return resp;
-  resp.headers.append("Set-Cookie", langCookieHeader(request.headers.get("Host") ?? "", detectLang(request)));
-  return resp;
+  const headers = new Headers(resp.headers);
+  headers.append("Set-Cookie", langCookieHeader(request.headers.get("Host") ?? "", detectLang(request)));
+  return new Response(resp.body, {
+    status: resp.status,
+    statusText: resp.statusText,
+    headers,
+  });
 }
 
 /** 主机+路径 → 应吐出的语言页面资产；静态资源等返回 null 走 next() */
