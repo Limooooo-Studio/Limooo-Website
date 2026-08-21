@@ -1127,7 +1127,6 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   }
   if (
     SKIP_PATHS.has(url.pathname) ||
-    url.pathname.startsWith("/baidu_verify_") || // 搜索引擎验证文件：必须绕过人机门禁
     url.pathname.startsWith("/static/") ||
     url.pathname.startsWith("/api/ray/") // Ray ID 查询接口，供 check-ray-id 反查 Pages 侧请求
   ) {

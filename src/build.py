@@ -360,15 +360,6 @@ def main() -> int:
         os.path.join(STATIC_DIR, "icons", "Limooo-xtext.webp"),
         os.path.join(PUBLIC_DIR, "Limooo-xtext.webp"),
     )
-    # 搜索引擎站点验证文件（百度等）：仓库根目录下的 baidu_verify_*.html
-    # 原样拷到 public/ 根目录，供 /baidu_verify_*.html 直接访问
-    for name in os.listdir(BASE_DIR):
-        if name.startswith("baidu_verify_") and name.endswith(".html"):
-            shutil.copy2(
-                os.path.join(BASE_DIR, name),
-                os.path.join(PUBLIC_DIR, name),
-            )
-            print(f"[build] verification file copied: {name}", flush=True)
 
     # 4) i18n Functions（前端语言切换接口）
     write_i18n_functions()
