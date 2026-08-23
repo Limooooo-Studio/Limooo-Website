@@ -143,6 +143,14 @@ function sanitizeHost(raw: string | null | undefined): string {
   return raw && PUBLIC_HOSTS.has(raw) ? raw : "limooo.cn";
 }
 
+/** 签发 __gate cookie（与 /__gate/verify 同款：HMAC 签名 + 1 小时有效，Domain=.limooo.cn） */
+async function mintGateCookie(key: string): Promise<string> {
+  const ttlSeconds = 3600;
+  const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const signature = await hmacSha256Hex(key, String(expiry));
+  return `${GATE_COOKIE}=${expiry}.${signature}; Domain=.limooo.cn; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttlSeconds}`;
+}
+
 /** 语言检测：cookie > Accept-Language(zh/en/ja/ko) > CF 地区(CN/JP/KR) > en-us */
 function detectLang(request: Request): string {
   const cookie = getCookie(LANG_COOKIE, request.headers.get("Cookie"));
@@ -1235,7 +1243,20 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     if (url.hostname === GATE_HOST) {
       const back = safeNextPath(url.searchParams.get("next") ?? "/");
       const host = sanitizeHost(url.searchParams.get("host"));
-      return withLangCookie(request, Response.redirect(viaRedirect(host, back), 302));
+      let resp = Response.redirect(viaRedirect(host, back), 302);
+      // 白名单 / cf_clearance 放行时浏览器没有 __gate cookie（未走 Turnstile）；
+      // 必须补发一个，否则 VPS nginx auth_request 会再次 302 回 auth，形成死循环。
+      // Response.redirect 的响应头不可变，需拷贝后重建（与 withLangCookie 同理）。
+      if (!cookie || !(await isValidGateCookie(cookie, env.GATE_HMAC_KEY))) {
+        const headers = new Headers(resp.headers);
+        headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));
+        resp = new Response(resp.body, {
+          status: resp.status,
+          statusText: resp.statusText,
+          headers,
+        });
+      }
+      return withLangCookie(request, resp);
     }
     // 干净 URL：按语言从预渲染产物取内容，URL 保持 /、/services、/contact 或子域根
     const asset = pageAsset(url.hostname, url.pathname, detectLang(request));
