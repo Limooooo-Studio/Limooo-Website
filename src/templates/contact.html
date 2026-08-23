@@ -106,6 +106,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <h1 class="contact-title reveal-item text-4xl md:text-7xl mb-16 tracking-[calc(0.1em*var(--ls-scale))] uppercase" data-i18n="contact_title">{{ _('contact_title') }}</h1>
 
     <div class="flex flex-col items-center space-y-10 w-full max-w-lg">
+        <!-- 问卷 -->
+        <a id="surveyBlock" href="{{ _('survey_link') }}" class="reveal-item copyable pressable cursor-pointer relative block no-underline"
+            style="color: inherit;"
+            data-i18n-attr="href:survey_link">
+            <div class="bubble-tip" data-i18n="survey_click">{{ _('survey_click') }}</div>
+            <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_survey">{{ _('platform_survey') }}</p>
+            <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium" data-i18n="survey_title">{{ _('survey_title') }}</p>
+            <div class="hover-line"></div>
+        </a>
+
         <!-- B站 -->
         <a href="https://space.bilibili.com/1234163143" target="_blank" rel="noopener noreferrer"
             class="reveal-item copyable pressable qr-trigger cursor-pointer relative block no-underline"
@@ -153,16 +163,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             </p>
             <div class="hover-line"></div>
         </div>
-
-        <!-- 问卷 -->
-        <a href="{{ _('survey_link') }}" class="reveal-item copyable pressable cursor-pointer relative block no-underline"
-            style="color: inherit;"
-            data-i18n-attr="href:survey_link">
-            <div class="bubble-tip" data-i18n="survey_click">{{ _('survey_click') }}</div>
-            <p class="text-[11px] opacity-40 mb-1 tracking-[calc(0.3em*var(--ls-scale))]" data-i18n="platform_survey">{{ _('platform_survey') }}</p>
-            <p class="text-lg md:text-2xl opacity-90 border-b-2 border-[var(--line)] pb-1 font-medium" data-i18n="survey_title">{{ _('survey_title') }}</p>
-            <div class="hover-line"></div>
-        </a>
     </div>
 </main>
 
@@ -173,6 +173,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block onload_extra %}
+/* 问卷位置：英语置底，其他语言置顶（切换语言时由 languagechange 事件同步） */
+positionSurvey();
+
 /* 联系信息淡入 — 级联错开 */
 setTimeout(function() {
     var items = document.querySelectorAll('.reveal-item');
@@ -186,6 +189,19 @@ setTimeout(function() {
 /* ═══════════════════════════════════════════════════════════════
    联系页：二维码悬停浮层 + 一键复制
    ═══════════════════════════════════════════════════════════════ */
+
+/* ── 问卷方块位置：英语置底，其他语言置顶 ── */
+function positionSurvey() {
+    var block = document.getElementById('surveyBlock');
+    if (!block) return;
+    var list = block.parentNode;
+    if (CURRENT_LANG === 'en-us') {
+        list.appendChild(block);
+    } else if (list.firstChild !== block) {
+        list.insertBefore(block, list.firstChild);
+    }
+}
+document.addEventListener('languagechange', positionSurvey);
 
 /* ── 复制提示持续时间 ── */
 var COPY_HINT_DURATION = 2000;
