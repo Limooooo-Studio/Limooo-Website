@@ -8,6 +8,10 @@
  *      成功签发 cookie（Domain=.limooo.cn，跨子域；中国大陆 30 分钟有效，
  *      其它地区 5 分钟有效）并经 redirect.limooo.cn 回原主机原路径
  *      （仅允许站内相对路径，防开放重定向）
+ * 搜索引擎爬虫（Googlebot/Bingbot 等）无法完成 Turnstile，若被门禁拦截会得到
+ * 403，导致 Search Console 报 "Blocked due to access forbidden"。因此在门禁判定
+ * 前放行可信爬虫：Cloudflare 已验证的 bot，或 UA 命中已知搜索引擎列表（与 VPS
+ * nginx $ua_deny 放行名单一致，仅软性防御）。
  *
  * 环境变量（在 Pages 项目设置里配成 Secret）：
  *   TURNSTILE_SITEKEY / TURNSTILE_SECRET / GATE_HMAC_KEY
@@ -251,9 +255,22 @@ async function isBlocked(env: Env, ip: string): Promise<boolean> {
   return false;
 }
 
+/** 已知搜索引擎/爬虫 UA（与 VPS nginx $ua_deny 的放行名单一致；仅软性防御） */
+const CRAWLER_UA_RE =
+  /(Googlebot|Bingbot|Baiduspider|YandexBot|DuckDuckBot|Slurp|Sogou|360Spider|Bytespider|PetalBot|Applebot|facebookexternalhit|Twitterbot|Discordbot|TelegramBot|Slackbot|AdsBot|Exabot|ia_archiver|Yeti)/i;
+
+/** 可信爬虫判定：Cloudflare Bot Management 验证通过，或 UA 命中已知爬虫名单 */
+function isTrustedCrawler(request: Request): boolean {
+  const cf = (request as Request & { cf?: { botManagement?: { verifiedBot?: boolean } } }).cf;
+  if (cf?.botManagement?.verifiedBot === true) return true;
+  return CRAWLER_UA_RE.test(request.headers.get("User-Agent") ?? "");
+}
+
 /** 页面 GET 且非噪音类目：才做访客埋点（静态资源 / API / 门禁路径 / 跳转子域不记） */
 function shouldTrackVisit(request: Request, url: URL): boolean {
   if (request.method !== "GET") return false;
+  // 爬虫不算访客，不埋点（避免 Googlebot 等刷高 visitor 统计）
+  if (isTrustedCrawler(request)) return false;
   if (url.hostname === "images.limooo.cn") return false; // 图片子域全量不埋点
   const p = url.pathname;
   if (
@@ -1219,6 +1236,7 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   // 应用层封禁（放行登录/管理路径，避免管理员从被封 IP 无法登录）
   const ip = request.headers.get("CF-Connecting-IP") ?? "";
   const whitelisted = GATE_WHITELIST.has(ip);
+  const trustedCrawler = isTrustedCrawler(request);
   const exempt =
     url.pathname.startsWith("/login") ||
     url.pathname.startsWith("/logout") ||
@@ -1227,7 +1245,7 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     url.pathname.startsWith("/api/appleid") ||
     url.pathname.startsWith("/api/auth") ||
     url.pathname.startsWith("/api/ray");
-  if (!whitelisted && !exempt && ip && (await isBlocked(env, ip))) {
+  if (!whitelisted && !trustedCrawler && !exempt && ip && (await isBlocked(env, ip))) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -1236,7 +1254,12 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
   // 通过后浏览器带 cf_clearance（苹果设备走 PAT 通道同样签发），视为已验证直接放行，
   // 不再重复跳 auth.limooo.cn/__gate 的 Turnstile 门禁。
   const cfCleared = (request.headers.get("Cookie") ?? "").includes("cf_clearance=");
-  const gated = !(whitelisted || cfCleared || (cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY))));
+  const gated = !(
+    whitelisted ||
+    trustedCrawler ||
+    cfCleared ||
+    (cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY)))
+  );
 
   if (!gated) {
     // 已通过门禁；若还停在验证子域，送回原主机原路径
