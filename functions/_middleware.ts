@@ -8,10 +8,10 @@
  *      成功签发 cookie（Domain=.limooo.cn，跨子域；中国大陆 30 分钟有效，
  *      其它地区 5 分钟有效）并经 redirect.limooo.cn 回原主机原路径
  *      （仅允许站内相对路径，防开放重定向）
- * 搜索引擎爬虫（Googlebot/Bingbot 等）无法完成 Turnstile，若被门禁拦截会得到
- * 403，导致 Search Console 报 "Blocked due to access forbidden"。因此在门禁判定
- * 前放行可信爬虫：Cloudflare 已验证的 bot，或 UA 命中已知搜索引擎列表（与 VPS
- * nginx $ua_deny 放行名单一致，仅软性防御）。
+ * 合规爬虫（搜索引擎、社交预览、SEO 工具、监控、主流 AI 爬虫等）无法完成
+ * Turnstile，若被门禁拦截会得到 403，导致 Search Console 报 "Blocked due to
+ * access forbidden (403)"。因此在门禁判定前放行可信爬虫：Cloudflare 已验证的
+ * bot，或 UA 命中下方合规爬虫名单（仅软性防御：能自证身份的合法爬虫放行）。
  *
  * 环境变量（在 Pages 项目设置里配成 Secret）：
  *   TURNSTILE_SITEKEY / TURNSTILE_SECRET / GATE_HMAC_KEY
@@ -255,9 +255,38 @@ async function isBlocked(env: Env, ip: string): Promise<boolean> {
   return false;
 }
 
-/** 已知搜索引擎/爬虫 UA（与 VPS nginx $ua_deny 的放行名单一致；仅软性防御） */
-const CRAWLER_UA_RE =
-  /(Googlebot|Bingbot|Baiduspider|YandexBot|DuckDuckBot|Slurp|Sogou|360Spider|Bytespider|PetalBot|Applebot|facebookexternalhit|Twitterbot|Discordbot|TelegramBot|Slackbot|AdsBot|Exabot|ia_archiver|Yeti)/i;
+/**
+ * 合规爬虫 UA 名单（仅软性防御：能自证身份的合法爬虫直接放行，不经过人机门禁）。
+ * 覆盖：搜索引擎、社交平台预览、SEO/站点分析工具、监控类、主流 AI 爬虫。
+ */
+const CRAWLER_UA_RE = new RegExp(
+  [
+    // 搜索引擎 / 搜索预览
+    "Googlebot", "Google-InspectionTool", "GoogleOther", "Google-Site-Verification",
+    "Google-Extended", "Storebot-Google", "FeedFetcher-Google", "Mediapartners-Google",
+    "APIs-Google", "AdsBot", "Bingbot", "BingPreview", "Baiduspider", "Sogou",
+    "YisouSpider", "360Spider", "YandexBot", "YandexImages", "YandexMobileBot",
+    "DuckDuckBot", "Slurp", "Bytespider", "PetalBot", "Applebot", "Applebot-Extended",
+    "SeznamBot", "Qwantify", "MojeekBot", "YepBot", "NaverBot", "Yeti", "Exabot",
+    "ia_archiver", "archive.org_bot", "Startpagina-Bot", "Mail.RU_Bot",
+    // 社交平台预览
+    "facebookexternalhit", "facebookcatalog", "Twitterbot", "LinkedInBot", "Pinterest",
+    "redditbot", "Slackbot", "Discordbot", "TelegramBot", "WhatsApp", "SkypeUriPreview",
+    "Viber", "Tumblr", "Google-Structured-Data-Testing-Tool",
+    // SEO / 站点分析工具
+    "SemrushBot", "AhrefsBot", "MJ12bot", "DotBot", "rogerbot", "Screaming Frog",
+    "DataForSeoBot", "SerpstatBot", "SEOkicks", "MegaIndex", "SiteAuditBot", "Siteliner",
+    "W3C_Validator", "Validator.nu", "Chrome-Lighthouse",
+    // 主流 AI 爬虫（均自报 UA 并遵守 robots.txt）
+    "GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "anthropic-ai", "Claude-Web",
+    "PerplexityBot", "Amazonbot", "cohere-ai", "CCBot", "Diffbot", "ImagesiftBot",
+    "YouBot", "meta-externalagent", "Meta-ExternalFetcher",
+    // 监控 / 健康检查
+    "UptimeRobot", "Pingdom", "GTmetrix", "StatusCake", "Site24x7", "Datadog",
+    "New Relic", "Zabbix",
+  ].join("|"),
+  "i",
+);
 
 /** 可信爬虫判定：Cloudflare Bot Management 验证通过，或 UA 命中已知爬虫名单 */
 function isTrustedCrawler(request: Request): boolean {
