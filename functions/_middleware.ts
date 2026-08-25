@@ -427,8 +427,8 @@ const GATE_I18N: Record<string, Record<string, string>> = {
     foot: "Secured by <strong>Limooo</strong> Edge Security",
     lang_aria: "Switch language",
     theme_aria: "Toggle theme",
-    footer_rights: "All rights reserved.",
-    footer_source: "Release under the AGPL-3.0 license.",
+    footer_rights: "All rights reserved",
+    footer_source: "Release under the AGPL-3.0 license",
     error_sitekey: "Server configuration error: TURNSTILE_SITEKEY is not set.",
     error_invalid: "Invalid request. Please try again.",
     error_unavailable: "Verification service temporarily unavailable. Please try again in a moment.",
@@ -471,7 +471,7 @@ const GATE_I18N: Record<string, Record<string, string>> = {
 /** 跳转页文案（与 Flask locales 的 redirect_title/redirect_text 一致） */
 const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = {
   "zh-cn": { title: "正在跳转", text: "正在跳转... (・ω・)", footer_rights: "保留所有权利", footer_source: "根据 AGPL-3.0 许可证发布" },
-  "en-us": { title: "Redirecting", text: "Redirecting... (・ω・)", footer_rights: "All rights reserved.", footer_source: "Release under the AGPL-3.0 license." },
+  "en-us": { title: "Redirecting", text: "Redirecting... (・ω・)", footer_rights: "All rights reserved", footer_source: "Release under the AGPL-3.0 license" },
   "ja-jp": { title: "リダイレクト中", text: "リダイレクト中... (・ω・)", footer_rights: "無断転載禁止", footer_source: "AGPL-3.0 ライセンスに基づいて公開" },
   "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중... (・ω・)", footer_rights: "모든 권리 보유", footer_source: "AGPL-3.0 라이선스에 따라 배포" },
 };
@@ -753,6 +753,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+    font-size: 1.21em;
     font-weight: 700; letter-spacing: 0.02em;
   }
   @media (hover: none) and (pointer: coarse) {
@@ -1068,6 +1069,7 @@ function renderRedirectPage(context: EventContext): Response {
   }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+    font-size: 1.21em;
     font-weight: 700; letter-spacing: 0.02em;
   }
   @media (hover: none) and (pointer: coarse) {
