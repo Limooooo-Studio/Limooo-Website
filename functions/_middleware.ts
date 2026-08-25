@@ -747,7 +747,7 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
     color: inherit; text-decoration: none;
   }
   .footer-text {
-    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    font-size: 10px; font-weight: 600;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   }
@@ -1064,7 +1064,7 @@ function renderRedirectPage(context: EventContext): Response {
     color: inherit; text-decoration: none;
   }
   .footer-text {
-    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    font-size: 10px; font-weight: 600;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
   }
   .footer-brand {
