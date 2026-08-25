@@ -32,7 +32,7 @@ REMOTE_DIR="/var/www/limooo"
 LOCAL_DIR="/Users/lime/Documents/Project/Limooo/Flask/"
 SSH_OPTS="-o LogLevel=ERROR"
 
-echo "Deploying..."
+echo "Deploying"
 
 cd "$LOCAL_DIR" || { echo "Local dir not found"; exit 1; }
 
@@ -216,7 +216,7 @@ WEOF
 EOF
 
 # Cloudflare Pages 部署（auth/limooo 站点由 Pages 托管，VPS rsync 不影响它）
-echo "Deploying to Cloudflare Pages..."
+echo "Deploying to Cloudflare Pages"
 "$LOCAL_DIR/ops/pages_deploy.sh"
 
 echo "Deploy: done"
