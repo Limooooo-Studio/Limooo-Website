@@ -326,6 +326,8 @@ function showPortfolio() {
     homeScreen.style.display = 'none';
     portfolioScreen.style.visibility = 'visible';
     portfolioScreen.style.opacity = '1';
+    // 下滑切换到作品区：地址栏渲染 /#portfolio
+    if (location.hash !== '#portfolio') location.hash = 'portfolio';
 
     setTimeout(function() {
         if (seq !== animSeq) return;
@@ -417,6 +419,8 @@ function reverseToHome() {
         resetHomeItems();
         isOnHome = true;
         isTransitioning = false;
+        // 返回主页：把整个 hash（连 # 一起）从地址栏去掉
+        if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     }, Math.max(ANIM_DELAY.reverseExit, 400));
 }
 
@@ -439,6 +443,15 @@ document.addEventListener('touchend', function(event) {
     if (isOnHome && swipeDistance > SWIPE_THRESHOLD) { triggerCapture(); return; }
     if (!isOnHome && swipeDistance < -SWIPE_THRESHOLD && portfolioScreen.scrollTop <= 0) { reverseToHome(); }
 }, { passive: true });
+
+/* 浏览器前进 / 后退时，让页面与地址栏 hash 保持同步 */
+window.addEventListener('hashchange', function() {
+    if (location.hash === '#portfolio') {
+        if (isOnHome && !isTransitioning) showPortfolioDirect();
+    } else {
+        if (!isOnHome && !isTransitioning) reverseToHome();
+    }
+});
 {% endblock %}
 
 {% block onload_extra %}
