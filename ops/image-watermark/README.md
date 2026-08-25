@@ -8,9 +8,9 @@
   与 `images.limooo.cn` 的路径规则一致（不回源到 `image.limooo.cn` 自身，避免循环）。
 - Referer 主机为 `limooo.cn` 或 `*.limooo.cn` → 返回无水印原图。
 - 无 Referer 或来自其他站点 → 返回水印变体（左下角叠加，水印宽度约为图片短边的 25%，下限 96px，
-  透明度约 72% 并带深色半透明底衬）。
+  透明度约 72% 并带深色半透明底衬）；**只对 `portfolio/` 下的 png/jpg/jpeg/webp 加水印**。
 - 非图片请求透传 `limooo.cn` 响应，不做任何处理。
-- `gif/avif/svg/ico` 与 `qr-codes/`、`favicon.*` 不做水印，原样透传。
+- `icons/`、`qr-codes/` 等非 portfolio 路径，以及 gif/avif/svg/ico 等格式，原样透传不加印。
 
 ## 架构说明
 
@@ -19,7 +19,8 @@ Watermark 变体不在 Worker 里实时合成（Workers Free 套餐单次 CPU 10
 而是由 `src/build.py` 在构建时用 Pillow 生成到 `public/static/wm/`，
 随 Cloudflare Pages 一起部署。Worker 只做按 Referer 的路由选择，CPU 开销接近零。
 
-`qr-codes/` 排除水印：二维码被水印遮挡会无法扫描，且这类图经常被直接分享。
+目前只给 `portfolio/`（作品集照片）加水印：`qr-codes/`（二维码被遮挡无法扫描）、
+`icons/`（品牌 logo/favicon）等都不加。
 
 ## 缓存策略
 

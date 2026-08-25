@@ -29,15 +29,12 @@ const WM_VERSION = "3";
 
 /**
  * 是否应该使用水印变体（与 build.py generate_watermarks 的排除规则一致）：
- * 只针对 png/jpg/jpeg/webp；不处理 qr-codes（水印会遮挡二维码）；
- * 不处理 favicon。
+ * 只给 /portfolio/ 下的 png/jpg/jpeg/webp 加水印；
+ * 其他路径（icons、qr-codes 等）一律返回原图。
  */
 function shouldWatermark(pathname) {
-  if (!/\.(png|jpe?g|webp)$/i.test(pathname)) return false;
-  if (pathname.startsWith("/qr-codes/")) return false;
-  const base = pathname.split("/").pop().toLowerCase();
-  if (base.startsWith("favicon")) return false;
-  return true;
+  if (!pathname.startsWith("/portfolio/")) return false;
+  return /\.(png|jpe?g|webp)$/i.test(pathname);
 }
 
 /** Referer 是否来自 limooo.cn 家族（主机名精确匹配，防 limooo.cn.evil.com 绕过） */
