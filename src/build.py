@@ -76,8 +76,8 @@ GATE_I18N = {
         "foot": "Secured by Limooo Edge Security",
         "lang_aria": "Switch language",
         "theme_aria": "Toggle theme",
-        "footer_rights": "ALL RIGHTS RESERVED",
-        "footer_source": "Released under the AGPL-3.0 License",
+        "footer_rights": "All rights reserved.",
+        "footer_source": "Release under the AGPL-3.0 license.",
         "error_sitekey": "Server configuration error: TURNSTILE_SITEKEY is not set.",
         "error_invalid": "Invalid request. Please try again.",
         "error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
@@ -247,9 +247,8 @@ def generate_watermarks() -> int:
     """为 image.limooo.cn Worker 生成左下角水印变体到 public/static/wm/。
 
     规则（与 Worker 里的 shouldWatermark 保持一致）：
-      - 只处理 png / jpg / jpeg / webp（gif/avif/svg/ico 不做，避免破坏动画等）
-      - 排除 qr-codes/（水印会遮挡二维码，且这类图经常被直接分享）
-      - 排除 favicon.*
+      - 只处理 portfolio/ 下的 png / jpg / jpeg / webp
+      - 其他路径（icons / qr-codes 等）不生成水印变体
     水印尺寸：图片短边的 25%（下限 96px），左下角 2% 边距（下限 12px）。
     水印原文件约 40% 透明度，这里提高到约 72%，并垫一块半透明深色圆角底衬，
     保证浅色照片上也能看清。想调整显眼程度直接改下面的常量。
@@ -275,12 +274,11 @@ def generate_watermarks() -> int:
 
     for root, _dirs, files in os.walk(STATIC_DIR):
         for name in files:
-            if not re.search(r"\.(png|jpe?g|webp)$", name, re.I):
-                continue
-            if name.lower().startswith("favicon"):
-                continue
             rel = os.path.relpath(os.path.join(root, name), STATIC_DIR)
-            if rel.replace(os.sep, "/").startswith("qr-codes/"):
+            # 只给作品集图片加水印
+            if not rel.replace(os.sep, "/").startswith("portfolio/"):
+                continue
+            if not re.search(r"\.(png|jpe?g|webp)$", name, re.I):
                 continue
             try:
                 im = Image.open(os.path.join(root, name)).convert("RGBA")

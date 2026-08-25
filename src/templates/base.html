@@ -44,7 +44,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <link rel="stylesheet" href="https://limooo.cn/static/tailwind.css?v=3">
 
 <!-- Inter 自托管字体（变量字体，按 unicode-range 按需下载，font-display: swap） -->
-    <link rel="stylesheet" href="https://limooo.cn/static/fonts.css?v=1">
+    <link rel="stylesheet" href="https://limooo.cn/static/fonts.css?v=2">
 
     {% block head_links %}{% endblock %}
 
@@ -134,6 +134,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         .footer-text {
             font-size: 10px; font-weight: 600; text-transform: uppercase;
             letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+        }
+        .footer-brand {
+            font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+            font-weight: 700; letter-spacing: 0.02em;
         }
         @media (hover: none) and (pointer: coarse) {
             .global-footer { display: none !important; }
@@ -373,7 +377,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% block footer_markup %}
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
-            <div class="footer-text">&copy; 2026 LIMOOO<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
+            <div class="footer-text">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
         </div>
     </footer>
     {% endblock %}
