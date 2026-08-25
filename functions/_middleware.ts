@@ -748,12 +748,12 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   }
   .footer-text {
     font-size: 10px; font-weight: 600;
+    font-size-adjust: 0.546;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
-    font-size: 1.21em;
     font-weight: 700; letter-spacing: 0.02em;
   }
   @media (hover: none) and (pointer: coarse) {
@@ -1065,11 +1065,11 @@ function renderRedirectPage(context: EventContext): Response {
   }
   .footer-text {
     font-size: 10px; font-weight: 600;
+    font-size-adjust: 0.546;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
   }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
-    font-size: 1.21em;
     font-weight: 700; letter-spacing: 0.02em;
   }
   @media (hover: none) and (pointer: coarse) {
