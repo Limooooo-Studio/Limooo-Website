@@ -713,6 +713,8 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700; letter-spacing: 0.02em;
+    /* Baloo 2 字面视觉高度比系统字体矮：单独放大，使 LIMOOO 与正文视觉尺寸一致 */
+    font-size: 1.25em; line-height: 1;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
@@ -1025,6 +1027,8 @@ function renderRedirectPage(context: EventContext): Response {
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700; letter-spacing: 0.02em;
+    /* Baloo 2 字面视觉高度比系统字体矮：单独放大，使 LIMOOO 与正文视觉尺寸一致 */
+    font-size: 1.25em; line-height: 1;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
