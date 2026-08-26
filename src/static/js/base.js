@@ -255,8 +255,10 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
 
     function setLang(code) {
         closeLangMenu();
-        if (code !== CURRENT_LANG) applyLang(code);
-        else saveLangCookie(code);
+        /* 可靠优先：写 cookie 后整页刷新，由服务端按 cookie 渲染对应语言。
+           避免依赖前端字典 fetch / CSP / 缓存在某些环境下失效。 */
+        saveLangCookie(code);
+        if (code !== CURRENT_LANG) location.reload();
     }
 
     /* 桌面端：语言菜单悬停自动展开/收起（VitePress VPFlyout 行为），触摸端保持点击切换 */
