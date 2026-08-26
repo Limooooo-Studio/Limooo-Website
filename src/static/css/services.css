@@ -16,7 +16,8 @@
 .service-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-    opacity: 0; transition: opacity 400ms var(--ease-out);
+    /* 顶部装饰线常驻显示（不再仅悬停出现） */
+    opacity: 1; transition: opacity 400ms var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
     .service-card:hover::before { opacity: 1; }
