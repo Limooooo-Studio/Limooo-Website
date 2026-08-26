@@ -57,7 +57,9 @@ const SKIP_PATHS = new Set<string>([
   "/favicon.ico",
 ]);
 // 门禁/封禁白名单（信任来源，如测试机/管理机）：直接放行，不依赖 CF 挑战与 Turnstile
-const GATE_WHITELIST = new Set<string>(["97.64.18.11"]);
+// TEMP(2026-08-27): 97.64.18.11 白名单已按用户要求暂时移除，仅用于测试；
+// 测试结束后把该 IP 加回 new Set<string>(["97.64.18.11"]) 即可恢复。
+const GATE_WHITELIST = new Set<string>([]);
 // /static/ 下的 CSS/字体等公开静态资源也放行：
 // 主站页面本身已由门禁保护，但外部引用（如 authentik 登录页 logo 指向
 // limooo.cn/static/...，作品图/二维码走 images.limooo.cn）不带 __gate
