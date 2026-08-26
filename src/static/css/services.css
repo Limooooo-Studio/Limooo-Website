@@ -76,8 +76,13 @@
 }
 .service-modal.open .modal-panel { transform: translateY(0) scale(1); }
 
-/* 弹层标题区 */
-.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+/* 弹层标题区：吸顶常驻，保证滚动/下滑时关闭按钮始终可见 */
+.modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: -32px -28px 8px; padding: 12px 28px;
+    position: sticky; top: 0; z-index: 5;
+    background: var(--panel-bg);
+}
 .modal-index { font-size: 10px; font-family: monospace; font-weight: bold; opacity: 0.3; }
 .modal-close {
     width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
