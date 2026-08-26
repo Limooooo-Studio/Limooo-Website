@@ -182,9 +182,21 @@ function langCookieHeader(host: string, lang: string): string {
  * 不可变的，生产环境 append 会抛 TypeError（本地 miniflare 不报）。统一改为
  * 拷贝头 + 新建 Response，所有调用点（含重定向）都安全。
  */
+/** 复制响应头时保留多条 Set-Cookie，避免 Safari 只认第一条导致 cookie 失效。 */
+function preserveSetCookie(headers: Headers, source: Headers): void {
+  const getSetCookie = (
+    source as Headers & { getSetCookie?: () => string[] }
+  ).getSetCookie;
+  const cookies = typeof getSetCookie === "function" ? getSetCookie.call(source) : [];
+  if (!cookies.length) return;
+  headers.delete("Set-Cookie");
+  for (const cookie of cookies) headers.append("Set-Cookie", cookie);
+}
+
 function withLangCookie(request: Request, resp: Response): Response {
   if (getCookie(LANG_COOKIE, request.headers.get("Cookie"))) return resp;
   const headers = new Headers(resp.headers);
+  preserveSetCookie(headers, resp.headers);
   headers.append("Set-Cookie", langCookieHeader(request.headers.get("Host") ?? "", detectLang(request)));
   return new Response(resp.body, {
     status: resp.status,
@@ -196,6 +208,7 @@ function withLangCookie(request: Request, resp: Response): Response {
 /** 统一注入安全响应头；API 只加 nosniff，避免破坏 JSON 接口。 */
 function withSecurityHeaders(request: Request, resp: Response): Response {
   const headers = new Headers(resp.headers);
+  preserveSetCookie(headers, resp.headers);
   const isApi = new URL(request.url).pathname.startsWith("/api/");
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     if (isApi && name !== "X-Content-Type-Options") continue;
@@ -1140,14 +1153,16 @@ async function handleVerify(context: EventContext): Promise<Response> {
     message: "cookie_issued",
   });
 
-  return withLangCookie(request, new Response(null, {
+  // 验证成功只签发 __gate cookie：若再叠加语言 cookie，Workers 会把两条
+  // Set-Cookie 合并，Safari 只认第一条，导致 __gate 落盘失败、回跳后再次被拦。
+  return new Response(null, {
     status: 302,
     headers: {
       Location: viaRedirect(host, next),
       "Set-Cookie": cookie,
       "Cache-Control": "no-store",
     },
-  }));
+  });
 }
 
 export const onRequest: PagesFunction = async (context) => {
