@@ -40,7 +40,7 @@ cd "$LOCAL_DIR" || { echo "FATAL: 本地目录不存在 $LOCAL_DIR"; exit 1; }
 echo "git rev-parse --is-inside-work-tree"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "git add -A -- . ':!limooo.cn.png'"
-    git add -A -- . ':!limooo.cn.png' ':!README 2.md'
+    git add -A -- . ':!limooo.cn.png'
     if ! git diff --cached --quiet; then
         echo "git commit -m \"deploy: auto-commit $(date '+%Y-%m-%d %H:%M')\""
         git commit -m "deploy: auto-commit $(date '+%Y-%m-%d %H:%M')"
