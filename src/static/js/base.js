@@ -147,7 +147,12 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
     /* 纯前端应用某语言:更新字典/文档 lang/标记文本/菜单选中态 */
     function applyLang(lang) {
         if (I18N_CACHE[lang] == null) {  /* 未缓存或预取失败:先取回再应用 */
-            fetchI18n(lang, function(d) { if (d) applyLang(lang); });
+            fetchI18n(lang, function(d) {
+                if (d) { applyLang(lang); return; }
+                /* 字典接口失败时保底:写 cookie 后整页刷新,服务端按新语言渲染 */
+                saveLangCookie(lang);
+                location.reload();
+            });
             return;
         }
         if (lang !== CURRENT_LANG) {
