@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "template": "verification-code",
+    "description": "验证码邮件模板的四语种文案（zh-cn / en-us / ja-jp / ko-kr）。",
+    "sender": "no-reply-<N>@limooo.cn",
+    "default_reply_to": "contact@limooo.cn",
+    "code_valid_minutes": 30,
+    "footer_brand": "LIMOOO",
+    "footer_suffix": "Studio | All rights reserved"
+  },
+  "zh-cn": {
+    "subject": "您的验证码：__CODE__",
+    "title": "您的验证码",
+    "body": "感谢您使用 Limooo Studio 的服务。请使用下方验证码完成您的请求。验证码有效期为 30 分钟。",
+    "hint": "如果您未发起此请求，可忽略本邮件。出于安全考虑，请勿将验证码告知任何人。",
+    "plain": "您的 Limooo 验证码是：__CODE__\n\n如非您本人操作，请忽略本邮件。",
+    "footer": "© 2026 LIMOOO Studio | 保留所有权利"
+  },
+  "en-us": {
+    "subject": "Your Verification Code: __CODE__",
+    "title": "Your Verification Code",
+    "body": "Thank you for using Limooo Studio's services. Use the verification code below to complete your request. This code is valid for 30 minutes.",
+    "hint": "If you did not request this code, you can safely ignore this email. For security, never share this code with anyone.",
+    "plain": "Your Limooo verification code is: __CODE__\n\nIf you did not request this, please ignore this email.",
+    "footer": "© 2026 LIMOOO Studio | All rights reserved"
+  },
+  "ja-jp": {
+    "subject": "認証コード：__CODE__",
+    "title": "認証コード",
+    "body": "Limooo Studio をご利用いただきありがとうございます。下記の認証コードを入力してリクエストを完了してください。このコードは 30 分間有効です。",
+    "hint": "このコードをリクエストしていない場合は、このメールを無視してください。セキュリティのため、このコードを他人に共有しないでください。",
+    "plain": "Limooo の認証コードは：__CODE__\n\nご自身でリクエストしていない場合は、このメールを無視してください。",
+    "footer": "© 2026 LIMOOO Studio | 無断転載禁止"
+  },
+  "ko-kr": {
+    "subject": "인증 코드: __CODE__",
+    "title": "인증 코드",
+    "body": "Limooo Studio 서비스를 이용해 주셔서 감사합니다. 아래 인증 코드를 사용하여 요청을 완료해 주세요. 이 코드는 30분간 유효합니다.",
+    "hint": "이 코드를 요청하지 않았다면 이 이메일을 무시하셔도 됩니다. 보안상 이 코드를 타인과 공유하지 마세요.",
+    "plain": "Limooo 인증 코드는 다음과 같습니다: __CODE__\n\n본인이 요청하지 않았다면 이 이메일을 무시해 주세요.",
+    "footer": "© 2026 LIMOOO Studio | 모든 권리 보유"
+  }
+}
