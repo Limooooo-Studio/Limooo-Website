@@ -50,7 +50,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
     {% block head_links %}{% endblock %}
 </head>
-<body class="antialiased" data-lang="{{ g.lang }}" data-i18n='{{ translations | tojson }}'>
+<body class="antialiased" data-lang="{{ g.lang }}" data-i18n-dict='{{ translations | tojson }}'>
 
     <!-- 闪光灯组件（由各页面按需启用，默认隐藏） -->
     {% block flash %}{% endblock %}
@@ -144,7 +144,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% endblock %}
     {% endblock %}
 
-    <script src="https://limooo.cn/static/js/base.js?v=4" defer></script>
+    <script src="https://limooo.cn/static/js/base.js?v=5" defer></script>
     {% block scripts %}{% endblock %}
     {% block page_scripts %}{% endblock %}
 </body>

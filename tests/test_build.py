@@ -1,5 +1,7 @@
 """构建脚本纯函数测试（不写 public/ 产物）。"""
 
+from pathlib import Path
+
 import build
 import app
 
@@ -19,3 +21,15 @@ def test_render_page_switches_language():
     assert "/static/" in html
     html_en = build.render_page(app, "index.html", "/", "en-us")
     assert '<html lang="en-us">' in html_en
+
+
+def test_body_translation_dict_does_not_collide_with_i18n_markers():
+    html = build.render_page(app, "index.html", "/", "zh-cn")
+    body_start = html.index("<body")
+    body_open = html[body_start:html.index(">", body_start) + 1]
+
+    assert "data-i18n-dict='" in body_open
+    assert "data-i18n='" not in body_open
+
+    base_js = Path(build.BASE_DIR) / "src/static/js/base.js"
+    assert "getAttribute('data-i18n-dict')" in base_js.read_text(encoding="utf-8")

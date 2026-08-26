@@ -56,7 +56,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
        - t():按 key 取文本,支持 {param} 占位符替换
        - applyLang():纯前端切换,重写带 data-i18n 标记的元素,不刷新页面
        ═══════════════════════════════════════════════════════════════ */
-    var I18N = JSON.parse(document.body.getAttribute('data-i18n') || '{}');
+    var I18N = JSON.parse(document.body.getAttribute('data-i18n-dict') || '{}');
     var CURRENT_LANG = document.body.getAttribute('data-lang') || 'zh-cn';
     var I18N_CACHE = window.I18N_CACHE || {};
     I18N_CACHE[CURRENT_LANG] = I18N;
