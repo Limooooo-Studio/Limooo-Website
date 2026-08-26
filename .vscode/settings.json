@@ -1,0 +1,15 @@
+{
+  "files.associations": {
+    "**/src/templates/**/*.html": "jinja"
+  },
+  "python.analysis.typeCheckingMode": "standard",
+  "python.analysis.diagnosticMode": "workspace",
+  "[jinja]": {
+    "editor.defaultFormatter": "wholroyd.jinja"
+  },
+  "html.validate.scripts": false,
+  "css.lint.unknownProperties": "warning",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "never"
+  }
+}

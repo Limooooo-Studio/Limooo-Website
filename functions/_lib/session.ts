@@ -1,6 +1,12 @@
 /** 自研 HMAC 签名会话 cookie（Pages 无内置 session） */
 
 import type { Env } from "./env";
+import {
+  PENDING_COOKIE,
+  PENDING_TTL_SECONDS,
+  SESSION_COOKIE,
+  SESSION_TTL_SECONDS,
+} from "./config";
 
 export interface SessionUser {
   email: string;
@@ -14,10 +20,6 @@ export interface SessionData {
   authAt: number;
   exp: number;
 }
-
-const SESSION_COOKIE = "limooo_session";
-const PENDING_COOKIE = "limooo_pending";
-const SESSION_TTL = 7 * 86400;
 
 const enc = new TextEncoder();
 
@@ -94,8 +96,8 @@ function cookieHeader(name: string, value: string, maxAge: number): string {
 }
 
 export async function createSessionCookie(env: Env, data: SessionData): Promise<string> {
-  const payload = JSON.stringify({ ...data, exp: data.exp || Math.floor(Date.now() / 1000) + SESSION_TTL });
-  return cookieHeader(SESSION_COOKIE, await signPayload(env.SESSION_HMAC_KEY ?? "", payload), SESSION_TTL);
+  const payload = JSON.stringify({ ...data, exp: data.exp || Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS });
+  return cookieHeader(SESSION_COOKIE, await signPayload(env.SESSION_HMAC_KEY ?? "", payload), SESSION_TTL_SECONDS);
 }
 
 export function clearSessionCookie(): string {
@@ -115,8 +117,8 @@ export async function requireAuth(env: Env, request: Request): Promise<SessionDa
 }
 
 export async function createPendingCookie(env: Env, state: string, next: string): Promise<string> {
-  const payload = JSON.stringify({ state, next, exp: Math.floor(Date.now() / 1000) + 600 });
-  return cookieHeader(PENDING_COOKIE, await signPayload(env.SESSION_HMAC_KEY ?? "", payload), 600);
+  const payload = JSON.stringify({ state, next, exp: Math.floor(Date.now() / 1000) + PENDING_TTL_SECONDS });
+  return cookieHeader(PENDING_COOKIE, await signPayload(env.SESSION_HMAC_KEY ?? "", payload), PENDING_TTL_SECONDS);
 }
 
 export async function readPending(env: Env, cookieHeaderValue: string | null): Promise<{ state: string; next: string } | null> {

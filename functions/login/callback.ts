@@ -3,20 +3,34 @@
 import { exchangeCode, redirectUriFor } from "../_lib/oidc";
 import { clearPendingCookie, createSessionCookie, readPending } from "../_lib/session";
 import type { Env } from "../_lib/env";
+import { logEvent } from "../_lib/logging";
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, request } = context;
   const url = new URL(request.url);
+  const startedAt = Date.now();
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
   const pending = await readPending(env, request.headers.get("Cookie"));
   if (!pending || pending.state !== state || !code) {
+    await logEvent(env, "login_callback", request, {
+      outcome: "bad_state",
+      status: 302,
+      durationMs: Date.now() - startedAt,
+      message: "missing_or_invalid_state",
+    });
     return Response.redirect("https://limooo.cn/?error=bad_state", 302);
   }
 
   const result = await exchangeCode(env, code, redirectUriFor(url.hostname));
   if (!result.session) {
+    await logEvent(env, "login_callback", request, {
+      outcome: "error",
+      status: 302,
+      durationMs: Date.now() - startedAt,
+      message: result.reason,
+    });
     return Response.redirect(`https://limooo.cn/?error=auth_failed&reason=${encodeURIComponent(result.reason)}`, 302);
   }
   const session = result.session;
@@ -29,5 +43,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const resp = new Response(null, { status: 302, headers: { Location: next } });
   resp.headers.append("Set-Cookie", clearPendingCookie());
   resp.headers.append("Set-Cookie", await createSessionCookie(env, session));
+  await logEvent(env, "login_callback", request, {
+    outcome: "ok",
+    status: 302,
+    durationMs: Date.now() - startedAt,
+    message: `role=${session.role}`,
+  });
   return resp;
 };

@@ -20,4 +20,4 @@
 flask           # WSGI 框架，app.py 的核心
 cryptography    # Fernet（Apple ID 密码加密）+ 公钥签名验证
 requests        # HTTP 客户端
-certifi         # SSL 根证书（systemd 环境下 urllib 兼容）
+pillow          # build.py 生成作品集水印变体

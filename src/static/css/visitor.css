@@ -1,0 +1,137 @@
+        /* ═══════════════════════════════════════════════════════════════
+           管理端样式（导航栏 / 主题菜单 / 全局基础样式见 base.html）
+           ═══════════════════════════════════════════════════════════════ */
+
+        /* ── 管理端额外配色变量（基础配色见 base.html） ── */
+        :root {
+            --panel-bg-rgb: 27, 29, 33;
+        }
+        .light-mode {
+            --panel-bg-rgb: 240, 240, 240;
+        }
+
+        /* ── 管理端无左侧 LOGO，右侧菜单组保持靠右对齐 ── */
+        .global-nav { margin-left: auto; }
+
+        /* ── Dashboard ── */
+        #dashboard.hidden { display: none !important; }
+        #dashboard { opacity: 0; transition: opacity 350ms var(--ease-out); }
+        #dashboard.visible { opacity: 1; }
+
+        /* ── 主布局：IP 列表 ── */
+        .main-layout {
+            position: fixed; top: 70px; left: 0; right: 0; bottom: 0; z-index: 10;
+            display: flex;
+        }
+        .left-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 4px 12px 16px 20px; }
+
+        /* ── 统计卡片 ── */
+        .stats-row { display: flex; gap: 10px; padding: 0 0 14px 0; flex-shrink: 0; }
+        .stat-card {
+            flex: 1; min-width: 0; padding: 12px 16px;
+            background: rgba(var(--panel-bg-rgb), 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--line); border-radius: var(--radius-md);
+        }
+        @media (prefers-reduced-transparency: reduce) {
+            .stat-card { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+        }
+        .stat-value { font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: calc(0.02em*var(--ls-scale)); }
+        .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: calc(0.18em*var(--ls-scale)); opacity: 0.4; margin-top: 6px; font-weight: 600; white-space: nowrap; }
+
+        /* ── 过滤栏 ── */
+        .filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 0 12px 0; flex-shrink: 0; }
+
+        /* ── 通用按钮（原 login.html） ── */
+        .btn { padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:none;cursor:pointer;letter-spacing: calc(0.02em*var(--ls-scale));color:white;transition:opacity 0.2s,transform 0.15s var(--ease-out); }
+        .btn:active { transform:scale(0.96); }
+        .btn-primary { background:var(--accent);color:white; }
+        .btn-primary:hover { opacity:0.9; }
+        .btn-outline { background:transparent;border:1px solid var(--line);color:var(--text); }
+        .btn-outline:hover { background:var(--highlight); }
+        .btn-danger { background:#f43f5e;color:white; }
+        .btn-danger:hover { opacity:0.8; }
+        .btn-sm { padding:4px 12px;font-size:11px; }
+        .chip {
+            border: 1px solid var(--line); background: none; color: var(--text); opacity: 0.5;
+            padding: 5px 12px; border-radius: var(--radius-full); cursor: pointer; font-size: 12px; font-weight: 600;
+            font-family: inherit;
+            transition: opacity .2s var(--ease-out), background .2s var(--ease-out), border-color .2s var(--ease-out), transform 160ms var(--ease-out);
+        }
+        .chip:active { transform: scale(0.94); }
+        .chip.active { opacity: 1; border-color: var(--accent); color: var(--accent); background: rgba(5,165,166,0.08); }
+        .chip .cnt { opacity: 0.45; font-size: 10px; margin-left: 4px; font-weight: 600; }
+        @media (hover: hover) and (pointer: fine) { .chip:hover { opacity: 1; } }
+
+        /* ── 列表头部 ── */
+        .list-header { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px 0; flex-shrink: 0; }
+        .list-header .title { font-size: 13px; font-weight: 700; letter-spacing: calc(0.05em*var(--ls-scale)); }
+        .list-header .sub { font-size: 11px; opacity: 0.4; margin-left: 8px; font-weight: 500; }
+        .list-actions { display: flex; gap: 8px; }
+        .panel-btn {
+            background: none; border: 1px solid var(--line); color: var(--text); opacity: 0.5;
+            padding: 4px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px;
+            font-weight: 600; letter-spacing: calc(0.08em*var(--ls-scale)); font-family: inherit;
+            transition: opacity 0.2s var(--ease-out), border-color 0.2s var(--ease-out), transform 160ms var(--ease-out);
+        }
+        .panel-btn:active { transform: scale(0.95); }
+        @media (hover: hover) and (pointer: fine) {
+            .panel-btn:hover { opacity: 1; border-color: var(--highlight); }
+            .panel-btn.danger:hover { border-color: #f43f5e; color: #f43f5e; }
+        }
+
+        /* ── IP 列表 ── */
+        .visitor-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; padding-right: 4px; }
+        .visitor-list::-webkit-scrollbar { width: 3px; }
+        .visitor-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        .visitor-row {
+            display: flex; align-items: flex-start; gap: 10px; padding: 11px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.04); border-radius: var(--radius-md);
+            transition: background 0.15s var(--ease-out); cursor: pointer;
+        }
+        .visitor-row:hover { background: var(--highlight); }
+        .visitor-row .dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+        .visitor-row .dot.geo { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+        .visitor-row .dot.nogeo { background: rgba(255,255,255,0.2); }
+        .visitor-row .info { flex: 1; min-width: 0; }
+        .visitor-row .loc { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .visitor-row .loc-city { font-size: 11px; font-weight: 500; opacity: 0.6; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .visitor-row .detail { font-size: 10px; opacity: 0.38; margin-top: 2px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .visitor-row .badges { margin-top: 5px; }
+        .badge {
+            display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px;
+            border-radius: var(--radius-sm); margin-right: 4px; letter-spacing: calc(0.03em*var(--ls-scale));
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .badge.s2 { background: rgba(34,197,94,0.13); color: #4ade80; }
+        .badge.s3 { background: rgba(59,130,246,0.13); color: #60a5fa; }
+        .badge.s4 { background: rgba(245,158,11,0.13); color: #fbbf24; }
+        .badge.s5 { background: rgba(239,68,68,0.13); color: #f87171; }
+        .badge.s444 { background: rgba(168,85,247,0.16); color: #c084fc; }
+        .visitor-row .time-col { text-align: right; flex-shrink: 0; margin-top: 1px; }
+        .visitor-row .time-text { font-size: 11px; font-weight: 500; opacity: 0.55; letter-spacing: calc(0.02em*var(--ls-scale)); white-space: nowrap; }
+        .visitor-row .count-text { font-size: 10px; opacity: 0.3; margin-top: 1px; font-weight: 600; }
+
+        .loading-indicator { display: flex; align-items: center; justify-content: center; padding: 40px; gap: 10px; opacity: 0.4; font-size: 12px; letter-spacing: calc(0.15em*var(--ls-scale)); }
+        .loading-indicator.dim { opacity: 0.3; }
+        .loading-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text); animation: load-bounce 1.4s ease-in-out infinite; }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes load-bounce {
+            0%,80%,100% { opacity: 0.2; transform: scale(1); }
+            40% { opacity: 1; transform: scale(1.8); }
+        }
+
+        @media (max-width: 768px) {
+            html, body { overflow-y: auto; height: auto; min-height: 100%; }
+            .main-layout { position: relative; top: auto; left: auto; right: auto; bottom: auto; margin-top: 70px; flex-direction: column; }
+            .left-panel { flex: none; padding: 2px 14px 8px 14px; }
+            .visitor-list { overflow-y: visible; }
+            .stats-row { padding-bottom: 10px; }
+            .stat-card { padding: 10px 12px; }
+            .stat-value { font-size: 18px; }
+            .stat-label { font-size: 8px; }
+        }
+        @media (min-width: 769px) {
+            .main-layout { top: 100px; }
+        }

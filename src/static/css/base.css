@@ -1,0 +1,230 @@
+/* ═══════════════════════════════════════════════════════════════
+           全局 CSS 变量
+           :root 为暗色主题默认值，.light-mode 覆盖为浅色主题
+           子页面可通过 (block style_page) 添加额外样式
+           ═══════════════════════════════════════════════════════════════ */
+        :root {
+            --bg: #1b1b1f;
+            --text: #e2e2e3;
+            --line: #2e2e32;
+            --panel-bg: #202127;
+            --highlight: #2a2a2f;
+            --footer-border: #2e2e32;
+            /* 强调色（青，全站共用） */
+            --accent: #05A5A6;
+            --accent-glow: rgba(5, 165, 166, 0.2);
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+            --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+            /* ── 统一圆角（全站共用） ──
+               --radius-sm  小控件：按钮 / 菜单项 / 输入框 / 标签
+               --radius-md  中控件：主题按钮 / 菜单 / 图片 / 行
+               --radius-lg  大容器：卡片 / 弹层
+               --radius-full 胶囊 */
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 999px;
+            /* 字距缩放:中日韩全角文字按 0.65 收紧,仅英文半角按 0.3 收紧 */
+            --ls-scale: 0.65;
+            /* ── 深浅切换滑块 ── */
+            --switch-icon: #dfdfd6;
+            --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        }
+        html[lang^="en"] { --ls-scale: 0.3; }
+        .light-mode {
+            --bg: #ffffff;
+            --text: #1f2328;
+            --line: #e2e2e3;
+            --panel-bg: #f6f6f7;
+            --highlight: #f2f2f3;
+            --footer-border: #e2e2e3;
+            --accent: #05A5A6;
+            --accent-glow: rgba(5, 165, 166, 0.2);
+            --switch-icon: #67676c;
+            --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        }
+
+        /* ── 全局基础样式 ── */
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg) !important;
+            color: var(--text);
+            overflow: hidden;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            font-weight: 500;
+        }
+
+        .site-nav { background: var(--bg); }
+
+        * { -webkit-tap-highlight-color: transparent; }
+
+        .pressable {
+            transition: transform 160ms var(--ease-out);
+            cursor: pointer;
+        }
+        .pressable:active { transform: scale(0.97); }
+
+        /* ── 底部版权信息 ── */
+        .global-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
+            border-top: 1px solid var(--footer-border);
+            background-color: var(--bg) !important;
+            display: flex; align-items: center; justify-content: center;
+        }
+        /* 整条 footer 是一个全宽可点击链接,内边距移到链接上以扩大点击区域 */
+        .footer-link {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+            padding: 1.25rem 0;
+            padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+            color: inherit; text-decoration: none;
+        }
+        .footer-text {
+            font-size: 10px; font-weight: 600;
+            letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
+        }
+        .footer-brand {
+            font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+            font-weight: 700; letter-spacing: 0.02em;
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .global-footer { display: none !important; }
+        }
+
+        /* ── 图标按钮（社交链接 / 主题切换 / 语言切换 / 移动端菜单，VitePress 风格） ── */
+        .icon-btn, .theme-btn {
+            width: 36px; height: 36px; display: flex; align-items: center;
+            justify-content: center; border-radius: var(--radius-md);
+            border: none; background: none; cursor: pointer;
+            color: var(--text); opacity: 0.75;
+            transition: transform 200ms var(--ease-out), background 200ms var(--ease-out), opacity 200ms var(--ease-out);
+        }
+        .icon-btn:active, .theme-btn:active { transform: scale(0.92); }
+        @media (hover: hover) and (pointer: fine) {
+            .icon-btn:hover, .theme-btn:hover { background: var(--highlight); opacity: 1; }
+        }
+        /* ── 语言切换按钮（VitePress VPFlyout：文A图标 + 下箭头） ── */
+        .lang-btn {
+            display: flex; align-items: center;
+            padding: 0 12px; height: 36px;
+            border: none; background: none; cursor: pointer;
+            color: var(--text);
+            transition: color 200ms var(--ease-out);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .lang-btn:hover { color: var(--accent); }
+        }
+        .lang-btn .lang-icon { width: 16px; height: 16px; }
+        .lang-btn .lang-chevron { width: 14px; height: 14px; margin-left: 4px; opacity: 0.6; }
+
+        /* ── 深浅切换（VitePress VPSwitchAppearance：太阳-月亮胶囊滑块） ── */
+        .appearance-switch {
+            position: relative; border-radius: 11px; display: block;
+            width: 40px; height: 22px; flex-shrink: 0;
+            border: 1px solid var(--line);
+            background: var(--highlight);
+            cursor: pointer; padding: 0;
+            transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .appearance-switch:hover { border-color: var(--accent); }
+        }
+        .appearance-check {
+            position: absolute; top: 1px; left: 1px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--bg);
+            box-shadow: var(--switch-shadow);
+            transform: translateX(18px); /* 默认深色：滑块在右 */
+            transition: transform 250ms var(--ease-out);
+        }
+        .appearance-icon {
+            position: relative; display: block; width: 18px; height: 18px;
+            border-radius: 50%; overflow: hidden;
+        }
+        .appearance-icon svg {
+            position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+            color: var(--switch-icon);
+            transition: opacity 250ms var(--ease-out);
+        }
+        /* 默认（深色）：月亮可见；浅色：太阳可见 */
+        .appearance-icon .sun { opacity: 0; }
+        .appearance-icon .moon { opacity: 1; }
+        .light-mode .appearance-icon .sun { opacity: 1; }
+        .light-mode .appearance-icon .moon { opacity: 0; }
+        .light-mode .appearance-check { transform: translateX(0); }
+
+        .theme-toggle { position: relative; display: flex; align-items: center; }
+        /* 汉堡菜单（移动端子站切换）仅在 <768px 显示；须写在 .theme-toggle 之后覆盖其 display:flex */
+        @media (min-width: 768px) {
+            .nav-mobile-menu { display: none; }
+        }
+        .theme-menu {
+            position: absolute; top: calc(100% + 8px); right: 0; min-width: 120px;
+            background: var(--panel-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+            padding: 4px; z-index: 200;
+            opacity: 0; visibility: hidden;
+            transform: translateY(-4px) scale(0.92);
+            transform-origin: top right;
+            transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 150ms;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+        }
+        .theme-menu.open {
+            opacity: 1; visibility: visible; transform: translateY(0) scale(1);
+            transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+        }
+        .theme-option {
+            padding: 8px 14px; margin: 2px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+            letter-spacing: calc(0.05em*var(--ls-scale)); cursor: pointer; white-space: nowrap;
+            transition: background 150ms var(--ease-out);
+            opacity: 0.5;
+        }
+        .lang-flag { margin-right: 6px; }
+        .theme-option.selected {
+            opacity: 1; background: var(--highlight);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .theme-option:hover { opacity: 1; background: var(--highlight); }
+        }
+
+        /* ── 入场动画（reveal-item → show） ── */
+        .reveal-item {
+            opacity: 0 !important; transform: translateY(20px);
+            transition: transform 500ms var(--ease-out), opacity 500ms ease-out;
+            will-change: transform, opacity;
+        }
+        .reveal-item.show { opacity: 1 !important; transform: translateY(0); }
+
+        /* VitePress VPNavBarMenuLink：默认文字色，激活/悬停变品牌色（无下划线） */
+        .global-nav a {
+            display: inline-flex; align-items: center;
+            padding: 0 12px;
+            font-size: 14px; font-weight: 500;
+            text-decoration: none;
+            color: var(--text);
+            transition: color 200ms var(--ease-out);
+            -webkit-font-smoothing: antialiased;
+        }
+        .global-nav a.active { color: var(--accent); }
+        @media (hover: hover) and (pointer: fine) {
+            .global-nav a:hover { color: var(--accent); }
+        }
+        /* 导航链接尾部的 ↗ 外链图标 */
+        .nav-external {
+            display: inline-block;
+            margin-left: 4px;
+            width: 11px; height: 11px;
+            flex-shrink: 0;
+            opacity: 0.45;
+        }
+        /* 导航栏右侧各组之间的竖线分隔符 */
+        .nav-divider {
+            width: 1px; height: 24px;
+            background: var(--line);
+            margin: 0 12px;
+            flex-shrink: 0;
+        }
+
+        /* ── 导航展开菜单 ── */
+        /* 完全复用 .theme-menu / .theme-option 样式，无需额外 CSS */

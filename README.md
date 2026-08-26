@@ -5,8 +5,8 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 ## Features
 
 - **Public pages**: Home, Services, Contact, Portfolio — with dark/light theme switching
-- **Admin dashboard** (`/admin`): parses the Nginx `access.log`, shows visitor IP, country/city, ISP and ASN in real time; filterable by status code
-- **Apple ID manager** (`/appleid`): full CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
+- **Visitor panel** (`/visitor`): DNS-backed Pages Function + D1 analytics; shows visitor IP, country, ISP/ASN where available, status-code distribution, and is login-protected
+- **Apple ID manager** (`/appleid`): Pages Function + D1 CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
 - **Auth & roles**: self-hosted [authentik](https://goauthentik.io) OIDC single sign-on, with admin (read-write) / viewer (read-only) roles split by group
 - **Automatic IP blocking**:
   - Scans Nginx logs for malicious scan signatures (`/.env`, `/wp-admin`, `/actuator/`, etc.) and zero-tolerance bans the offending /24 subnet
@@ -35,10 +35,10 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 ```
 ├── src/
 │   ├── app.py             # Flask main app: routes, auth, API, block filter
-│   ├── common.py          # path constants, DB connection, IP utilities
+│   ├── config.py          # unified config: paths, languages, domains, DB/IP utils
 │   ├── auto_block.py      # scans logs, auto-bans malicious /24s, syncs to ipset + Cloudflare (cron daily 03:00; subcommands: ipset/cf/sync)
 │   └── build.py           # Pages static build (python3 src/build.py)
-│   ├── static/            # static assets (icons, portfolio, QR codes)
+│   ├── static/            # static css/js/fonts + icons/portfolio/QR codes
 │   └── templates/         # Jinja2 page templates
 ├── README.md              # this file
 ├── LICENSE.md             # AGPL-3.0
@@ -55,19 +55,25 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 │   └── origin-*.pem       # Cloudflare Origin CA certificate + private key
 ├── ops/                   # deployment & ops tooling
 │   ├── deploy.sh          # one-command deployment script
-│   ├── upload.sh          # quiet variant of deploy.sh
+│   ├── upload.sh          # compatibility entry point → deploy.sh
 │   ├── pages_deploy.sh    # Cloudflare Pages build + deploy
 │   ├── requirements.txt   # Python dependencies
 │   ├── limooo.conf        # Nginx site configuration
 │   ├── location-security.inc      # Nginx security hardening snippet
 │   ├── limooo.service     # systemd service unit
 │   ├── migrations/        # D1 schema migrations
-│   ├── export_*.py        # D1 import SQL/JSON export scripts
+│   ├── export_d1.py       # unified D1 import SQL/JSON export (appleid | blocklist)
 │   └── sync-worker/       # Cloudflare Worker: daily D1 blocked_ips → IP List sync
 ├── functions/             # Cloudflare Pages Functions
+│   ├── _middleware.ts     # gate, redirect, blocklist, visitors, ray log
+│   ├── _lib/              # config, d1, env, fernet, oidc, session
+│   ├── _data/             # generated i18n/runtime modules (do not hand-edit)
+│   ├── api/               # appleid, auth, i18n, ray, visitors endpoints
+│   └── login*.ts / logout.ts
 ├── locales/               # i18n / translation catalogs
 ├── public/                # Pages build output (git keeps only .gitkeep)
-└── preview/               # local preview (build-generated; git keeps only .gitkeep)
+├── preview/               # local preview (build-generated; git keeps only .gitkeep)
+└── docs/                  # architecture plan status (workspace root, see ../docs)
 ```
 
 ## Quick start
@@ -80,7 +86,44 @@ pip install -r ops/requirements.txt
 python3 src/app.py
 ```
 
+For a clean VS Code experience, install the recommended extensions (Jinja, Pylance)
+listed in `.vscode/extensions.json`; workspace settings associate Jinja templates so
+HTML/CSS/JS diagnostics do not misread template syntax.
+
 Visit `http://localhost:8080` after starting locally. The admin dashboard and Apple ID manager require authentik auth to be configured first.
+
+## Build, testing and deploy
+
+For a clean local build, use the same dependency set as the deployment script:
+
+```bash
+python3 -m venv .venv-build
+.venv-build/bin/pip install -r ops/requirements.txt
+.venv-build/bin/python src/build.py
+```
+
+`src/build.py` regenerates `public/<lang>/*.html`, `public/static/`,
+`functions/_data/i18n.ts`, `functions/_data/runtime.ts` and `preview/`.
+Do not hand-edit those outputs; change `locales/*.json`, templates or static
+sources and rebuild. `src/static/tailwind.css` is the checked-in prebuilt
+Tailwind output.
+
+Deploy only the Pages output with:
+
+```bash
+bash ops/pages_deploy.sh --verbose
+```
+
+Full VPS + Pages deployment is `bash ops/deploy.sh`; `ops/upload.sh` forwards
+to it. Per current workspace rules, do not run deployment without explicit
+confirmation.
+
+Automated test entry points are provided (see docs/03):
+
+```bash
+python3 -m pytest
+cd Flask && npm test
+```
 
 ## Environment variables
 
@@ -137,6 +180,15 @@ Trusted sources are maintained in [`data/whitelist.txt`](data/whitelist.txt), on
 
 The ASN list is sourced from [china-mainland-asn](https://github.com/xingpingcn/china-mainland-asn) (updated daily) and mirrored to the WAF low-risk `js_challenge` rule. Allowed IPs are mirrored to `functions/_middleware.ts` (`GATE_WHITELIST`) and to a Cloudflare WAF skip rule.
 
+## Source of truth
+
+- User-facing strings: `locales/*.json`; `functions/_data/*` and API i18n routes are generated from it.
+- Shared runtime constants: `src/config.py` + `functions/_lib/config.ts`, with `config-contract.json` being the in-progress cross-runtime contract (docs/02).
+- Gate/redirect copy: `locales/*.json` via `functions/_data/runtime.ts`; `src/build.py` assembles it.
+- D1 schema and migrations: `ops/migrations/*.sql`.
+- Security response headers baseline (when enabled): `ops/security-headers.json` (docs/05).
+- Deployment and server boundaries: workspace `../AGENTS.md`.
+
 ## Cloudflare Pages migration (in progress)
 
 limooo.cn is being migrated from the VPS (Flask + nginx) to Cloudflare Pages. During the transition the VPS keeps running; DNS is switched once Pages is stable.
@@ -152,9 +204,11 @@ New architecture:
 
 ### Build & directory layout
 
-- `python3 src/build.py`: pre-renders the three pages in 4 languages into `public/`, and inlines `locales/*.json` as `functions/api/i18n/[lang].ts`
+- `python3 src/build.py`: pre-renders the pages in 4 languages into `public/`, inlines
+  `locales/*.json` as `functions/api/i18n/[lang].ts`, and generates shared
+  `functions/_data/runtime.ts` (gate/redirect i18n + preload assets)
 - `ops/migrations/001_init.sql`: D1 initial schema (`apple_accounts` / `blocked_ips` / `visitors`)
-- `ops/export_appleid.py` / `ops/export_blocklist.py`: generate D1 import SQL (output in `ops/out/`, git-ignored)
+- `ops/export_d1.py`: generate D1 import SQL (output in `ops/out/`, git-ignored)
 - `ops/sync-worker/`: a daily 03:00 cron incrementally syncs D1 `blocked_ips` to the Cloudflare IP List (the Cloudflare part of the former auto_block.py; ipset/iptables has been dropped)
 - Note: authentik backchannel logout is not yet ported to Pages (the `logout_events` table stays with the VPS)
 
@@ -208,4 +262,4 @@ Remaining (one external dependency):
 
 ## License
 
-[GNU AGPL v3.0](../LICENSE)
+[GNU AGPL v3.0](LICENSE.md)

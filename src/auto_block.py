@@ -40,8 +40,14 @@ import urllib.request
 from collections import defaultdict
 
 # 仓库根目录（本文件位于 src/ 下，向上取一层）
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BLOCKLIST_TXT = os.path.join(BASE_DIR, "data", "blocklist.txt")
+from config import (
+    BLOCKLIST_FILE as BLOCKLIST_TXT,
+    CLOUDFLARE_API_BASE as API,
+    CF_BATCH_SIZE as BATCH,
+    CF_LIST_NAME as LIST_NAME,
+    D1_DATABASE_ID,
+    ENV_FILE,
+)
 LOG_PATTERN = re.compile(r'^(\S+).*?"([^"]*)"\s+(\d+)')
 
 # 已知恶意扫描路径模式：命中任一条即零容忍封禁
@@ -179,14 +185,6 @@ def sync_ipset() -> None:
 # ── Cloudflare IP List 同步（原 sync_blocklist_cf.py） ──
 # 读 webauthn.env 里的 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，
 # 不存在则跳过。使用纯标准库(urllib)。
-ENV_FILE = os.path.join(BASE_DIR, "secrets", "webauthn.env")
-LIST_NAME = "limooo_blocklist"
-API = "https://api.cloudflare.com/client/v4"
-BATCH = 200  # safe POST/DELETE batch size
-# D1 数据库 id（迁移后 blocked_ips 的源；webauthn.env 可用 D1_DATABASE_ID 覆盖）
-D1_DATABASE_ID = os.environ.get("D1_DATABASE_ID", "e2f29d54-29c0-46af-938d-e13995a11d7f")
-
-
 def load_env(path: str) -> dict:
     env = {}
     try:

@@ -44,13 +44,29 @@ if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
     exit 1
 fi
 
+# 配置契约一致性校验：contract / src/config.py / generated config.ts 不一致时禁止构建
+if ! python3 ops/check_config_contract.py; then
+    echo "FATAL: 跨端配置契约校验失败，已停止部署" >&2
+    exit 1
+fi
+
+# ── Tailwind CSS 可复现构建 ──
+# 优先按锁定版本重新生成；若服务器没有 node/npm，则回退到已提交的成品 CSS。
+if command -v npm >/dev/null 2>&1; then
+    echo "Tailwind: 安装锁定依赖并重新编译..."
+    (cd ops && npm ci --silent)
+    (cd ops && npm run build:css)
+else
+    echo "WARNING: 未找到 npm，跳过 Tailwind 重编译，使用已提交的 src/static/tailwind.css" >&2
+fi
+
 # ── 自动构建 Pages 静态产物（改了主站模板无需手动 build） ──
 # 首次运行自动创建本地构建环境 .venv-build/（已 gitignore），装齐 Flask 依赖
 BUILD_PY=".venv-build/bin/python"
 if [ ! -x "$BUILD_PY" ]; then
     echo "首次构建：创建 .venv-build 并安装依赖..."
     python3 -m venv .venv-build
-    .venv-build/bin/pip install -q flask cryptography geoip2 certifi httpx requests aiohttp click pydantic msal pillow
+    .venv-build/bin/pip install -q -r ops/requirements.txt
 fi
 if [ "$VERBOSE" = 1 ]; then
     echo "$BUILD_PY src/build.py"
@@ -66,6 +82,9 @@ else
         exit 1
     }
 fi
+
+# 生成 functions/_lib/config.ts 后再校验两端配置契约，避免部署不一致产物
+python3 ops/check_config_contract.py
 
 if [ "$VERBOSE" = 1 ]; then
     echo "npx -y wrangler@latest pages deploy public --project-name $PAGES_PROJECT --branch $PAGES_BRANCH"

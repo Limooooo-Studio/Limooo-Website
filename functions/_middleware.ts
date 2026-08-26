@@ -18,8 +18,24 @@
  */
 
 import { queryAll, execute } from "./_lib/d1";
+import { logEvent } from "./_lib/logging";
 import { requireAuth } from "./_lib/session";
+import { SECURITY_HEADERS } from "./_lib/security";
 import type { Env } from "./_lib/env";
+import {
+  GATE_COOKIE,
+  GATE_HOST,
+  LANG_COOKIE,
+  PUBLIC_HOSTS,
+  REDIRECT_HOST,
+  REDIRECT_HOSTNAME,
+  SUPPORTED_LANGS,
+} from "./_lib/config";
+import {
+  GATE_I18N,
+  REDIRECT_I18N,
+  REDIRECT_PRELOAD_IMAGES,
+} from "./_data/runtime";
 
 interface EventContext {
   request: Request;
@@ -30,13 +46,6 @@ interface EventContext {
 
 type PagesFunction = (context: EventContext) => Promise<Response>;
 
-const GATE_COOKIE = "__gate";
-// 专用验证子域：门禁页只在这里渲染（Turnstile widget 只需允许该域名）
-const GATE_HOST = "auth.limooo.cn";
-// 统一跳转页（与 Flask 端 /r 共用同一服务，?to= 目标需为 https URL）
-const REDIRECT_HOST = "https://redirect.limooo.cn/";
-// 跳转子域：纯中转页，豁免人机验证（否则验证通过后经它回跳会再被拦，死循环）
-const REDIRECT_HOSTNAME = "redirect.limooo.cn";
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 8000;
 
@@ -53,23 +62,6 @@ const GATE_WHITELIST = new Set<string>(["97.64.18.11"]);
 // 主站页面本身已由门禁保护，但外部引用（如 authentik 登录页 logo 指向
 // limooo.cn/static/...，作品图/二维码走 images.limooo.cn）不带 __gate
 // cookie，被拦会 302 导致资源加载失败。
-
-// 公开主机白名单：services/contact 子域直接出各自内容，www 301 到主站；
-// identity/visitor/appleid 由 VPS 上的 nginx auth_request 跳到这里验证后原路返回
-const PUBLIC_HOSTS = new Set([
-  "limooo.cn",
-  "www.limooo.cn",
-  "services.limooo.cn",
-  "contact.limooo.cn",
-  "identity.limooo.cn",
-  "visitor.limooo.cn",
-  "appleid.limooo.cn",
-]);
-
-// 多语言（与原 Flask 端一致：cookie > Accept-Language > IP 地区 > en-us）
-// 语言代码统一小写，与 Cloudflare Turnstile 的 language 参数格式一致
-const SUPPORTED_LANGS = ["zh-cn", "en-us", "ja-jp", "ko-kr"];
-const LANG_COOKIE = "user_lang_preference";
 
 const textEncoder = new TextEncoder();
 
@@ -199,6 +191,21 @@ function withLangCookie(request: Request, resp: Response): Response {
   });
 }
 
+/** 统一注入安全响应头；API 只加 nosniff，避免破坏 JSON 接口。 */
+function withSecurityHeaders(request: Request, resp: Response): Response {
+  const headers = new Headers(resp.headers);
+  const isApi = new URL(request.url).pathname.startsWith("/api/");
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    if (isApi && name !== "X-Content-Type-Options") continue;
+    headers.set(name, value);
+  }
+  return new Response(resp.body, {
+    status: resp.status,
+    statusText: resp.statusText,
+    headers,
+  });
+}
+
 /** 主机+路径 → 应吐出的语言页面资产；静态资源等返回 null 走 next() */
 function pageAsset(host: string, pathname: string, lang: string): string | null {
   const p = pathname.replace(/\/+$/, "") || "/";
@@ -231,15 +238,25 @@ function pageAsset(host: string, pathname: string, lang: string): string | null 
 }
 
 /** 封禁检查：精确 IP 或 /24 网段（与 Flask 端行为一致；DB 异常时放行） */
-async function isBlocked(env: Env, ip: string): Promise<boolean> {
+async function isBlocked(env: Env, request: Request, ip: string): Promise<boolean> {
   if (!env.DB || !ip) return false;
+  const url = new URL(request.url);
   try {
     const exact = await queryAll<{ cidr: string }>(
       env.DB,
       "SELECT cidr FROM blocked_ips WHERE cidr = ?",
       ip,
     );
-    if (exact.length) return true;
+    if (exact.length) {
+      await logEvent(env, "block_match", request, {
+        ip,
+        path: url.pathname,
+        outcome: "blocked",
+        status: 403,
+        message: `cidr=${exact[0].cidr}`,
+      });
+      return true;
+    }
     if (ip.split(".").length === 4) {
       const prefix = ip.split(".").slice(0, 3).join(".");
       const subnet = await queryAll<{ cidr: string }>(
@@ -247,7 +264,16 @@ async function isBlocked(env: Env, ip: string): Promise<boolean> {
         "SELECT cidr FROM blocked_ips WHERE cidr = ?",
         `${prefix}.0/24`,
       );
-      if (subnet.length) return true;
+      if (subnet.length) {
+        await logEvent(env, "block_match", request, {
+          ip,
+          path: url.pathname,
+          outcome: "blocked",
+          status: 403,
+          message: `cidr=${subnet[0].cidr}`,
+        });
+        return true;
+      }
     }
   } catch {
     // fail-open：DB 不可用时不做应用层拦截
@@ -331,8 +357,12 @@ async function recordVisit(env: Env, request: Request, status: number): Promise<
       cf?.country ?? "",
       status,
     );
-  } catch {
+  } catch (error) {
     // 埋点失败不阻塞请求
+    await logEvent(env, "visit_record_error", request, {
+      outcome: "failed",
+      message: String(error),
+    });
   }
 }
 
@@ -359,8 +389,12 @@ async function recordRay(env: Env, request: Request, status: number): Promise<vo
       cf?.country ?? "",
       (request.headers.get("User-Agent") ?? "").slice(0, 300),
     );
-  } catch {
+  } catch (error) {
     // fail-open：记录失败不阻塞请求
+    await logEvent(env, "ray_record_error", request, {
+      outcome: "failed",
+      message: String(error),
+    });
   }
 }
 
@@ -399,93 +433,6 @@ function escapeHtml(value: string): string {
     }
   });
 }
-
-/** 验证页文案（与主站共用语言偏好：cookie > Accept-Language > CF 地区 > en-us） */
-const GATE_I18N: Record<string, Record<string, string>> = {
-  "zh-cn": {
-    title: "人机验证 · Limooo",
-    heading: "请完成人机验证后再访问本站",
-    location: "位置",
-    ip: "IP",
-    ray: "Ray ID",
-    foot: "由 <strong>Limooo</strong> 边缘安全提供保护",
-    lang_aria: "切换语言",
-    theme_aria: "切换主题",
-    footer_rights: "保留所有权利",
-    footer_source: "根据 AGPL-3.0 许可证发布",
-    error_sitekey: "服务配置错误：未设置 TURNSTILE_SITEKEY。",
-    error_invalid: "请求无效，请重试。",
-    error_unavailable: "验证服务暂时不可用，请稍后重试。",
-    error_failed: "验证未通过，请重试。",
-  },
-  "en-us": {
-    title: "Verify you are human · Limooo",
-    heading: "Please complete this CAPTCHA to access the site.",
-    location: "Location",
-    ip: "IP",
-    ray: "Ray ID",
-    foot: "Secured by <strong>Limooo</strong> Edge Security",
-    lang_aria: "Switch language",
-    theme_aria: "Toggle theme",
-    footer_rights: "All rights reserved",
-    footer_source: "Release under the AGPL-3.0 license",
-    error_sitekey: "Server configuration error: TURNSTILE_SITEKEY is not set.",
-    error_invalid: "Invalid request. Please try again.",
-    error_unavailable: "Verification service temporarily unavailable. Please try again in a moment.",
-    error_failed: "Verification failed. Please try again.",
-  },
-  "ja-jp": {
-    title: "人認証 · Limooo",
-    heading: "このサイトにアクセスするには、人認証を完了してください",
-    location: "場所",
-    ip: "IP",
-    ray: "Ray ID",
-    foot: "<strong>Limooo</strong> Edge Security により保護されています",
-    lang_aria: "言語切替",
-    theme_aria: "テーマ切替",
-    footer_rights: "無断転載禁止",
-    footer_source: "AGPL-3.0 ライセンスに基づいて公開",
-    error_sitekey: "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
-    error_invalid: "リクエストが無効です。もう一度お試しください。",
-    error_unavailable: "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
-    error_failed: "認証に失敗しました。もう一度お試しください。",
-  },
-  "ko-kr": {
-    title: "휴먼 인증 · Limooo",
-    heading: "사이트에 접속하려면 인증을 완료해 주세요",
-    location: "위치",
-    ip: "IP",
-    ray: "Ray ID",
-    foot: "<strong>Limooo</strong> Edge Security가 보호합니다",
-    lang_aria: "언어 전환",
-    theme_aria: "테마 전환",
-    footer_rights: "모든 권리 보유",
-    footer_source: "AGPL-3.0 라이선스에 따라 배포",
-    error_sitekey: "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
-    error_invalid: "잘못된 요청입니다. 다시 시도해 주세요.",
-    error_unavailable: "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
-    error_failed: "인증에 실패했습니다. 다시 시도해 주세요.",
-  },
-};
-
-/** 跳转页文案（与 Flask locales 的 redirect_title/redirect_text 一致） */
-const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = {
-  "zh-cn": { title: "正在跳转", text: "正在跳转... (・ω・)", footer_rights: "保留所有权利", footer_source: "根据 AGPL-3.0 许可证发布" },
-  "en-us": { title: "Redirecting", text: "Redirecting... (・ω・)", footer_rights: "All rights reserved", footer_source: "Release under the AGPL-3.0 license" },
-  "ja-jp": { title: "リダイレクト中", text: "リダイレクト中... (・ω・)", footer_rights: "無断転載禁止", footer_source: "AGPL-3.0 ライセンスに基づいて公開" },
-  "ko-kr": { title: "리다이렉트 중", text: "리다이렉트 중... (・ω・)", footer_rights: "모든 권리 보유", footer_source: "AGPL-3.0 라이선스에 따라 배포" },
-};
-
-/** redirect 页预热的 limooo.cn 主站作品图（与 Flask REDIRECT_PRELOAD_IMAGES 一致；
- *  统一走 https://image.limooo.cn/，不带 /static 前缀） */
-const REDIRECT_PRELOAD_IMAGES = [
-  "https://image.limooo.cn/portfolio/IMG_0203.webp",
-  "https://image.limooo.cn/portfolio/IMG_0146.webp",
-  "https://image.limooo.cn/portfolio/IMG_0130.webp",
-  "https://image.limooo.cn/portfolio/IMG_0244.webp",
-  "https://image.limooo.cn/portfolio/IMG_0115.webp",
-  "https://image.limooo.cn/portfolio/IMG_0179.webp",
-];
 
 interface GateRenderOptions {
   next?: string;
@@ -531,7 +478,6 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#17181c">
 <!-- ── 图标（与主站 base.html 一致） ── -->
 <link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
 <link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
@@ -748,7 +694,6 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   }
   .footer-text {
     font-size: 10px; font-weight: 600;
-    font-size-adjust: 0.546;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   }
@@ -838,8 +783,6 @@ ${turnstileSrc}
   }
   function applyTheme(theme) {
     document.documentElement.classList.toggle("light-mode", theme === "light");
-    var mc = document.querySelector('meta[name="theme-color"]');
-    if (mc) mc.content = theme === "light" ? "#ffffff" : "#17181c";
     var sw = document.querySelector(".appearance-switch");
     if (sw) sw.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
   }
@@ -989,7 +932,6 @@ function renderRedirectPage(context: EventContext): Response {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="1; url=${escapeHtml(to)}">
 <!-- ── 图标（与主站 base.html 一致） ── -->
 <link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
 <link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
@@ -1065,7 +1007,6 @@ function renderRedirectPage(context: EventContext): Response {
   }
   .footer-text {
     font-size: 10px; font-weight: 600;
-    font-size-adjust: 0.546;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
   }
   .footer-brand {
@@ -1081,6 +1022,7 @@ function renderRedirectPage(context: EventContext): Response {
   <div class="card">
     <div class="spinner"></div>
     <div class="text">${t.text}</div>
+    <noscript><a class="manual-link" href="${escapeHtml(to)}">${t.text}</a></noscript>
   </div>
   <footer class="global-footer" id="global-footer">
     <div class="footer-link">
@@ -1125,6 +1067,7 @@ function renderRedirectPage(context: EventContext): Response {
 /** POST /__gate/verify：校验 Turnstile，成功签发 cookie 并 302 回原路径 */
 async function handleVerify(context: EventContext): Promise<Response> {
   const { request, env } = context;
+  const startedAt = Date.now();
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -1133,6 +1076,12 @@ async function handleVerify(context: EventContext): Promise<Response> {
   try {
     form = await request.formData();
   } catch {
+    await logEvent(env, "gate_verify", request, {
+      outcome: "failed",
+      status: 400,
+      durationMs: Date.now() - startedAt,
+      message: "invalid_form",
+    });
     return renderGatePage(context, { errorKey: "invalid" });
   }
 
@@ -1143,13 +1092,29 @@ async function handleVerify(context: EventContext): Promise<Response> {
 
   let success = false;
   let unavailable = false;
-  try {
-    success = token !== "" && (await verifyTurnstile(token, remoteip, env.TURNSTILE_SECRET));
-  } catch {
+  if (!env.TURNSTILE_SECRET) {
     unavailable = true;
+  } else {
+    try {
+      success = token !== "" && (await verifyTurnstile(token, remoteip, env.TURNSTILE_SECRET));
+    } catch {
+      unavailable = true;
+    }
   }
 
   if (!success) {
+    await logEvent(env, "gate_verify", request, {
+      outcome: unavailable ? "unavailable" : "failed",
+      status: unavailable ? 503 : 403,
+      durationMs: Date.now() - startedAt,
+      message: unavailable
+        ? env.TURNSTILE_SECRET
+          ? "turnstile_unavailable"
+          : "turnstile_secret_missing"
+        : token
+          ? "turnstile_rejected"
+          : "missing_token",
+    });
     return renderGatePage(context, {
       host,
       next,
@@ -1166,6 +1131,13 @@ async function handleVerify(context: EventContext): Promise<Response> {
   const cookie =
     `${GATE_COOKIE}=${expiry}.${signature}; Domain=.limooo.cn; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttlSeconds}`;
 
+  await logEvent(env, "gate_verify", request, {
+    outcome: "success",
+    status: 302,
+    durationMs: Date.now() - startedAt,
+    message: "cookie_issued",
+  });
+
   return withLangCookie(request, new Response(null, {
     status: 302,
     headers: {
@@ -1179,7 +1151,7 @@ async function handleVerify(context: EventContext): Promise<Response> {
 export const onRequest: PagesFunction = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
-  const resp = await handleOnRequest(context);
+  const resp = withSecurityHeaders(request, await handleOnRequest(context));
   // 响应发出后再埋点（拿真实状态码），未验证 / 封禁 / 正常页面都记
   if (shouldTrackVisit(request, url)) {
     if (typeof context.waitUntil === "function") {
@@ -1292,7 +1264,7 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     url.pathname.startsWith("/api/appleid") ||
     url.pathname.startsWith("/api/auth") ||
     url.pathname.startsWith("/api/ray");
-  if (!whitelisted && !trustedCrawler && !exempt && ip && (await isBlocked(env, ip))) {
+  if (!whitelisted && !trustedCrawler && !exempt && ip && (await isBlocked(env, request, ip))) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -1367,6 +1339,12 @@ async function handleOnRequest(context: EventContext): Promise<Response> {
     const gateUrl = new URL("/__gate", `https://${GATE_HOST}/`);
     gateUrl.searchParams.set("host", url.hostname);
     gateUrl.searchParams.set("next", url.pathname + url.search);
+    await logEvent(env, "gate_redirect", request, {
+      outcome: "unverified",
+      status: 302,
+      path: url.pathname,
+      message: "redirect_to_gate",
+    });
     return withLangCookie(request, new Response(null, {
       status: 302,
       headers: {

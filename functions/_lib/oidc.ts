@@ -2,6 +2,11 @@
 
 import type { Env } from "./env";
 import type { SessionData } from "./session";
+import {
+  AUTHENTIK_ADMIN_GROUPS_DEFAULT,
+  AUTHENTIK_PROVIDER_SLUG,
+  IDENTITY_URL,
+} from "./config";
 
 /** 按子域返回 OIDC 回调地址（authentik 里已按域配置 redirect_uri 白名单） */
 export function redirectUriFor(host: string): string {
@@ -28,7 +33,7 @@ interface IdTokenClaims {
 }
 
 export function buildAuthorizeUrl(env: Env, state: string, redirectUri: string): string {
-  const base = (env.AUTHENTIK_URL || "https://identity.limooo.cn").replace(/\/$/, "");
+  const base = (env.AUTHENTIK_URL || IDENTITY_URL).replace(/\/$/, "");
   const params = new URLSearchParams({
     client_id: env.AUTHENTIK_CLIENT_ID ?? "",
     response_type: "code",
@@ -44,7 +49,7 @@ export async function exchangeCode(
   code: string,
   redirectUri: string,
 ): Promise<{ session: SessionData; reason?: never } | { session?: never; reason: string }> {
-  const tokenUrl = (env.AUTHENTIK_URL || "https://identity.limooo.cn").replace(/\/$/, "") + "/application/o/token/";
+  const tokenUrl = (env.AUTHENTIK_URL || IDENTITY_URL).replace(/\/$/, "") + "/application/o/token/";
   const body = new URLSearchParams({
     client_id: env.AUTHENTIK_CLIENT_ID ?? "",
     client_secret: env.AUTHENTIK_CLIENT_SECRET ?? "",
@@ -93,7 +98,7 @@ export async function exchangeCode(
   else if (!claims.sub) reason = reason || "no_sub";
   if (!claims || !claims.sub) return { reason };
 
-  const adminGroups = (env.AUTHENTIK_ADMIN_GROUPS || "authentik Admins")
+  const adminGroups = (env.AUTHENTIK_ADMIN_GROUPS || AUTHENTIK_ADMIN_GROUPS_DEFAULT)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -113,7 +118,7 @@ export async function exchangeCode(
 }
 
 export function buildLogoutUrl(env: Env, nextUrl: string): string {
-  const base = (env.AUTHENTIK_URL || "https://identity.limooo.cn").replace(/\/$/, "");
+  const base = (env.AUTHENTIK_URL || IDENTITY_URL).replace(/\/$/, "");
   const params = new URLSearchParams({ post_logout_redirect_uri: nextUrl });
-  return `${base}/application/o/limooo/end-session/?${params.toString()}`;
+  return `${base}/application/o/${AUTHENTIK_PROVIDER_SLUG}/end-session/?${params.toString()}`;
 }

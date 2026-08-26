@@ -40,7 +40,7 @@ cd "$LOCAL_DIR" || { echo "FATAL: 本地目录不存在 $LOCAL_DIR"; exit 1; }
 echo "git rev-parse --is-inside-work-tree"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "git add -A -- . ':!limooo.cn.png'"
-    git add -A -- . ':!limooo.cn.png'
+    git add -A -- . ':!limooo.cn.png' ':!README 2.md'
     if ! git diff --cached --quiet; then
         echo "git commit -m \"deploy: auto-commit $(date '+%Y-%m-%d %H:%M')\""
         git commit -m "deploy: auto-commit $(date '+%Y-%m-%d %H:%M')"
@@ -74,6 +74,9 @@ rsync -avz --delete -e "ssh $SSH_OPTS" \
     --exclude '__pycache__' \
     --exclude '.DS_Store' \
     --exclude '.git' \
+    --exclude '.venv-build' \
+    --exclude '.wrangler' \
+    --exclude '.pytest_cache' \
     --exclude 'deploy.sh' \
     --exclude 'upload.sh' \
     --exclude 'node_modules' \
@@ -86,6 +89,8 @@ rsync -avz --delete -e "ssh $SSH_OPTS" \
     --exclude 'appleid_encryption.key' \
     --exclude 'secrets/smtp-relay.env' \
     --exclude 'secrets/authentik-email.env' \
+    --exclude 'secrets/webauthn.env' \
+    --exclude 'README 2.md' \
     --exclude 'geo_cache.db*' \
     --exclude 'appleid.db*' \
     --exclude 'auth.db*' \

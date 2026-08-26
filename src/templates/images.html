@@ -5,75 +5,11 @@
 
 {% block title %}Limooo{% endblock %}
 
-{% block style_page %}
-    .images-main { max-width: 80rem; margin: 0 auto; padding: 130px 1.25rem 140px; }
-    @media (min-width: 768px) { .images-main { padding: 150px 2rem 160px; } }
-
-    /* 三个可点击路径（不是图片预览） */
-    .path-cards {
-        display: grid; gap: 0.9rem;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        max-width: 48rem; margin: 0 auto 2.5rem;
-    }
-    .path-card {
-        display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
-        padding: 1.4rem 1rem; text-align: center;
-        background: var(--panel-bg); border: 1px solid var(--line);
-        border-radius: var(--radius-lg); cursor: pointer;
-        transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out);
-    }
-    .path-card.active { border-color: var(--accent); }
-    @media (hover: hover) and (pointer: fine) {
-        .path-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    }
-    .path-card .pc-name { font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
-    .path-card .pc-path {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 12px; padding: 3px 9px; border-radius: 999px;
-        background: var(--highlight); border: 1px solid var(--line);
-        opacity: 0.85;
-    }
-    .path-card.active .pc-path { color: var(--accent); border-color: var(--accent); }
-
-    /* 当前路径提示 */
-    .path-bar {
-        display: flex; align-items: center; gap: 0.6rem;
-        margin-bottom: 1.25rem; font-size: 12px; font-weight: 600;
-        letter-spacing: 0.08em; opacity: 0.8;
-    }
-    .path-bar .slash { color: var(--accent); }
-    .path-bar code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 12px; padding: 3px 8px; border-radius: var(--radius-sm);
-        background: var(--panel-bg); border: 1px solid var(--line);
-    }
-
-    /* 路径界面：纯文件链接列表（不预览图片） */
-    .path-panel { display: none; }
-    .path-panel.active { display: block; }
-    .file-list {
-        list-style: none; margin: 0; padding: 0;
-        display: grid; gap: 0.4rem;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    }
-    .file-list li { min-width: 0; }
-    .file-list a {
-        display: flex; align-items: center; gap: 0.5rem;
-        padding: 0.6rem 0.8rem;
-        font-size: 12px; font-weight: 500;
-        background: var(--panel-bg); border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out);
-    }
-    .file-list a::before {
-        content: ""; width: 7px; height: 7px; border-radius: 50%;
-        background: var(--accent); opacity: 0.55; flex-shrink: 0;
-    }
-    @media (hover: hover) and (pointer: fine) {
-        .file-list a:hover { color: var(--accent); border-color: var(--accent); }
-    }
+{% block head_links %}
+<link rel="stylesheet" href="https://limooo.cn/static/css/images.css?v=1">
 {% endblock %}
+
+
 
 {# 移动端汉堡菜单（与 index/services/contact 一致，桌面端由 base.html 提供） #}
 {% block nav_dropdown %}
@@ -168,48 +104,5 @@
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
-    /* ═══ 路径切换（继承自 base.html 的页面；前端 pushState，URL 变 /路径，不真实跳转） ═══ */
-    var PATHS = ['portfolio', 'qr-codes', 'icons'];
-    var CURRENT_PATH = 'portfolio';
-
-    function pathFromUrl() {
-        var p = location.pathname.replace(/\/+$/, '');
-        return PATHS.indexOf(p.slice(1)) !== -1 ? p.slice(1) : null;
-    }
-    function syncUI() {
-        document.querySelectorAll('.path-card').forEach(function(card) {
-            card.classList.toggle('active', card.dataset.path === CURRENT_PATH);
-        });
-        document.querySelectorAll('.path-panel').forEach(function(panel) {
-            panel.classList.toggle('active', panel.id === 'panel-' + CURRENT_PATH);
-        });
-        document.getElementById('currentPath').textContent = CURRENT_PATH;
-    }
-    function showPath(path, ev) {
-        if (ev) ev.preventDefault();
-        if (PATHS.indexOf(path) === -1) return false;
-        if (path !== CURRENT_PATH) {
-            CURRENT_PATH = path;
-            history.pushState({ path: path }, '', '/' + path);
-            syncUI();
-        } else if (location.pathname !== '/' + path) {
-            history.replaceState({ path: path }, '', '/' + path);
-            syncUI();
-        }
-        return false;
-    }
-    window.addEventListener('popstate', function() {
-        var p = pathFromUrl();
-        CURRENT_PATH = p || 'portfolio';
-        syncUI();
-    });
-
-    /* 初始化：直接访问 /portfolio /qr-codes /icons 时打开对应界面 */
-    var initPath = pathFromUrl();
-    if (initPath) {
-        CURRENT_PATH = initPath;
-        history.replaceState({ path: initPath }, '', '/' + initPath);
-    }
-    syncUI();
+<script src="https://limooo.cn/static/js/images.js" defer></script>
 {% endblock %}

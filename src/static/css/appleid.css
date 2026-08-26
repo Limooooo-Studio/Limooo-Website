@@ -1,0 +1,102 @@
+        /* ═══════════════════════════════════════════════════════════════
+           Apple ID 页面样式（导航栏 / 主题菜单 / 全局基础样式见 base.html）
+           ═══════════════════════════════════════════════════════════════ */
+
+        /* base 的 html,body 为 overflow:hidden,本页需纵向滚动 */
+        html, body { overflow-y: auto; height: auto; min-height: 100%; }
+
+        .nav-title { font-size:24px;font-weight:700;letter-spacing: calc(-0.02em*var(--ls-scale));white-space:nowrap; }
+        .nav-title span { opacity:0.3;font-weight:400; }
+        @media (max-width:640px) { .nav-title { font-size:18px; } }
+
+        /* Dashboard */
+        #dashboard { max-width:800px;margin:0 auto;padding:110px 20px 80px; } /* padding-top 让出 fixed 导航栏高度(100px) */
+        #dashboard.hidden { display:none !important; }
+        .search-bar { margin-bottom:20px;display:flex;align-items:center;gap:10px; }
+        .search-bar input { flex:1;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel-bg);color:var(--text);font-size:14px;outline:none;box-sizing:border-box; }
+        .search-bar input:focus { border-color:var(--accent); }
+        .search-bar .search-actions { display:flex;gap:10px;flex-shrink:0; }
+
+        /* Account card — drag handle */
+        .account-card {
+            background:var(--panel-bg);border:1px solid var(--line);border-radius:var(--radius);
+            padding:12px 16px;margin-bottom:6px;
+            display:flex;align-items:center;gap:10px;
+            cursor:grab;transition:border-color 0.2s,opacity 0.2s;
+        }
+        .account-card:active { cursor:grabbing; }
+        .account-card:hover { border-color:var(--highlight); }
+        .account-card.dragging { opacity:0.4; }
+        .account-card.drag-over { border-color:var(--accent); }
+        .drag-handle { opacity:0.2;cursor:grab;flex-shrink:0;display:flex;padding:4px; }
+        .drag-handle:active { cursor:grabbing; }
+
+        .account-body { flex:1;min-width:0; }
+        .account-row { display:flex;align-items:center;gap:6px;margin-bottom:2px; }
+        .account-email { font-size:14px;font-weight:500; }
+        .account-pw { font-size:13px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;letter-spacing: calc(0.08em*var(--ls-scale));opacity:0.45;min-width:40px; }
+
+        .account-notes { font-size:11px;opacity:0.25; }
+
+        .account-actions { display:flex;gap:2px;flex-shrink:0; }
+
+        /* ── 通用按钮（原 login.html） ── */
+        .btn { padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:none;cursor:pointer;letter-spacing: calc(0.02em*var(--ls-scale));color:white;transition:opacity 0.2s,transform 0.15s var(--ease-out); }
+        .btn:active { transform:scale(0.96); }
+        .btn-primary { background:var(--accent);color:white; }
+        .btn-primary:hover { opacity:0.9; }
+        .btn-outline { background:transparent;border:1px solid var(--line);color:var(--text); }
+        .btn-outline:hover { background:var(--highlight); }
+        .btn-danger { background:#f43f5e;color:white; }
+        .btn-danger:hover { opacity:0.8; }
+        .btn-sm { padding:4px 12px;font-size:11px; }
+        .row-btn {
+            background:none;border:none;color:var(--text);opacity:0.35;
+            cursor:pointer;padding:5px;border-radius:var(--radius-sm);display:flex;
+            transition:opacity 0.2s,background 0.2s;
+        }
+        .row-btn:hover { opacity:0.8;background:var(--highlight); }
+        .row-btn.danger:hover { opacity:1;background:rgba(255,71,87,0.12);color:#ff4757; }
+        .row-btn.active { opacity:0.7;color:var(--accent); }
+
+        .empty-state { text-align:center;padding:60px 20px;opacity:0.3; }
+        .empty-state .big-icon { font-size:48px;margin-bottom:12px; }
+
+        .modal-overlay { position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center; }
+        .modal-overlay.hidden { display:none !important; }
+        .modal { background:var(--panel-bg);border:1px solid var(--line);border-radius:var(--radius-lg);padding:32px;width:90%;max-width:440px; }
+        .modal h2 { font-size:20px;font-weight:700;margin-bottom:4px; }
+        .modal .desc { font-size:13px;opacity:0.4;margin-bottom:24px; }
+        .modal label { display:block;font-size:12px;font-weight:600;opacity:0.5;margin-bottom:4px;text-transform:uppercase;letter-spacing: calc(0.1em*var(--ls-scale)); }
+        .modal input,.modal textarea { width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--highlight);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:16px; }
+        .modal input:focus,.modal textarea:focus { border-color:var(--accent); }
+        /* 密码输入 + 小眼睛：按钮覆盖在输入框右侧 */
+        .pw-field { position:relative; }
+        /* 输入框本身不带 margin-bottom;间距由容器承担,避免容器高度被 margin 撑高导致眼睛 top:50% 偏下 */
+        .pw-field input { padding-right:38px; margin-bottom:0; }
+        .email-field { display:flex; align-items:center; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--highlight); margin-bottom:16px; overflow:hidden; }
+        .email-field input { flex:1; min-width:0; border:none; background:transparent; margin-bottom:0; }
+        .email-field:focus-within { border-color:var(--accent); }
+        .email-domain { flex-shrink:0; padding:10px 12px; border-left:1px solid var(--line); font-size:14px; opacity:0.5; white-space:nowrap; background:var(--panel-bg); }
+        .pw-field { margin-bottom:16px; }
+        /* 密文/明文切换完全由 JS 接管(见 toggleFieldPw / renderFieldPw) */
+        .pw-eye {
+            position:absolute; top:50%; right:0; width:34px;
+            transform:translateY(-50%);
+            display:flex; align-items:center; justify-content:center;
+            background:none; border:none; color:var(--text); opacity:0.45; cursor:pointer;
+            transition:opacity 0.2s var(--ease-out);
+        }
+        .pw-eye:hover { opacity:1; }
+        .modal textarea { resize:vertical;min-height:60px;font-family:inherit; }
+        .modal-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:8px; }
+        .toast { position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:300;background:var(--panel-bg);border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 20px;font-size:13px;font-weight:500;opacity:0;transition:opacity 0.3s var(--ease-out);pointer-events:none; }
+        .toast.show { opacity:1; }
+        .loading-dots { display:flex;align-items:center;justify-content:center;gap:6px;padding:40px; }
+        .loading-dots span { width:6px;height:6px;border-radius:50%;background:var(--text);opacity:0.2;animation:bounce 1.4s ease-in-out infinite; }
+        .loading-dots span:nth-child(2) { animation-delay:0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay:0.4s; }
+        @keyframes bounce { 0%,80%,100%{opacity:0.2;transform:scale(1)} 40%{opacity:1;transform:scale(1.6)} }
+        .count-badge { font-size:12px;opacity:0.3;margin-bottom:16px; }
+        .global-footer.hidden { display:none !important; }
+        @media (max-width:640px) { #dashboard { padding:80px 12px 80px; } .search-bar { flex-wrap:wrap; } .search-actions { width:100%; } .search-actions .btn { flex:1;text-align:center; } }

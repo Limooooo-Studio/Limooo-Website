@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════
+   联系页样式：复制提示气泡、桌面端二维码浮层、底部悬停线
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 复制提示气泡 ── */
+.copyable { color: inherit; }
+.bubble-tip {
+    position: absolute; bottom: 130%; left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--panel-bg); backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px); color: var(--text);
+    padding: 10px 24px; white-space: nowrap; min-width: fit-content;
+    font-size: 12px; font-weight: 600; letter-spacing: calc(0.1em*var(--ls-scale));
+    border-radius: var(--radius-sm); border: 1px solid var(--line);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out), visibility 0.25s;
+    z-index: 100; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+.copyable:hover .bubble-tip {
+    opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+}
+
+/* ── 悬停底部线条（仿链接下划线动效） ── */
+.copyable { position: relative; cursor: pointer; }
+.hover-line {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background-color: var(--text);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.5s var(--ease-out);
+}
+.copyable:hover .hover-line { transform: scaleX(1); }
+
+/* ── 桌面端：二维码浮层（悬停社交链接时在屏幕右侧显示） ── */
+@media (hover: hover) {
+    .qr-display {
+        position: fixed; left: 75%; top: 50%;
+        transform: translate(-50%, -50%) scale(0.92); z-index: 80;
+        opacity: 0; visibility: hidden;
+        filter: blur(4px);
+        transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out), filter 0.3s var(--ease-out), visibility 0.3s;
+        pointer-events: none;
+        border-radius: var(--radius-md); border: 1px solid var(--line);
+        background: var(--panel-bg); padding: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .qr-display.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+    @media (prefers-reduced-transparency: reduce) {
+        .qr-display { background: var(--bg); }
+    }
+    .qr-display img {
+        display: block; max-width: 200px; height: auto; border-radius: var(--radius-sm);
+        filter: invert(1);
+    }
+    .light-mode .qr-display img {
+        filter: none;
+    }
+    .qr-trigger { cursor: pointer; }
+}
+/* 移动端隐藏二维码浮层 */
+@media (max-width: 767px) {
+    .qr-display { display: none !important; }
+}

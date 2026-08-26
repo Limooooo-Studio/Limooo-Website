@@ -1,0 +1,12 @@
+{
+  "name": "limooo-tailwind",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Limooo 网站 Tailwind CSS 可复现构建脚本",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i ../src/static/tailwind.input.css -o ../src/static/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

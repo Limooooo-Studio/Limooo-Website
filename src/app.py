@@ -34,12 +34,34 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 import requests
 from flask import Flask, Response, g, jsonify, redirect, render_template, request, session
 
-from common import (
+from config import (
+    APPLEID_DOMAIN,
+    APPLEID_KEY_ETC,
+    APPLEID_KEY_FILE,
+    AUTHENTIK_ADMIN_GROUPS,
+    AUTHENTIK_INTERNAL_URL,
+    AUTHENTIK_PROVIDER_SLUG,
+    AUTHENTIK_URL,
     BASE_DIR,
+    BASE_URL,
     DATA_DIR,
     DATABASE,
+    DEFAULT_LANG,
+    GATE_COOKIE,
+    KEY_FALLBACK_LANG,
+    LANG_COOKIE,
+    LANG_COOKIE_MAX_AGE,
+    LOCALES_DIR,
     LOG_PATTERN,
     NGINX_LOG,
+    REDIRECT_BASE_URL,
+    REDIRECT_PRELOAD_IMAGES,
+    ROOT_DOMAIN,
+    SESSION_COOKIE_DOMAIN,
+    STATIC_DIR,
+    SUPPORTED_LANGS,
+    TEMPLATES_DIR,
+    WWW_HOST,
     ensure_geo_cache,
     get_appleid_db,
     get_cached_geo,
@@ -67,8 +89,8 @@ BLOCKED_IPS: set[str] = set()  # all merged into /24, kept for compatibility
 
 app = Flask(
     __name__,
-    template_folder=os.path.join(BASE_DIR, "src", "templates"),
-    static_folder=os.path.join(BASE_DIR, "src", "static"),
+    template_folder=TEMPLATES_DIR,
+    static_folder=STATIC_DIR,
 )
 
 SECRET_KEY_ETC = "/etc/limooo/flask_secret.key"
@@ -100,15 +122,72 @@ else:
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_DOMAIN"] = ".limooo.cn"
+app.config["SESSION_COOKIE_DOMAIN"] = SESSION_COOKIE_DOMAIN
+
+
+# ── 统一安全响应头（docs/05；唯一文案源 ops/security-headers.json） ──
+def _load_security_headers() -> dict[str, str]:
+    path = os.path.join(BASE_DIR, "ops", "security-headers.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return {str(k): str(v) for k, v in data.items()}
+    except (OSError, json.JSONDecodeError):
+        app.logger.warning(f"[security] 无法读取安全响应头配置: {path}")
+    return {}
+
+
+SECURITY_HEADERS: dict[str, str] = _load_security_headers()
+
+
+# ── 统一结构化事件日志（docs/06；字段与 functions/_lib/logging.ts 一致） ──
+def _event_ip_hash(ip: str) -> str:
+    key = str(app.secret_key or "")
+    if not ip or not key:
+        return ""
+    return hmac.new(key.encode(), ip.encode(), hashlib.sha256).hexdigest()[:16]
+
+
+def log_event(event: str, *, outcome: str = "", status: int = 0,
+              message: str = "", path: str = "", method: str = "",
+              host: str = "", duration_ms: int = 0, ip: str = "") -> None:
+    """输出一行完整 JSON 事件；日志失败不允许影响业务请求。"""
+    try:
+        request_id = request.headers.get("CF-Ray", "") or f"flask-{secrets.token_hex(8)}"
+        cur_host = host or getattr(request, "host", "")
+        cur_path = path or getattr(request, "path", "")
+        cur_method = method or getattr(request, "method", "")
+        cur_ip = ip or request.headers.get("CF-Connecting-IP") or request.remote_addr or ""
+        cur_country = request.headers.get("CF-IPCountry", "")
+    except Exception:  # noqa: BLE001 - 日志兜底，不影响业务
+        request_id, cur_host, cur_path, cur_method, cur_ip, cur_country = "", "", "", "", "", ""
+    payload = {
+        "event": event,
+        "ts": int(time.time()),
+        "request_id": request_id,
+        "host": cur_host,
+        "path": cur_path,
+        "method": cur_method,
+        "status": status,
+        "outcome": outcome,
+        "ip_hash": _event_ip_hash(cur_ip),
+        "country": cur_country,
+        "duration_ms": duration_ms,
+        "message": message,
+    }
+    try:
+        app.logger.info(json.dumps(payload, ensure_ascii=False))
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ── authentik OIDC ──────────────────────────────────────
-AUTHENTIK_BASE = os.environ.get("AUTHENTIK_URL") or "https://identity.limooo.cn"
+AUTHENTIK_BASE = os.environ.get("AUTHENTIK_URL") or AUTHENTIK_URL
 # 服务器内部访问地址（浏览器跳转走公网，token 请求走内网回环，
 # 因为服务器无法回连自身公网 IP 的 443）
-AUTHENTIK_INTERNAL = os.environ.get("AUTHENTIK_INTERNAL_URL") or "http://127.0.0.1:9000"
-PROVIDER_SLUG = os.environ.get("AUTHENTIK_PROVIDER_SLUG") or "limooo"
+AUTHENTIK_INTERNAL = os.environ.get("AUTHENTIK_INTERNAL_URL") or AUTHENTIK_INTERNAL_URL
+PROVIDER_SLUG = os.environ.get("AUTHENTIK_PROVIDER_SLUG") or AUTHENTIK_PROVIDER_SLUG
 CLIENT_ID = os.environ.get("AUTHENTIK_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("AUTHENTIK_CLIENT_SECRET", "")
 SCOPE = "openid profile email groups"
@@ -117,7 +196,7 @@ SCOPE = "openid profile email groups"
 # 否则为 viewer(只读)。
 ADMIN_GROUPS = {
     group.strip()
-    for group in os.environ.get("AUTHENTIK_ADMIN_GROUPS", "authentik Admins").split(",")
+    for group in os.environ.get("AUTHENTIK_ADMIN_GROUPS", ", ".join(AUTHENTIK_ADMIN_GROUPS)).split(",")
     if group.strip()
 }
 
@@ -157,10 +236,10 @@ def process_callback(code: str, redirect_uri: str) -> dict | None:
             claims = json.loads(base64.urlsafe_b64decode(padded))
             return claims
         error = result.get("error_description", result.get("error", "Unknown error"))
-        print(f"[authentik] Token acquisition failed: {error}", flush=True)
+        log_event("oauth_token_error", outcome="failed", message=str(error))
         return None
     except Exception as e:
-        print(f"[authentik] Token request failed: {e}", flush=True)
+        log_event("oauth_token_error", outcome="failed", message=str(e))
         return None
 
 
@@ -216,7 +295,7 @@ def _record_logout(sub: str, ts: float) -> None:
         )
         conn.commit()
     except sqlite3.Error as e:
-        app.logger.error(f"[backchannel] 记录登出失败: {e}")
+        log_event("backchannel_logout_error", outcome="failed", message=str(e))
     finally:
         conn.close()
 
@@ -255,7 +334,7 @@ def _get_ak_jwks() -> list[dict]:
             _jwks_cache["keys"] = keys
             _jwks_cache["fetched_at"] = time.time()
     except Exception as e:
-        app.logger.warning(f"[backchannel] 获取 JWKS 失败: {e}")
+        log_event("jwks_fetch_error", outcome="failed", message=str(e))
     return _jwks_cache["keys"] or []
 
 
@@ -269,7 +348,7 @@ def _verify_ak_token(token: str) -> dict | None:
         kid = hdr.get("kid")
         jwk = next((k for k in _get_ak_jwks() if k.get("kid") == kid), None)
         if jwk is None:
-            app.logger.warning(f"[backchannel] 未找到匹配 JWK kid={kid}")
+            log_event("logout_token_verify_error", outcome="failed", message=f"kid={kid}")
             return None
         n = int.from_bytes(_b64decode(jwk["n"]), "big")
         e = int.from_bytes(_b64decode(jwk["e"]), "big")
@@ -297,16 +376,18 @@ def backchannel_logout():
     """接收 authentik 的 backchannel logout_token,记录该 sub 已登出"""
     token = request.form.get("logout_token")
     if not token:
+        log_event("backchannel_logout", outcome="failed", status=400, message="missing_token")
         return "", 400
     claims = _verify_ak_token(token)
     if not claims:
-        app.logger.warning("[backchannel] logout_token 验签失败")
+        log_event("backchannel_logout", outcome="failed", status=400, message="invalid_token")
         return "", 400
     sub = claims.get("sub")
     if not sub:
+        log_event("backchannel_logout", outcome="failed", status=400, message="missing_sub")
         return "", 400
     _record_logout(sub, claims.get("iat") or time.time())
-    app.logger.info(f"[backchannel] 记录登出 sub={sub}")
+    log_event("backchannel_logout", outcome="ok", status=200, message="accepted")
     return "", 200
 
 
@@ -321,14 +402,6 @@ def _session_logged_out() -> bool:
     return last > (session.get("auth_at") or 0)
 
 
-# ── 多语言支持 ──────────────────────────────────────────
-# 语言代码统一小写（与 Cloudflare Turnstile 的 language 参数格式一致）
-SUPPORTED_LANGS = ("zh-cn", "en-us", "ja-jp", "ko-kr")
-DEFAULT_LANG = "en-us"  # 无法判定时默认英文（IP 地理检测的其他地区也归英文）
-KEY_FALLBACK_LANG = "zh-cn"  # 缺失翻译键时回退中文原文
-LANG_COOKIE = "user_lang_preference"
-LOCALES_DIR = os.path.join(BASE_DIR, "locales")
-
 _translations: dict[str, dict[str, str]] = {}
 
 
@@ -339,8 +412,8 @@ def _load_translations() -> None:
         try:
             with open(path, encoding="utf-8") as f:
                 _translations[name] = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            app.logger.warning(f"[i18n] 语言文件缺失或损坏: {path}")
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            log_event("i18n_load_error", outcome="failed", message=f"{path}: {exc}")
             _translations[name] = {}
 
 
@@ -382,14 +455,25 @@ def persist_detected_lang(resp: Response) -> Response:
     lang = getattr(g, "lang", None)
     if not lang:
         return resp
-    if request.host.endswith("limooo.cn"):
+    if request.host == ROOT_DOMAIN or request.host.endswith("." + ROOT_DOMAIN):
         # 生产环境:跨子域共享,需要显式写 domain 属性
-        resp.set_cookie(LANG_COOKIE, lang, max_age=31536000, path="/",
-                        samesite="Lax", secure=True, domain=".limooo.cn")
+        resp.set_cookie(LANG_COOKIE, lang, max_age=LANG_COOKIE_MAX_AGE, path="/",
+                        samesite="Lax", secure=True, domain=SESSION_COOKIE_DOMAIN)
     else:
         # 本地开发(localhost):仅当前域
-        resp.set_cookie(LANG_COOKIE, lang, max_age=31536000, path="/",
+        resp.set_cookie(LANG_COOKIE, lang, max_age=LANG_COOKIE_MAX_AGE, path="/",
                         samesite="Lax", secure=request.is_secure)
+    return resp
+
+
+@app.after_request
+def add_security_headers(resp: Response) -> Response:
+    """统一安全响应头；API 只需 X-Content-Type-Options，不套 CSP。"""
+    if request.path.startswith("/api/"):
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        return resp
+    for name, value in SECURITY_HEADERS.items():
+        resp.headers.setdefault(name, value)
     return resp
 
 
@@ -509,8 +593,12 @@ def block_banned_visitors():
         return
     reason = _is_blocked(ip)
     if reason:
-        app.logger.warning(
-            f"[blocked] 已拦截被封禁请求: {ip} (原因: {reason}) 路径: {request.path}"
+        log_event(
+            "block_match",
+            outcome="blocked",
+            status=403,
+            message=reason,
+            ip=ip,
         )
         return Response("Forbidden", status=403)
 
@@ -576,11 +664,6 @@ def admin_required(f):
             return jsonify({"error": "只读账户，无写入权限"}), 403
         return f(*args, **kwargs)
     return wrapper
-
-
-# ── 人机验证门禁（与 Cloudflare Pages 共用 __gate cookie，nginx auth_request 调用）──
-GATE_COOKIE = "__gate"
-GATE_HOST = "auth.limooo.cn"
 
 
 def _gate_hmac_hex(key: str, payload: str) -> str:
@@ -655,7 +738,7 @@ def parse_nginx_log(max_lines: int = 5000) -> list[dict]:
             v["last_time"] is None or parsed_time > v["last_time"]
         ):
             v["last_time"] = parsed_time
-        host = f"https://limooo.cn{path}"
+        host = f"{BASE_URL}{path}"
         if host not in v["hosts"]:
             v["hosts"].append(host)
             if len(v["hosts"]) > 5:
@@ -712,27 +795,12 @@ def api_auth_status():
     })
 
 
-# ── 统一重定向页（redirect.limooo.cn）──────────────────
-REDIRECT_HOST = "https://redirect.limooo.cn/"
-
-# redirect 页预热的 limooo.cn 主站图片（与 base.html PAGE_MANIFEST['/'] 保持同步）
-# 全部用裸域绝对 URL（资源统一走 https://image.limooo.cn/，不带 /static 前缀）
-REDIRECT_PRELOAD_IMAGES = [
-    "https://image.limooo.cn/portfolio/IMG_0203.webp",
-    "https://image.limooo.cn/portfolio/IMG_0146.webp",
-    "https://image.limooo.cn/portfolio/IMG_0130.webp",
-    "https://image.limooo.cn/portfolio/IMG_0244.webp",
-    "https://image.limooo.cn/portfolio/IMG_0115.webp",
-    "https://image.limooo.cn/portfolio/IMG_0179.webp",
-]
-
-
 def _safe_next(url: str | None) -> str:
     """跳转目标校验：允许任意 https URL（含站外），拦截非 https 协议"""
     if not url:
-        return "https://limooo.cn/"
+        return f"{BASE_URL}/"
     if not url.startswith("https://"):
-        return "https://limooo.cn/"
+        return f"{BASE_URL}/"
     return url
 
 
@@ -744,12 +812,12 @@ def _is_limooo_target(url: str) -> bool:
         host = urllib.parse.urlparse(url).hostname or ""
     except ValueError:
         return False
-    return host in ("limooo.cn", "www.limooo.cn")
+    return host in (ROOT_DOMAIN, WWW_HOST)
 
 
 def _via_redirect(url: str) -> str:
     """把目标 URL 包装成经 redirect.limooo.cn 的跳转"""
-    return REDIRECT_HOST + "?to=" + urllib.parse.quote(_safe_next(url), safe="")
+    return REDIRECT_BASE_URL + "?to=" + urllib.parse.quote(_safe_next(url), safe="")
 
 
 def _browser_url() -> str:
@@ -764,7 +832,8 @@ def _browser_url() -> str:
 def redirect_page():
     """中间跳转页：显示 Redirecting 后跳到目标（任意 https URL，含站外）"""
     to = _safe_next(request.args.get("to"))
-    app.logger.info(f"[redirect] to={to} | referer={request.headers.get('Referer', '')[:100]}")
+    target_host = urllib.parse.urlparse(to).hostname or ""
+    log_event("redirect_page", outcome="ok", status=200, message=f"target={target_host}")
     preload = _is_limooo_target(to)
     return render_template(
         "redirect.html",
@@ -790,7 +859,8 @@ def login():
 
     redirect_uri = request.host_url.rstrip("/") + "/login/callback"
     auth_url = build_auth_url(redirect_uri, state)
-    app.logger.info(f"[login] next={next_url} | host={request.host}")
+    target_host = urllib.parse.urlparse(next_url).hostname or ""
+    log_event("login_attempt", outcome="started", status=302, message=f"target={target_host}")
     return redirect(auth_url)
 
 
@@ -806,19 +876,22 @@ def login_callback():
     next_url = pending.pop(state, None)
     session["oauth_pending"] = pending
     if next_url is None:
-        app.logger.warning(f"[callback] state 不匹配，拒绝: {state!r}")
-        return redirect(_via_redirect("https://limooo.cn/?error=bad_state"))
+        log_event("login_callback", outcome="bad_state", status=302, message="state_mismatch")
+        return redirect(_via_redirect(f"{BASE_URL}/?error=bad_state"))
 
     if not code:
+        log_event("login_callback", outcome="error", status=302, message="no_code")
         return redirect(_via_redirect(next_url + "?error=no_code"))
 
     redirect_uri = request.host_url.rstrip("/") + "/login/callback"
     claims = process_callback(code, redirect_uri)
 
     if not claims:
+        log_event("login_callback", outcome="error", status=302, message="auth_failed")
         return redirect(_via_redirect(next_url + "?error=auth_failed"))
 
     if not user_is_allowed(claims):
+        log_event("login_callback", outcome="error", status=302, message="not_allowed")
         return redirect(_via_redirect(next_url + "?error=not_allowed"))
 
     # 登录成功
@@ -830,7 +903,12 @@ def login_callback():
     session["user"] = {"email": user_email, "name": user_name}
     session["role"] = user_role(claims)
     session.permanent = True
-    app.logger.info(f"[callback] next={next_url} | role={session['role']}")
+    log_event(
+        "login_callback",
+        outcome="ok",
+        status=302,
+        message=f"role={session['role']}",
+    )
 
     return redirect(_via_redirect(next_url))
 
@@ -899,13 +977,10 @@ def _migrate_appleid_from_geo_cache() -> None:
         )
     dst.commit()
     dst.close()
-    print(f"[appleid] 已从 geo_cache.db 迁移 {len(rows)} 条 Apple ID 账户到 appleid.db")
+    log_event("app_migrate", outcome="success", message=f"rows={len(rows)}")
 
 
 # ── Apple ID 密码加密 ──────────────────────────────
-APPLEID_KEY_ETC = "/etc/limooo/appleid_encryption.key"
-APPLEID_KEY_FILE = os.path.join(BASE_DIR, "secrets", "appleid_encryption.key")
-
 def _get_appleid_cipher():
     """获取 Fernet 加密器，密钥优先级:环境变量 > /etc/limooo/ > 项目目录(兼容旧部署)"""
     env_key = os.environ.get("APPLEID_ENCRYPTION_KEY")
@@ -958,10 +1033,6 @@ def api_appleid_list():
         d["password"] = _mask_password(plain)
         result.append(d)
     return jsonify(result)
-
-
-# Apple ID 账户邮箱固定域名(前端只填前缀,后端兜底规范化)
-APPLEID_DOMAIN = "@appleid.limooo.cn"
 
 
 def _normalize_appleid_email(raw: str) -> str:

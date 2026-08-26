@@ -21,17 +21,25 @@ try:
 except ImportError:
     Image = ImageDraw = None
 
-# 仓库根目录（本文件位于 src/ 下，向上取一层）
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PUBLIC_DIR = os.path.join(BASE_DIR, "public")
-PREVIEW_DIR = os.path.join(BASE_DIR, "preview")
-STATIC_DIR = os.path.join(BASE_DIR, "src", "static")
-LOCALES_DIR = os.path.join(BASE_DIR, "locales")
+from config import (
+    BASE_DIR,
+    BASE_URL,
+    GATE_HOST,
+    LANG_COOKIE,
+    LANG_COOKIE_MAX_AGE,
+    LOCALES_DIR,
+    PREVIEW_DIR,
+    PUBLIC_DIR,
+    REDIRECT_PRELOAD_IMAGES,
+    ROOT_DOMAIN,
+    STATIC_DIR,
+    SUPPORTED_LANGS as LANGS,
+)
+
 FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
 
-# 语言代码统一小写（与 Cloudflare Turnstile 的 language 参数格式一致）
-LANGS = ("zh-cn", "en-us", "ja-jp", "ko-kr")
-DEFAULT_LANG = "en-us"
+
+CONTRACT_PATH = os.path.join(BASE_DIR, "config-contract.json")
 
 # (模板, 输出文件名, 渲染路径) —— 用 Host: limooo.cn 渲染（is_prod=True），
 # 导航链接保留子域绝对地址（limooo.cn / services.limooo.cn / contact.limooo.cn），
@@ -49,73 +57,44 @@ PAGES = (
     ("redirect.html", "redirect.html", "/r", "redirect"),
 )
 
-# 门禁页文案（与 functions/_middleware.ts 的 GATE_I18N 保持一致）
-GATE_I18N = {
-    "zh-cn": {
-        "title": "人机验证 · Limooo",
-        "heading": "请完成人机验证后再访问本站",
-        "location": "位置",
-        "ip": "IP",
-        "ray": "Ray ID",
-        "foot": "由 Limooo 边缘安全提供保护",
-        "lang_aria": "切换语言",
-        "theme_aria": "切换主题",
-        "footer_rights": "保留所有权利",
-        "footer_source": "根据 AGPL-3.0 许可证发布",
-        "error_sitekey": "服务配置错误：未设置 TURNSTILE_SITEKEY。",
-        "error_invalid": "请求无效，请重试。",
-        "error_unavailable": "验证服务暂时不可用，请稍后重试。",
-        "error_failed": "验证未通过，请重试。",
-    },
-    "en-us": {
-        "title": "Verify you are human · Limooo",
-        "heading": "Please complete this CAPTCHA to access the site.",
-        "location": "Location",
-        "ip": "IP",
-        "ray": "Ray ID",
-        "foot": "Secured by Limooo Edge Security",
-        "lang_aria": "Switch language",
-        "theme_aria": "Toggle theme",
-        "footer_rights": "All rights reserved",
-        "footer_source": "Release under the AGPL-3.0 license",
-        "error_sitekey": "Server configuration error: TURNSTILE_SITEKEY is not set.",
-        "error_invalid": "Invalid request. Please try again.",
-        "error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
-        "error_failed": "Verification failed. Please try again.",
-    },
-    "ja-jp": {
-        "title": "人認証 · Limooo",
-        "heading": "このサイトにアクセスするには、人認証を完了してください",
-        "location": "場所",
-        "ip": "IP",
-        "ray": "Ray ID",
-        "foot": "Limooo Edge Security により保護されています",
-        "lang_aria": "言語切替",
-        "theme_aria": "テーマ切替",
-        "footer_rights": "無断転載禁止",
-        "footer_source": "AGPL-3.0 ライセンスに基づいて公開",
-        "error_sitekey": "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
-        "error_invalid": "リクエストが無効です。もう一度お試しください。",
-        "error_unavailable": "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
-        "error_failed": "認証に失敗しました。もう一度お試しください。",
-    },
-    "ko-kr": {
-        "title": "휴먼 인증 · Limooo",
-        "heading": "사이트에 접속하려면 인증을 완료해 주세요",
-        "location": "위치",
-        "ip": "IP",
-        "ray": "Ray ID",
-        "foot": "Limooo Edge Security가 보호합니다",
-        "lang_aria": "언어 전환",
-        "theme_aria": "테마 전환",
-        "footer_rights": "모든 권리 보유",
-        "footer_source": "AGPL-3.0 라이선스에 따라 배포",
-        "error_sitekey": "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
-        "error_invalid": "잘못된 요청입니다. 다시 시도해 주세요.",
-        "error_unavailable": "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
-        "error_failed": "인증에 실패했습니다. 다시 시도해 주세요.",
-    },
-}
+GATE_I18N_KEYS = (
+    ("title", "gate_title"),
+    ("heading", "gate_heading"),
+    ("location", "gate_location"),
+    ("ip", "gate_ip"),
+    ("ray", "gate_ray"),
+    ("foot", "gate_foot"),
+    ("lang_aria", "gate_lang_aria"),
+    ("theme_aria", "gate_theme_aria"),
+    ("footer_rights", "footer_rights"),
+    ("footer_source", "footer_source"),
+    ("error_sitekey", "gate_error_sitekey"),
+    ("error_invalid", "gate_error_invalid"),
+    ("error_unavailable", "gate_error_unavailable"),
+    ("error_failed", "gate_error_failed"),
+)
+
+
+def _load_gate_i18n() -> dict[str, dict[str, str]]:
+    """从 locales/*.json 读取门禁文案，替代 build.py 中的硬编码字典。"""
+    result: dict[str, dict[str, str]] = {}
+    for lang in LANGS:
+        path = os.path.join(LOCALES_DIR, f"{lang}.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"无法读取门禁文案 {path}: {exc}") from exc
+        texts = {}
+        for output_key, locale_key in GATE_I18N_KEYS:
+            value = data.get(locale_key)
+            if not isinstance(value, str) or not value:
+                raise RuntimeError(f"{path} 缺少门禁文案字段: {locale_key}")
+            texts[output_key] = value
+        result[lang] = texts
+    return result
+
+GATE_I18N = _load_gate_i18n()
 
 
 def render_page(appmod, template: str, path: str, lang: str, extra=None) -> str:
@@ -124,21 +103,24 @@ def render_page(appmod, template: str, path: str, lang: str, extra=None) -> str:
     if extra == "redirect":
         # 预渲染默认跳转目标；实际登录/登出回跳由中间件动态拼接 to 参数
         kwargs = {
-            "to": "https://limooo.cn/",
+            "to": f"{BASE_URL}/",
             "preload": True,
             "preload_images": appmod.REDIRECT_PRELOAD_IMAGES,
         }
-    with appmod.app.test_request_context(path, headers={"Host": "limooo.cn"}):
+    with appmod.app.test_request_context(path, headers={"Host": ROOT_DOMAIN}):
         appmod.g.lang = lang
         html = appmod.render_template(template, **kwargs)
+    # 模板中 lang 固定为合法静态值以通过静态检查；构建时替换为实际语言
+    html = html.replace("<html lang=\"zh-cn\">", f"<html lang=\"{lang}\">", 1)
     # 相对资源统一加根斜杠：模板里是 src="static/..."，在 /zh-cn 这类子路径下
     # 会解析错位，改成 /static/... 后任何路径都正确（配合中间件干净 URL）
     html = html.replace('src="static/', 'src="/static/')
     html = html.replace('href="static/', 'href="/static/')
     # 记住当前语言，保证根路径重定向时语言不跳变
     cookie_js = (
-        "<script>try{document.cookie='user_lang_preference=" + lang +
-        ";path=/;max-age=31536000;SameSite=Lax'+(location.protocol==='https:'?';Secure':'')}"
+        "<script>try{document.cookie='" + LANG_COOKIE + "=" + lang +
+        ";path=/;max-age=" + str(LANG_COOKIE_MAX_AGE) +
+        ";SameSite=Lax'+(location.protocol==='https:'?';Secure':'')}"
         "catch(e){}</script>"
     )
     html = html.replace("</body>", cookie_js + "</body>")
@@ -160,7 +142,7 @@ def render_gate(appmod, lang: str) -> str:
             f'<div class="error" data-i18n="error_sitekey">{t["error_sitekey"]}</div>'
         )
         turnstile_src = ""
-    with appmod.app.test_request_context("/__gate", headers={"Host": "auth.limooo.cn"}):
+    with appmod.app.test_request_context("/__gate", headers={"Host": GATE_HOST}):
         appmod.g.lang = lang
         html = appmod.render_template(
             "auth.html",
@@ -177,10 +159,11 @@ def render_gate(appmod, lang: str) -> str:
             turnstile_html=turnstile_html,
             turnstile_src=turnstile_src,
             sitekey=sitekey,
-            gate_i18n=json.dumps(GATE_I18N, ensure_ascii=False),
+            gate_i18n=GATE_I18N,
             host="",
             next="/",
         )
+    html = html.replace("<html lang=\"zh-cn\">", f"<html lang=\"{lang}\">", 1)
     return html
 
 
@@ -190,16 +173,68 @@ def preview_i18n_patch() -> str:
     for lang in LANGS:
         with open(os.path.join(LOCALES_DIR, f"{lang}.json"), encoding="utf-8") as f:
             data[lang] = json.load(f)
+    # 内联到 <script> 前转义 </script> 闭合序列，防止翻译文案意外闭合脚本
+    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     return (
         "<script>"
         "(function(){"
-        "var ALL=" + json.dumps(data, ensure_ascii=False) + ";"
-        'if (typeof I18N_CACHE === "undefined") { window.I18N_CACHE = {}; }'
+        "var ALL=" + payload + ";"
+        "window.__PREVIEW_I18N__=ALL;"
+        "if (typeof I18N_CACHE === 'undefined') { window.I18N_CACHE = {}; }"
         "Object.keys(ALL).forEach(function(l){I18N_CACHE[l]=ALL[l];});"
-        "window.fetchI18n=function(lang,cb){cb(I18N_CACHE[lang]||null);};"
+        "window.fetchI18n=function(lang,cb){cb(window.__PREVIEW_I18N__[lang]||null);};"
         "})();"
         "</script>"
     )
+
+
+def write_config_functions() -> None:
+    """从 config-contract.json 生成 Pages 侧常量模块（唯一事实源）。"""
+    with open(CONTRACT_PATH, encoding="utf-8") as f:
+        contract = json.load(f)
+    root = contract["root_domain"]
+
+    lines = [
+        "/** 由 build.py 自动生成，勿手改；修改配置请编辑 config-contract.json。 */",
+        "export const CONTRACT = " + json.dumps(contract, ensure_ascii=False, indent=2) + " as const;",
+        "",
+        "export const ROOT_DOMAIN = CONTRACT.root_domain;",
+        "export const BASE_URL = `https://${ROOT_DOMAIN}`;",
+        "export const WWW_HOSTNAME = `www.${ROOT_DOMAIN}`;",
+        "export const SERVICES_HOSTNAME = `services.${ROOT_DOMAIN}`;",
+        "export const CONTACT_HOSTNAME = `contact.${ROOT_DOMAIN}`;",
+        "export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;",
+        "export const APPLEID_HOSTNAME = `appleid.${ROOT_DOMAIN}`;",
+        "export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;",
+        "export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;",
+        "export const IDENTITY_HOSTNAME = `identity.${ROOT_DOMAIN}`;",
+        "export const IMAGES_HOSTNAME = `images.${ROOT_DOMAIN}`;",
+        "export const GATE_HOST = GATE_HOSTNAME;",
+        "export const REDIRECT_HOST = `https://${REDIRECT_HOSTNAME}/`;",
+        "export const IDENTITY_URL = `https://${IDENTITY_HOSTNAME}`;",
+        "export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;",
+        "export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;",
+        "export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);",
+        "export const SUPPORTED_LANGS = CONTRACT.supported_langs;",
+        "export const DEFAULT_LANG = CONTRACT.default_lang;",
+        "export const KEY_FALLBACK_LANG = CONTRACT.key_fallback_lang;",
+        "export const LANG_COOKIE = CONTRACT.lang_cookie;",
+        "export const LANG_COOKIE_MAX_AGE = CONTRACT.lang_cookie_max_age;",
+        "export const GATE_COOKIE = CONTRACT.gate_cookie;",
+        "export const SESSION_COOKIE = CONTRACT.session_cookie;",
+        "export const PENDING_COOKIE = CONTRACT.pending_cookie;",
+        "export const GATE_TTL_SECONDS = CONTRACT.gate_ttl_seconds;",
+        "export const SESSION_TTL_SECONDS = CONTRACT.session_ttl_seconds;",
+        "export const PENDING_TTL_SECONDS = CONTRACT.pending_ttl_seconds;",
+        "export const AUTHENTIK_PROVIDER_SLUG = CONTRACT.authentik_provider_slug;",
+        "export const AUTHENTIK_ADMIN_GROUPS_DEFAULT = CONTRACT.authentik_admin_groups.join(\", \");",
+        "",
+    ]
+    ts_path = os.path.join(FUNCTIONS_DIR, "_lib", "config.ts")
+    os.makedirs(os.path.dirname(ts_path), exist_ok=True)
+    with open(ts_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    print("[build] config functions generated", flush=True)
 
 
 def write_i18n_functions() -> None:
@@ -243,6 +278,37 @@ def write_i18n_functions() -> None:
         )
 
 
+def write_runtime_functions() -> None:
+    """把门禁/跳转页共享文案与预热图片生成 Pages 端独立模块，消除 middleware 重复维护。"""
+    redirect_i18n: dict[str, dict[str, str]] = {}
+    for lang in LANGS:
+        with open(os.path.join(LOCALES_DIR, f"{lang}.json"), encoding="utf-8") as f:
+            d = json.load(f)
+        redirect_i18n[lang] = {
+            "title": d.get("redirect_title", "正在跳转"),
+            "text": d.get("redirect_text", "正在跳转..."),
+            "footer_rights": d.get("footer_rights", "保留所有权利"),
+            "footer_source": d.get("footer_source", "根据 AGPL-3.0 许可证发布"),
+        }
+    output = [
+        "// 由 build.py 自动生成，勿手改。",
+        "export const GATE_I18N: Record<string, Record<string, string>> = "
+        + json.dumps(GATE_I18N, ensure_ascii=False, indent=2)
+        + ";",
+        "export const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = "
+        + json.dumps(redirect_i18n, ensure_ascii=False, indent=2)
+        + ";",
+        "export const REDIRECT_PRELOAD_IMAGES = "
+        + json.dumps(REDIRECT_PRELOAD_IMAGES, ensure_ascii=False, indent=2)
+        + ";",
+    ]
+    ts_path = os.path.join(FUNCTIONS_DIR, "_data", "runtime.ts")
+    os.makedirs(os.path.dirname(ts_path), exist_ok=True)
+    with open(ts_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(output) + "\n")
+    print("[build] runtime functions generated", flush=True)
+
+
 def generate_watermarks() -> int:
     """为 image.limooo.cn Worker 生成左下角水印变体到 public/static/wm/。
 
@@ -260,8 +326,17 @@ def generate_watermarks() -> int:
     BACKDROP_ALPHA = 105         # 深色底衬不透明度（0-255，0 = 不要底衬）
     PAD_RATIO = 0.08             # 底衬相对水印宽度的内边距
 
-    if Image is None:
-        print("[build] warning: Pillow 未安装，跳过水印变体生成", flush=True)
+    if Image is None or ImageDraw is None:
+        portfolio_dir = os.path.join(STATIC_DIR, "portfolio")
+        if os.path.isdir(portfolio_dir) and any(
+            name.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+            for name in os.listdir(portfolio_dir)
+        ):
+            raise RuntimeError(
+                "Pillow 未安装，无法生成作品集水印。请先执行 "
+                "`pip install -r ops/requirements.txt` 再运行 build.py。"
+            )
+        print("[build] 没有可水印化的作品集文件，跳过 Pillow 检查", flush=True)
         return 0
 
     wm_path = os.path.join(STATIC_DIR, "icons", "Limooo-watermark.webp")
@@ -281,7 +356,8 @@ def generate_watermarks() -> int:
             if not re.search(r"\.(png|jpe?g|webp)$", name, re.I):
                 continue
             try:
-                im = Image.open(os.path.join(root, name)).convert("RGBA")
+                with Image.open(os.path.join(root, name)) as opened:
+                    im = opened.convert("RGBA")
             except Exception as exc:  # 无法解码的图直接跳过
                 print(f"[build] watermark skip {rel}: {exc}", flush=True)
                 continue
@@ -290,11 +366,12 @@ def generate_watermarks() -> int:
             target_w = max(WATERMARK_MIN_W, round(base * WATERMARK_SCALE))
             wm_h = max(1, round(wm_h0 * target_w / wm_w0))
             margin = max(12, round(base * 0.02))
-            wm_resized = wm.resize((target_w, wm_h), Image.LANCZOS)
+            resampling = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+            wm_resized = wm.resize((target_w, wm_h), resampling)
             # 提高水印本身的不透明度（原文件约 40% → ~72%）
             if WATERMARK_ALPHA_BOOST != 1:
                 r, g, b, a = wm_resized.split()
-                a = a.point(lambda v: min(255, round(v * WATERMARK_ALPHA_BOOST)))
+                a = a.point(lambda v: min(255, int(round(float(v) * WATERMARK_ALPHA_BOOST))))
                 wm_resized = Image.merge("RGBA", (r, g, b, a))
 
             canvas = im.copy()
@@ -368,7 +445,9 @@ def main() -> int:
     )
 
     # 4) i18n Functions（前端语言切换接口）
+    write_config_functions()
     write_i18n_functions()
+    write_runtime_functions()
 
     # 5) 子域预览（本地预览用，不入库）：生成的预览输出到 preview/templates/，
     #    每个子域页面一个文件（预览默认语言），不按语言分文件夹，

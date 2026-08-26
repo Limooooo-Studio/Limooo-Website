@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "root_domain": "limooo.cn",
+  "supported_langs": [
+    "zh-cn",
+    "en-us",
+    "ja-jp",
+    "ko-kr"
+  ],
+  "default_lang": "en-us",
+  "key_fallback_lang": "zh-cn",
+  "lang_cookie": "user_lang_preference",
+  "lang_cookie_max_age": 31536000,
+  "gate_cookie": "__gate",
+  "session_cookie": "limooo_session",
+  "pending_cookie": "limooo_pending",
+  "gate_ttl_seconds": 3600,
+  "session_ttl_seconds": 604800,
+  "pending_ttl_seconds": 600,
+  "public_hosts": [
+    "limooo.cn",
+    "www.limooo.cn",
+    "services.limooo.cn",
+    "contact.limooo.cn",
+    "identity.limooo.cn",
+    "visitor.limooo.cn",
+    "appleid.limooo.cn"
+  ],
+  "authentik_provider_slug": "limooo",
+  "authentik_admin_groups": [
+    "authentik Admins"
+  ]
+}
