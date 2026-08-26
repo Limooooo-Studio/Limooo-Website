@@ -10,9 +10,6 @@
             --panel-bg-rgb: 240, 240, 240;
         }
 
-        /* ── 管理端无左侧 LOGO，右侧菜单组保持靠右对齐 ── */
-        .global-nav { margin-left: auto; }
-
         /* ── Dashboard ── */
         #dashboard.hidden { display: none !important; }
         #dashboard { opacity: 0; transition: opacity 350ms var(--ease-out); }
