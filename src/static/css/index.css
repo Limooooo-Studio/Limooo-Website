@@ -95,12 +95,13 @@ h1 { font-weight: 600 !important; }
 .hero-closed { pointer-events: none; }
 .hero-closed .bracket:nth-of-type(1) { transform: translateX(-16px); opacity: 0; }
 .hero-closed .bracket:nth-of-type(2) { transform: translateX(16px); opacity: 0; }
-.bracket { display: inline-block; font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif; font-weight: inherit; transition: transform 233ms var(--ease-out), opacity 167ms ease-out; }
-.bracket::before {
-    content: 'L';
+.bracket {
     display: inline-block;
+    font-family: 'Baloo 2 Brackets', 'Baloo 2', ui-rounded, system-ui, sans-serif;
+    font-weight: 600;
+    font-synthesis: none;
+    transition: transform 233ms var(--ease-out), opacity 167ms ease-out;
 }
-.bracket:nth-of-type(2)::before { transform: scaleX(-1); }
 
 /* ── 滚动指示器 ── */
 .scroll-hint {
