@@ -177,7 +177,10 @@ describe("oidc", () => {
   });
 
   it("maps groups to roles and returns a session", async () => {
-    const token = await signToken({ alg: "RS256", kid: KEY_ID }, baseClaims());
+    const token = await signToken(
+      { alg: "RS256", kid: KEY_ID },
+      baseClaims({ groups: [] }),
+    );
     mockFetch(tokenFetch(token));
     const result = await exchangeCode(env, "code", "https://visitor.limooo.cn/login/callback", {
       nonce: "nonce-1",
@@ -302,5 +305,51 @@ describe("oidc", () => {
     const result = await verifyBackchannelLogout(env, token);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.claims.sub).toBe("user-1");
+  });
+
+  it("sends the Pages UA to authentik JWKS, token and userinfo endpoints", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const token = await signToken(
+      { alg: "RS256", kid: KEY_ID },
+      baseClaims({ groups: [] }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({ url: String(input), init });
+        const href = String(input);
+        if (href.includes("/token/")) {
+          return new Response(
+            JSON.stringify({ id_token: token, access_token: "access-token" }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (href.includes("/jwks/")) {
+          return new Response(
+            JSON.stringify({ keys: [jwk] }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (href.includes("/userinfo/")) {
+          return new Response(
+            JSON.stringify({ groups: ["authentik Admins"] }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        throw new Error(`unexpected fetch ${href}`);
+      }),
+    );
+
+    const result = await exchangeCode(env, "code", "https://visitor.limooo.cn/login/callback", {
+      nonce: "nonce-1",
+      codeVerifier: "verifier",
+    });
+
+    expect(result.session?.role).toBe("admin");
+    expect(calls.length).toBeGreaterThanOrEqual(3);
+    for (const call of calls) {
+      const headers = call.init?.headers as Record<string, string> | undefined;
+      expect(headers?.["User-Agent"]).toBe("Mozilla/5.0 (compatible; limooo-pages/1.0)");
+    }
   });
 });

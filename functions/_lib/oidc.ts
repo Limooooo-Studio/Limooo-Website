@@ -15,6 +15,7 @@ const USERINFO_TIMEOUT_MS = 10000;
 const JWKS_TIMEOUT_MS = 10000;
 const TOKEN_TIMEOUT_MS = 10000;
 const CLOCK_SKEW_SECONDS = 60;
+const OIDC_USER_AGENT = "Mozilla/5.0 (compatible; limooo-pages/1.0)";
 
 export interface OidcUserSession {
   sub: string;
@@ -184,7 +185,7 @@ async function fetchJwks(env: Env): Promise<{ keys: JwkLike[] } | { error: strin
   try {
     const resp = await fetchWithTimeout(
       jwksUrl(env),
-      { headers: { Accept: "application/json" } },
+      { headers: { Accept: "application/json", "User-Agent": OIDC_USER_AGENT } },
       JWKS_TIMEOUT_MS,
     );
     if (!resp.ok) return { error: `jwks_http_${resp.status}` };
@@ -368,6 +369,7 @@ async function fetchUserInfo(
       {
         headers: {
           Accept: "application/json",
+          "User-Agent": OIDC_USER_AGENT,
           Authorization: `Bearer ${accessToken}`,
         },
       },
@@ -411,7 +413,7 @@ export async function exchangeCode(
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           // nginx 的 $ua_deny 只放行含 Mozilla 的 UA，服务端 token 交换必须带浏览器 UA
-          "User-Agent": "Mozilla/5.0 (compatible; limooo-pages/1.0)",
+          "User-Agent": OIDC_USER_AGENT,
         },
         body: body.toString(),
       },
