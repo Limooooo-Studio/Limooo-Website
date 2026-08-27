@@ -81,6 +81,20 @@ describe("force theme challenge", () => {
     expect(await resp.text()).toBe("next");
   });
 
+  it("serves the health probe without human verification", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/_health", {
+          headers: { "CF-Connecting-IP": "1.2.3.4" },
+        }),
+      ),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe("ok\n");
+    expect(resp.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("serves public pages with edge-cache headers", async () => {
     const resp = await handleOnRequest(
       context(

@@ -100,6 +100,7 @@ export function shouldTrackVisit(request: Request, url: URL): boolean {
   const p = url.pathname;
   if (
     p.startsWith("/api/") ||
+    p === "/_health" ||
     p.startsWith("/static/") ||
     p.startsWith("/__gate") ||
     p.startsWith("/favicon") ||
@@ -115,7 +116,14 @@ export function shouldTrackRay(request: Request, url: URL): boolean {
   if (request.method !== "GET" && request.method !== "POST" && request.method !== "PUT" && request.method !== "DELETE") return false;
   if (url.hostname === IMAGES_HOSTNAME || url.hostname === REDIRECT_HOSTNAME) return false;
   const p = url.pathname;
-  if (p.startsWith("/api/") || p.startsWith("/static/") || p.startsWith("/__gate")) return false;
+  if (
+    p.startsWith("/api/") ||
+    p === "/_health" ||
+    p.startsWith("/static/") ||
+    p.startsWith("/__gate")
+  ) {
+    return false;
+  }
   if (p.startsWith("/favicon") || p === "/Limooo-xtext.webp") return false;
   if (/\.(png|webp|jpg|jpeg|gif|ico|svg|css|js|json|webmanifest|txt|xml)$/i.test(p)) return false;
   return true;

@@ -14,6 +14,9 @@ import os
 import smtplib
 import sys
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
@@ -29,6 +32,7 @@ from d1_client import cloudflare_config, d1_query, env_value, load_env  # noqa: 
 
 QUERY_FILE = ROOT / "ops" / "health_queries.sql"
 SMTP_ENV_FILE = ROOT / "secrets" / "smtp-relay.env"
+KUMA_ENV_FILE = ROOT / "secrets" / "uptime-kuma.env"
 HEALTH_LOG = Path(DATA_DIR) / "health_alerts.log"
 STATE_FILE = Path(DATA_DIR) / "health_alerts.state"
 
@@ -375,6 +379,32 @@ def send_alert(env: dict[str, str], subject: str, body: str) -> bool:
     return True
 
 
+def build_kuma_push_url(url: str, status: str, message: str) -> str:
+    """把任意 Kuma push URL 重建为一次性状态心跳，避免旧 query 残留。"""
+    parsed = urllib.parse.urlsplit(url)
+    query = urllib.parse.urlencode({"status": status, "msg": message})
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, query, ""))
+
+
+def notify_kuma(env: dict[str, str], status: str, message: str) -> str:
+    """把健康检查状态发送给 Uptime Kuma Push 监控（失败不阻断告警邮件）。"""
+    url = env_value(env, "KUMA_PUSH_URL")
+    if not url:
+        return "skipped"
+    request = urllib.request.Request(
+        build_kuma_push_url(url, status, message),
+        # 走本站 Nginx 时带 Mozilla，避免 location-security.inc 把运维探针当
+        # 非浏览器 UA 拒绝；push URL 本身仍由 Kuma 的随机 token 保护。
+        headers={"User-Agent": "Mozilla/5.0 (compatible; Limooo-health/1.0)"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return "ok" if 200 <= response.status < 300 else "failed"
+    except (OSError, urllib.error.URLError):
+        return "failed"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Limooo 健康检查与告警")
     parser.add_argument(
@@ -425,11 +455,12 @@ def main() -> int:
             ),
         }, ensure_ascii=False, indent=2))
         return 0
-    env = load_env(ENV_FILE, SMTP_ENV_FILE)
+    env = load_env(ENV_FILE, SMTP_ENV_FILE, KUMA_ENV_FILE)
     cfg = cloudflare_config(env)
 
     if not cfg["token"] or not cfg["account_id"] or not cfg["database_id"]:
         record = {"status": "config_error", "message": "Cloudflare/D1 配置缺失"}
+        record["kuma_push"] = notify_kuma(env, "down", "config_error")
         write_health_log(record)
         print(json.dumps(record, ensure_ascii=False))
         return 2
@@ -440,16 +471,23 @@ def main() -> int:
         data = {name: d1_query(cfg, sql) for name, sql in queries.items()}
     except Exception as exc:  # noqa: BLE001
         record = {"status": "query_error", "message": str(exc)}
+        record["kuma_push"] = notify_kuma(env, "down", "query_error")
         write_health_log(record)
         print(json.dumps(record, ensure_ascii=False))
         return 2
 
     metrics = evaluate_metrics(data)
     alerts = metrics["alerts"]
+    push_message = (
+        "; ".join(item["message"] for item in alerts)
+        if alerts
+        else "healthy"
+    )
     record = {
         "status": "alert" if alerts else "ok",
         "ts": int(time.time()),
         "metrics": metrics,
+        "kuma_push": notify_kuma(env, "down" if alerts else "up", push_message),
     }
     write_health_log(record)
     print(json.dumps(record, ensure_ascii=False, default=str))

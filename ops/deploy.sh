@@ -88,7 +88,7 @@ else
     echo "(appleid.db 尚不存在,跳过拉取——首次部署时由服务启动创建)"
 fi
 
-echo "rsync -avz --delete -e \"ssh $SSH_OPTS\" --exclude 'venv' --exclude '__pycache__' --exclude '.DS_Store' --exclude '.git' --exclude 'deploy.sh' --exclude 'upload.sh' --exclude 'node_modules' --exclude 'GeoLite2-City.mmdb' --exclude 'GeoLite2-ASN.mmdb' --exclude '.gitignore' --exclude '.claude' --exclude 'command.txt' --exclude 'flask_secret.key' --exclude 'appleid_encryption.key' --exclude 'secrets/smtp-relay.env' --exclude 'secrets/authentik-email.env' --exclude 'geo_cache.db' --exclude 'appleid.db' --exclude 'auth.db' --exclude 'Logs' --exclude 'limooo.cn.png' --exclude 'limooo.pem' --exclude '各种密钥.txt' \"$LOCAL_DIR\" $REMOTE_HOST:$REMOTE_DIR"
+echo "rsync -avz --delete -e \"ssh $SSH_OPTS\" --exclude 'venv' --exclude '__pycache__' --exclude '.DS_Store' --exclude '.git' --exclude 'deploy.sh' --exclude 'upload.sh' --exclude 'node_modules' --exclude 'GeoLite2-City.mmdb' --exclude 'GeoLite2-ASN.mmdb' --exclude '.gitignore' --exclude '.claude' --exclude 'command.txt' --exclude 'flask_secret.key' --exclude 'appleid_encryption.key' --exclude 'secrets/smtp-relay.env' --exclude 'secrets/authentik-email.env' --exclude 'secrets/uptime-kuma.env' --exclude 'geo_cache.db' --exclude 'appleid.db' --exclude 'auth.db' --exclude 'Logs' --exclude 'limooo.cn.png' --exclude 'limooo.pem' --exclude '各种密钥.txt' \"$LOCAL_DIR\" $REMOTE_HOST:$REMOTE_DIR"
 rsync -avz --delete -e "ssh $SSH_OPTS" \
     --exclude 'venv' \
     --exclude '__pycache__' \
@@ -112,6 +112,7 @@ rsync -avz --delete -e "ssh $SSH_OPTS" \
     --exclude 'appleid_encryption.key' \
     --exclude 'secrets/smtp-relay.env' \
     --exclude 'secrets/authentik-email.env' \
+    --exclude 'secrets/uptime-kuma.env' \
     --exclude 'secrets/webauthn.env' \
     --exclude 'README 2.md' \
     --exclude 'geo_cache.db*' \

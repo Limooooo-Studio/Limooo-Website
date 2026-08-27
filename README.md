@@ -9,6 +9,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 - After the first load, visitor status chips filter locally with no new `/api/visitors` request; the API still accepts `?status=<3-digit>` for deep links.
 - **Apple ID manager** (`/appleid`): Pages Function + D1 CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
 - **Auth & roles**: self-hosted [authentik](https://goauthentik.io) OIDC single sign-on, with admin (read-write) / viewer (read-only) roles split by group
+- **Uptime Kuma monitoring** (`admin.limooo.cn`): MIT-licensed, free self-hosted monitoring dashboard with multi-language i18n and dark mode; it probes `/_health` for public pages/authentik and receives hourly D1 health status via Push heartbeat
 - **Automatic IP blocking**:
   - Scans Nginx logs for malicious scan signatures (`/.env`, `/wp-admin`, `/actuator/`, etc.) and zero-tolerance bans the offending /24 subnet
   - Syncs to kernel-level `ipset` + `iptables` for network-layer drop
@@ -58,6 +59,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 │   ├── deploy.sh          # one-command deployment script
 │   ├── upload.sh          # compatibility entry point → deploy.sh
 │   ├── pages_deploy.sh    # Cloudflare Pages build + deploy
+│   ├── uptime-kuma/       # Uptime Kuma compose/bootstrap/init scripts
 │   ├── requirements.txt   # Python dependencies
 │   ├── limooo.conf        # Nginx site configuration
 │   ├── location-security.inc      # Nginx security hardening snippet
@@ -92,6 +94,10 @@ listed in `.vscode/extensions.json`; workspace settings associate Jinja template
 HTML/CSS/JS diagnostics do not misread template syntax.
 
 Visit `http://localhost:8080` after starting locally. The admin dashboard and Apple ID manager require authentik auth to be configured first.
+
+Uptime Kuma is deployed on the VPS and served at `https://admin.limooo.cn`.
+初次初始化使用 `bash ops/uptime-kuma/bootstrap.sh`（凭据只写服务器
+`secrets/uptime-kuma.env`）；日常更新用 `bash ops/uptime-kuma/deploy.sh`。
 
 ## Build, testing and deploy
 

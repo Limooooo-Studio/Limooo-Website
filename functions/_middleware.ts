@@ -183,6 +183,17 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   const { hostname, pathname } = url;
   const forceChallenge = url.searchParams.get("challenge") === "1";
 
+  // 运维健康端点：不记录访客、不经过人机门禁，供 Uptime Kuma 以探针 UA 访问。
+  if (pathname === "/_health") {
+    return new Response("ok\n", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   // 公开静态资源与 API 必须先放行：跳转子域也共享 /static 资源，
   // 不能把 redirect.limooo.cn/static/css/... 也渲染成 Redirecting HTML。
   if (isPublicAssetPath(pathname) || isApiPath(pathname)) return next();

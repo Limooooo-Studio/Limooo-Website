@@ -64,6 +64,19 @@ class HealthScriptTests(unittest.TestCase):
             finally:
                 check_health.HEALTH_LOG = original
 
+    def test_build_kuma_push_url_replaces_old_query(self) -> None:
+        original = (
+            "https://admin.limooo.cn/api/push/secret-token"
+            "?status=up&msg=ok"
+        )
+        result = check_health.build_kuma_push_url(
+            original, "down", "query_error"
+        )
+        self.assertIn("/api/push/secret-token", result)
+        self.assertIn("status=down", result)
+        self.assertIn("msg=query_error", result)
+        self.assertNotIn("msg=ok", result)
+
 
 if __name__ == "__main__":
     unittest.main()

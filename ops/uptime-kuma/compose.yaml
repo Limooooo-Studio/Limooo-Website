@@ -1,0 +1,16 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2.5.3
+    container_name: uptime-kuma
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:3001:3001"
+    mem_limit: 512m
+    mem_reservation: 64m
+    labels:
+      - "com.limooo.service=uptime-kuma"
+      - "com.limooo.domain=admin.limooo.cn"
