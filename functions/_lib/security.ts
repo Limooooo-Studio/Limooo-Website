@@ -11,5 +11,5 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   "X-Frame-Options": "SAMEORIGIN",
   "Content-Security-Policy":
-    "default-src 'self'; object-src 'none'; base-uri 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' data: https://image.limooo.cn https://images.limooo.cn; font-src 'self'; connect-src 'self' https://image.limooo.cn https://images.limooo.cn; frame-src 'self' https://challenges.cloudflare.com; frame-ancestors 'self'; form-action 'self' https://*.limooo.cn",
+    "default-src 'self'; object-src 'none'; base-uri 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' data: https://image.limooo.cn https://images.limooo.cn; font-src 'self' data:; connect-src 'self' https://image.limooo.cn https://images.limooo.cn; frame-src 'self' https://challenges.cloudflare.com; frame-ancestors 'self'; form-action 'self' https://*.limooo.cn",
 };
