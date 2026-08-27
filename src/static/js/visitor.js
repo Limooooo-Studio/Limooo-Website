@@ -15,8 +15,6 @@ let currentStatus = 'all';
 let inFlight = false;
 let dataLoaded = false;
 let lastLoadedAt = 0;
-let rangeDays = 30;
-let maxMarkers = 500;
 
 // base.js 通过经典脚本注入全局 t()；模块脚本执行顺序在不同浏览器可能不同，
 // 这里做一层本地适配，翻译函数尚未就绪时只回退 key，不产生 ReferenceError。
@@ -87,8 +85,6 @@ async function refresh() {
     const data = await resp.json();
     allMarkers = Array.isArray(data.markers) ? data.markers : [];
     statusCounts = data.status_counts || {};
-    rangeDays = Number(data.range_days || 30);
-    maxMarkers = Number(data.max_markers || 500);
     dataLoaded = true;
     lastLoadedAt = Date.now();
     updateStats(data.stats);
@@ -195,8 +191,6 @@ function applyFilter() {
   renderChips(statusCounts);
 
   const filtered = filterMarkers(allMarkers, currentStatus);
-  document.getElementById('list-sub').textContent =
-    t('ip_count', { count: filtered.length }) + ' · ' + rangeDays + 'd · max ' + maxMarkers;
   renderList(filtered);
 }
 
