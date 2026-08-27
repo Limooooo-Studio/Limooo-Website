@@ -10,6 +10,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 - **Apple ID manager** (`/appleid`): Pages Function + D1 CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
 - **Auth & roles**: self-hosted [authentik](https://goauthentik.io) OIDC single sign-on, with admin (read-write) / viewer (read-only) roles split by group
 - **Uptime Kuma monitoring** (`admin.limooo.cn`): MIT-licensed, free self-hosted monitoring dashboard with multi-language i18n and dark mode; it probes `/_health` for public pages/authentik and receives hourly D1 health status via Push heartbeat
+- **Health alert email**: `check_health.py` sends branded HTML email (logo, alert list, key metrics, CTA to `admin.limooo.cn`) with plain-text fallback; template is shared via `ops/email-templates/`
 - **Automatic IP blocking**:
   - Scans Nginx logs for malicious scan signatures (`/.env`, `/wp-admin`, `/actuator/`, etc.) and zero-tolerance bans the offending /24 subnet
   - Syncs to kernel-level `ipset` + `iptables` for network-layer drop

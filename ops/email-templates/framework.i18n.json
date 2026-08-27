@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "template": "framework",
+    "description": "通用邮件框架默认可选文案（四语种）。框架本身无主题文案，各服务单独提供主题正文；此处仅提供通用提示/页脚/按钮等可选默认值。",
+    "footer_brand": "LIMOOO",
+    "footer_suffix": "Studio",
+    "default_reply_to": "contact@limooo.cn",
+    "sender": "no-reply-<N>@limooo.cn"
+  },
+  "zh-cn": {
+    "default_button": "前往查看",
+    "default_hint": "如果您未发起此操作，可忽略本邮件。",
+    "footer_rights": "保留所有权利",
+    "common_title": "来自 Limooo Studio 的通知"
+  },
+  "en-us": {
+    "default_button": "View details",
+    "default_hint": "If you did not initiate this, you can safely ignore this email.",
+    "footer_rights": "All rights reserved",
+    "common_title": "A message from Limooo Studio"
+  },
+  "ja-jp": {
+    "default_button": "詳細を見る",
+    "default_hint": "ご自身で操作していない場合は、このメールを無視してください。",
+    "footer_rights": "無断転載禁止",
+    "common_title": "Limooo Studio からのお知らせ"
+  },
+  "ko-kr": {
+    "default_button": "자세히 보기",
+    "default_hint": "본인이 요청한 작업이 아니라면 이 이메일을 무시하셔도 됩니다.",
+    "footer_rights": "모든 권리 보유",
+    "common_title": "Limooo Studio의 알림"
+  }
+}

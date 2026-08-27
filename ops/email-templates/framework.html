@@ -1,0 +1,61 @@
+<!--
+  Limooo 通用邮件框架（HTML）— 供所有服务复用
+  - 版式：浅灰底 + 白色圆角卡片 + 居中 logo + 可变内容区 + 可选 CTA 按钮 + 分隔线 + 页脚
+  - 占位符（由 ops/email-templates/render.py 替换）：
+      TITLE 邮件标题（文案、粗体）      /  PREHEADER 收件箱预览隐藏文案（可选）
+      BODY 正文段落（支持 HTML）        /  CODE_BLOCK 可选高亮块（验证码/关键值；为空则该段不渲染）
+      CTA_LABEL / CTA_URL 可选主按钮    /  HINT 次要提示段落（可选）
+      FOOTER_RIGHTS 页脚版权后缀（四语种）
+  - 品牌：顶部 logo 用 images.limooo.cn（保留透明通道）；页脚 LIMOOO 用 Baloo 2（font-size:1.21em 补偿偏小字形）
+  - 内嵌 Baloo 2 变量字体（cid）用于页脚；不发信可不带附件
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html dir="ltr" lang="en">
+  <head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <meta name="x-apple-disable-message-reformatting"/>
+    <title>__TITLE__</title>
+    <style>@font-face{font-family:Baloo;src:url(cid:baloo2font) format('truetype');font-weight:100 900;}</style>
+  </head>
+  <body dir="ltr" lang="en" style="background-color:#f4f4f5;margin-top:0;margin-bottom:0;margin-right:0;margin-left:0">
+    <!-- 收件箱预览（隐藏），用于替代主题前缀文案 -->
+    <div style="display:none;font-size:1px;color:#f4f4f5;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">__PREHEADER__</div>
+    <table border="0" width="100%" cellPadding="0" cellSpacing="0" role="presentation" align="center"><tbody><tr>
+      <td dir="ltr" lang="en" style="background-color:#f4f4f5;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
+        <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation"
+          style="max-width:600px;background-color:#ffffff;border:1px solid #e4e4e7;border-radius:16px;margin:40px auto;
+          box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)">
+          <tbody><tr><td style="padding:32px">
+
+            <!-- 顶部 logo（透明通道） -->
+            <img alt="Limooo" src="https://images.limooo.cn/icons/Limooo-xtext.webp"
+              style="display:block;outline:none;border:none;text-decoration:none;margin:0 auto 2rem;width:160px;height:auto"/>
+
+            <!-- 标题 -->
+            <p style="font-size:18px;line-height:28px;color:#11181c;font-weight:600;margin:1rem 0 16px">__TITLE__</p>
+
+            <!-- 正文 -->
+            <div style="font-size:14px;line-height:24px;color:#71717a;margin:16px 0">__BODY__</div>
+
+            <!-- 高亮块（验证码/关键值，可选） -->
+            <!--BR_CHECK__CODE_BLOCK__-->
+
+            <!-- 主按钮 / CTA（可选） -->
+            <!--BR_CHECK__CTA_BLOCK__-->
+
+            <!-- 次要提示（可选） -->
+            <!--BR_CHECK__HINT__-->
+
+            <!-- 分隔线 -->
+            <hr style="border:none;border-top:1px solid #eaeaea;margin:24px 0"/>
+
+            <!-- 页脚 -->
+            <p style="font-size:12px;line-height:20px;color:#a1a1aa;text-align:center;margin:16px 0">&copy; 2026
+              <span style="font-family:Baloo;font-weight:700;font-size:1.21em;letter-spacing:1px;color:#a1a1aa">LIMOOO</span>
+              Studio | __FOOTER_RIGHTS__</p>
+
+          </td></tr></tbody></table>
+      </td>
+    </tr></tbody></table>
+  </body>
+</html>

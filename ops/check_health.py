@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import smtplib
@@ -32,6 +33,10 @@ from d1_client import cloudflare_config, d1_query, env_value, load_env  # noqa: 
 QUERY_FILE = ROOT / "ops" / "health_queries.sql"
 SMTP_ENV_FILE = ROOT / "secrets" / "smtp-relay.env"
 KUMA_ENV_FILE = ROOT / "secrets" / "uptime-kuma.env"
+EMAIL_TEMPLATES_DIR = ROOT / "ops" / "email-templates"
+sys.path.insert(0, str(EMAIL_TEMPLATES_DIR))
+from render import render_email  # noqa: E402
+
 HEALTH_LOG = Path(DATA_DIR) / "health_alerts.log"
 STATE_FILE = Path(DATA_DIR) / "health_alerts.state"
 
@@ -306,7 +311,12 @@ def mark_alert(keys: list[str]) -> None:
     _save_state(state)
 
 
-def send_alert(env: dict[str, str], subject: str, body: str) -> bool:
+def send_alert(
+    env: dict[str, str],
+    subject: str,
+    body: str,
+    html_body: str | None = None,
+) -> bool:
     host = env_value(
         env,
         "SMTP_HOST",
@@ -363,7 +373,12 @@ def send_alert(env: dict[str, str], subject: str, body: str) -> bool:
     message["Subject"] = subject
     message["From"] = from_addr
     message["To"] = to_addr
+    message["Reply-To"] = env_value(
+        env, "EMAIL_REPLY_TO", "ALERT_REPLY_TO", default="contact@limooo.cn"
+    )
     message.set_content(body)
+    if html_body:
+        message.add_alternative(html_body, subtype="html")
     try:
         if port == 465:
             server = smtplib.SMTP_SSL(host, port, timeout=15)
@@ -376,6 +391,94 @@ def send_alert(env: dict[str, str], subject: str, body: str) -> bool:
     except (OSError, smtplib.SMTPException):
         return False
     return True
+
+
+def _health_metrics(metrics: dict[str, Any]) -> list[tuple[str, str]]:
+    gate = metrics.get("gate_verify_1h", {})
+    login = metrics.get("login_callback_1h", {})
+    return [
+        ("门禁验证/1h", f"{gate.get('ok', 0)} / {gate.get('total', 0)}"),
+        ("门禁失败率/1h", f"{gate.get('failure_rate_pct', 0):.2f}%"),
+        ("登录失败率/1h", f"{login.get('failure_rate_pct', 0):.2f}%"),
+        ("页面请求/1h", str(metrics.get("page_requests_1h", 0))),
+        ("访客/1h", str(metrics.get("visitors_1h", 0))),
+        ("D1 写入错误/24h", str(metrics.get("d1_write_errors_24h", 0))),
+    ]
+
+
+def render_health_alert_email(
+    env: dict[str, str],
+    metrics: dict[str, Any],
+    alerts: list[dict[str, Any]],
+) -> tuple[str, str, str]:
+    """渲染健康告警邮件，返回 (subject, plaintext, html)。"""
+    lang = env_value(env, "HEALTH_EMAIL_LANG", default="zh-cn")
+    if lang not in ("zh-cn", "en-us", "ja-jp", "ko-kr"):
+        lang = "zh-cn"
+    with (EMAIL_TEMPLATES_DIR / "health-alert.i18n.json").open(
+        encoding="utf-8"
+    ) as f:
+        text = json.load(f)[lang]
+
+    alert_rows = "".join(
+        (
+            '<li style="margin:8px 0;line-height:22px;color:#7f1d1d">'
+            f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+            f'background-color:#ef4444;margin-right:8px"></span>{html.escape(item["message"])}</li>'
+        )
+        for item in alerts
+    )
+    metric_rows = "".join(
+        (
+            '<tr>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #f4f4f5;'
+            f'color:#71717a;font-size:13px">{html.escape(label)}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #f4f4f5;'
+            f'color:#11181c;font-size:13px;font-weight:600;text-align:right">'
+            f'{html.escape(value)}</td></tr>'
+        )
+        for label, value in _health_metrics(metrics)
+    )
+
+    body = (
+        f'<p>{html.escape(text["intro"])}</p>'
+        "<table style=\"width:100%;border-collapse:collapse;margin:20px 0\">"
+        "<tbody>"
+        f'<tr><td style="font-size:13px;font-weight:600;color:#11181c;'
+        f'padding:0 0 8px">{html.escape(text["alerts_heading"])}</td></tr>'
+        f"</tbody></table>"
+        f'<ul style="padding-left:18px;margin:0 0 20px">{alert_rows}</ul>'
+        "<table style=\"width:100%;border-collapse:collapse;margin:20px 0;"
+        "border:1px solid #e4e4e7;border-radius:12px;background-color:#f4f4f5\">"
+        "<tbody>"
+        f'<tr><td colspan="2" style="padding:12px;font-size:13px;font-weight:600;color:#11181c">'
+        f'{html.escape(text["metrics_heading"])}</td></tr>'
+        f"{metric_rows}"
+        "</tbody></table>"
+    )
+    plain = "\n".join(
+        [
+            text["title"],
+            text["intro"],
+            "",
+            text["alerts_heading"],
+            *[f"- {item['message']}" for item in alerts],
+            "",
+            text["metrics_heading"],
+            *[f"{label}: {value}" for label, value in _health_metrics(metrics)],
+        ]
+    )
+    html_body, _ = render_email(
+        lang,
+        title=text["title"],
+        body=body,
+        cta_label=text["view_monitors"],
+        cta_url="https://admin.limooo.cn",
+        hint=text["hint"],
+        preheader=f"{text['title']} · {len(alerts)}",
+        footer_rights=text["footer_rights"],
+    )
+    return text["subject"], plain, html_body
 
 
 def build_kuma_push_url(url: str, status: str, message: str) -> str:
@@ -497,11 +600,14 @@ def main() -> int:
         return 0
     if not alert_allowed([item["key"] for item in alerts]):
         return 0
-    body = "\n".join(f"- {item['message']}" for item in alerts)
+    subject, plain_body, html_body = render_health_alert_email(
+        env, metrics, alerts
+    )
     if send_alert(
         env,
-        "[Limooo] 健康检查告警",
-        f"检测到以下告警：\n\n{body}\n\n详见服务器 {HEALTH_LOG}",
+        subject,
+        plain_body,
+        html_body,
     ):
         mark_alert([item["key"] for item in alerts])
         return 0

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
 from ops import check_health
@@ -76,6 +78,52 @@ class HealthScriptTests(unittest.TestCase):
         self.assertIn("status=down", result)
         self.assertIn("msg=query_error", result)
         self.assertNotIn("msg=ok", result)
+
+    def test_health_alert_email_has_html_and_plain_parts(self) -> None:
+        metrics = check_health.evaluate_metrics({
+            "gate_verify_summary_1h": [{
+                "ok": 90, "failed": 9, "unavailable": 2, "total": 100,
+            }],
+            "login_callback_summary_1h": [{
+                "ok": 95, "failed": 5, "total": 100,
+            }],
+            "block_match_count_1h": [{"count": 3}],
+            "ray_request_count_1h": [{"count": 100}],
+            "d1_write_errors_24h": [{"count": 0}],
+            "visitor_trend_1h": [{
+                "current_hour": 40, "previous_hour": 100,
+            }],
+            "ray_status_distribution_1h": [],
+        })
+        subject, plain, html = check_health.render_health_alert_email(
+            {},
+            metrics,
+            [{"key": "visitor_drop", "message": "访客量下降 60.00%"}],
+        )
+        self.assertIn("[Limooo]", subject)
+        self.assertIn("访客量下降", plain)
+        self.assertIn("https://admin.limooo.cn", html)
+        self.assertIn("关键指标", html)
+        self.assertNotIn("__TITLE__", html)
+
+    def test_send_alert_builds_multipart_html_message(self) -> None:
+        from email.message import EmailMessage
+
+        message = EmailMessage()
+        message["Subject"] = "test"
+        message["From"] = "no-reply@limooo.cn"
+        message["To"] = "lime@limooo.cn"
+        message["Reply-To"] = "contact@limooo.cn"
+        message.set_content("plain")
+        message.add_alternative("<html><body>html</body></html>", subtype="html")
+
+        parsed = BytesParser(policy=policy.default).parsebytes(message.as_bytes())
+        self.assertEqual(parsed.get_content_type(), "multipart/alternative")
+        self.assertIn("plain", parsed.get_body(preferencelist=("plain",)).get_content())
+        self.assertIn(
+            "html",
+            parsed.get_body(preferencelist=("html",)).get_content(),
+        )
 
 
 if __name__ == "__main__":

@@ -1,59 +1,17 @@
 <!--
-  Limooo 验证码邮件模板（HTML）
-  - 四语种文案：见同目录 verification-code.i18n.json（zh-cn/en-us/ja-jp/ko-kr）
-  - 版式：浅灰底 + 白色圆角卡片 + 居中 logo + 绿色高亮验证码 + 分隔线 + 页脚
-  - 品牌：顶部 logo 用 images.limooo.cn（保留透明通道，避免 image.limooo.cn 丢失 alpha）
-  - 页脚 LIMOOO 用 Baloo 2（font-size:1.21em 补偿 Baloo 2 偏小的字形度量；邮件内嵌 CID 字体附件）
-  - 收件：收件人自定；BCC lime@limooo.cn；Reply-To contact@limooo.cn
-  - 注意：SMTP 走 smtp.feishu.cn:465；发送源 IP 在 Spamhaus 黑名单会被部分邮箱(如 iCloud) local policy 拒收
+  验证码邮件 —— 基于 framework.html 的用例（不再自带完整版式，改由 render.py 渲染）。
+
+  用法（Python）：
+      from render import render_email
+      html, plain = render_email(
+          lang="zh-cn",  # 或 en-us / ja-jp / ko-kr
+          title="您的验证码",
+          body="感谢您使用 Limooo Studio 的服务。请使用下方验证码完成您的请求。",
+          code="654321",
+          hint="如果您未发起此操作，可忽略本邮件。出于安全考虑，请勿将验证码告知任何人。",
+          preheader="您的验证码是 654321",
+      )
+
+  主题文案（subject / title / body / hint / plain）见 verification-code.i18n.json（四语种）。
+  版式与可选块（CTA / code 高亮 / hint）由 framework.html + render.py 提供。
 -->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html dir="ltr" lang="en">
-  <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
-    <meta name="x-apple-disable-message-reformatting"/>
-    <title>__TITLE__</title>
-    <!-- 内嵌 Baloo 2 变量字体（cid），用于页脚 LIMOOO；不发信则无需附件 -->
-    <style>@font-face{font-family:Baloo;src:url(cid:baloo2font) format('truetype');font-weight:100 900;}</style>
-  </head>
-  <body dir="ltr" lang="en" style="background-color:#f4f4f5;margin-top:0;margin-bottom:0;margin-right:0;margin-left:0">
-    <table border="0" width="100%" cellPadding="0" cellSpacing="0" role="presentation" align="center"><tbody><tr>
-      <td dir="ltr" lang="en" style="background-color:#f4f4f5;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
-        <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation"
-          style="max-width:600px;background-color:#ffffff;border:1px solid #e4e4e7;border-radius:16px;margin:40px auto;
-          box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)">
-          <tbody><tr><td style="padding:32px">
-
-            <!-- 顶部 logo（透明通道；用 images.limooo.cn） -->
-            <img alt="Limooo" src="https://images.limooo.cn/icons/Limooo-xtext.webp"
-              style="display:block;outline:none;border:none;text-decoration:none;margin:0 auto 2rem;width:160px;height:auto"/>
-
-            <!-- 标题 -->
-            <p style="font-size:18px;line-height:28px;color:#11181c;font-weight:600;margin:1rem 0 16px">__TITLE__</p>
-
-            <!-- 正文 -->
-            <p style="font-size:14px;line-height:24px;color:#71717a;margin:16px 0">__BODY__</p>
-
-            <!-- 验证码（绿色高亮） -->
-            <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation"
-              style="background-color:#f4f4f5;border-radius:12px;margin:24px 0;border:1px solid #e4e4e7">
-              <tbody><tr><td style="padding:24px;text-align:center">
-                <p style="font-size:32px;line-height:44px;color:#05A5A6;font-weight:600;letter-spacing:8px;margin:0;font-variant-numeric:tabular-nums">__CODE__</p>
-              </td></tr></tbody></table>
-
-            <!-- 提示 -->
-            <p style="font-size:14px;line-height:24px;color:#71717a;margin:16px 0">__HINT__</p>
-
-            <!-- 分隔线 -->
-            <hr style="border:none;border-top:1px solid #eaeaea;margin:24px 0"/>
-
-            <!-- 页脚 -->
-            <p style="font-size:12px;line-height:20px;color:#a1a1aa;text-align:center;margin:16px 0">&copy; 2026
-              <span style="font-family:Baloo;font-weight:700;font-size:1.21em;letter-spacing:1px;color:#a1a1aa">LIMOOO</span>
-              Studio | __FOOTER_RIGHTS__</p>
-
-          </td></tr></tbody></table>
-      </td>
-    </tr></tbody></table>
-  </body>
-</html>
