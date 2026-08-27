@@ -12,6 +12,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 - **Uptime Kuma monitoring** (`admin.limooo.cn`): MIT-licensed, free self-hosted monitoring dashboard with multi-language i18n and dark mode; it probes `/_health` for public pages/authentik and receives hourly D1 health status via Push heartbeat
 - **Health alert email**: `check_health.py` sends branded HTML email (logo, alert list, key metrics, CTA to `admin.limooo.cn`) with plain-text fallback; template is shared via `ops/email-templates/`
 - **Kuma brand skin**: `admin.limooo.cn` is reskinned with the main-site design tokens (`#1b1b1f`/white, `#05A5A6`, Inter + Baloo 2) via Nginx-injected CSS, without forking upstream
+- **Kuma fork frontend**: the deployed admin UI is built from a 2.5.3 front-end fork (`Kuma-Fork/`, branch `limooo-ui`) and mounted into the existing container; monitor names and push alerts are translated based on the current user language without storing a default
 - **Automatic IP blocking**:
   - Scans Nginx logs for malicious scan signatures (`/.env`, `/wp-admin`, `/actuator/`, etc.) and zero-tolerance bans the offending /24 subnet
   - Syncs to kernel-level `ipset` + `iptables` for network-layer drop

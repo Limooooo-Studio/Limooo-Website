@@ -12,6 +12,28 @@
 - 品牌皮肤：`kuma-admin-skin.css` 通过 Nginx `sub_filter` 注入，
   配色/字体/圆角对齐主站（暗色 `#1b1b1f`、浅色 `#ffffff`、强调色
   `#05A5A6`、Inter + Baloo 2）；升级 Kuma 不会覆盖皮肤
+- Fork 前端：完整重建后的前端位于 `kuma-dist/`，部署时挂载到容器
+  `/app/dist`；不修改上游 Docker 镜像，数据目录仍为 `/opt/uptime-kuma/data`
+- 用户语言：fork 内新增只读翻译层，按 Kuma 当前界面语言翻译
+  监控项名称和推送告警；不写入默认语言
+
+## Fork 源码与重建
+
+fork 源码保存在项目外层 `Kuma-Fork/`（2.5.3，分支 `limooo-ui`），
+不在站点 git 仓库中。修改后重新构建并把产物复制到 `kuma-dist/`：
+
+```bash
+cd /Users/lime/Documents/Project/Limooo/Kuma-Fork
+npm ci
+npm run build
+rsync -a dist/ /Users/lime/Documents/Project/Limooo/Flask/ops/uptime-kuma/kuma-dist/
+cd /Users/lime/Documents/Project/Limooo/Flask
+bash ops/uptime-kuma/deploy.sh
+```
+
+回滚 fork 前端：把 `deploy.sh` 中 `-v '$REMOTE_ROOT/dist:/app/dist'`
+一行移除，重新运行；或者将服务器备份原 dist 挂回
+`/opt/uptime-kuma/dist-original-*`。
 
 ## 主题调整
 

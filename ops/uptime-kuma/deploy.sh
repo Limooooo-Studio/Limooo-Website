@@ -18,6 +18,7 @@ SSH_OPTS=(-o LogLevel=ERROR -o ConnectTimeout=10)
 LOCAL_OPS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOCAL_COMPOSE="$LOCAL_OPS_DIR/uptime-kuma/compose.yaml"
 LOCAL_SKIN="$LOCAL_OPS_DIR/uptime-kuma/kuma-admin-skin.css"
+LOCAL_DIST="$LOCAL_OPS_DIR/uptime-kuma/kuma-dist"
 LOCAL_NGINX="$LOCAL_OPS_DIR/limooo.conf"
 DRY_RUN=0
 
@@ -38,6 +39,7 @@ if [ "$DRY_RUN" = 1 ]; then
     echo "[uptime-kuma] will-run: ssh $REMOTE_HOST mkdir -p $REMOTE_ROOT/data"
     echo "[uptime-kuma] will-run: scp compose.yaml -> $REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
     echo "[uptime-kuma] will-run: scp kuma-admin-skin.css -> $REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
+    echo "[uptime-kuma] will-run: rsync kuma-dist/ -> $REMOTE_HOST:$REMOTE_ROOT/dist/"
     echo "[uptime-kuma] will-run: docker pull $IMAGE"
     echo "[uptime-kuma] will-run: docker run -d --name $CONTAINER ... -p 127.0.0.1:3001:3001 -v $REMOTE_ROOT/data:/app/data $IMAGE"
     echo "[uptime-kuma] will-run: scp $LOCAL_NGINX -> /etc/nginx/conf.d/limooo.conf"
@@ -53,6 +55,10 @@ if [ ! -f "$LOCAL_SKIN" ]; then
     echo "FATAL: 找不到 kuma-admin-skin.css: $LOCAL_SKIN" >&2
     exit 2
 fi
+if [ ! -d "$LOCAL_DIST" ] || [ ! -f "$LOCAL_DIST/index.html" ]; then
+    echo "FATAL: 找不到构建产物 kuma-dist/index.html: $LOCAL_DIST" >&2
+    exit 2
+fi
 if [ ! -f "$LOCAL_NGINX" ]; then
     echo "FATAL: 找不到 nginx 配置: $LOCAL_NGINX" >&2
     exit 2
@@ -61,15 +67,17 @@ fi
 echo "[uptime-kuma] 1/6 创建远端数据目录"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/data'"
 
-echo "[uptime-kuma] 2/6 同步 compose.yaml 与品牌皮肤"
+echo "[uptime-kuma] 2/6 同步 compose.yaml、品牌皮肤与 fork dist"
 scp "${SSH_OPTS[@]}" "$LOCAL_COMPOSE" "$REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
 scp "${SSH_OPTS[@]}" "$LOCAL_SKIN" "$REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "chmod 0644 '$REMOTE_ROOT/kuma-admin-skin.css'"
+ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/dist'"
+rsync -a --delete "$LOCAL_DIST/" "$REMOTE_HOST:$REMOTE_ROOT/dist/"
 
 echo "[uptime-kuma] 3/6 拉取固定镜像 $IMAGE"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "docker pull '$IMAGE'"
 
-echo "[uptime-kuma] 4/6 重建容器（数据目录保持不变）"
+echo "[uptime-kuma] 4/6 重新创建容器（不重建镜像，数据目录保持不变）"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     if docker inspect '$CONTAINER' >/dev/null 2>&1; then
@@ -83,6 +91,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         -e TZ=Asia/Shanghai \
         -p 127.0.0.1:3001:3001 \
         -v '$REMOTE_ROOT/data:/app/data' \
+        -v '$REMOTE_ROOT/dist:/app/dist' \
         --label com.limooo.service=uptime-kuma \
         --label com.limooo.domain=admin.limooo.cn \
         '$IMAGE'
@@ -98,11 +107,16 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     systemctl reload nginx
 "
 
-echo "[uptime-kuma] 6/6 部署完成，等待服务就绪/检查:"
-sleep 2
+echo "[uptime-kuma] 6/6 等待服务就绪并检查"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
-    docker ps --filter name='^$CONTAINER$' --format 'status={{.Status}} ports={{.Ports}}'
     UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Safari/605.1.15'
-    curl -fsSL -A \"\$UA\" --max-time 15 http://127.0.0.1:3001/ >/dev/null && echo 'local http: OK'
-    curl -fsSL -A \"\$UA\" --max-time 15 https://admin.limooo.cn/ >/dev/null && echo 'public https: OK'
+    for i in \$(seq 1 20); do
+        if curl -fsSL -A \"\$UA\" --max-time 10 http://127.0.0.1:3001/api/entry-page >/dev/null 2>&1; then
+            break
+        fi
+        sleep 2
+    done
+    docker ps --filter name='^$CONTAINER$' --format 'status={{.Status}} ports={{.Ports}}'
+    curl -fsSL -A \"\$UA\" --max-time 15 http://127.0.0.1:3001/api/entry-page >/dev/null && echo 'local http: OK'
+    curl -fsSL -A \"\$UA\" --max-time 15 https://admin.limooo.cn/dashboard >/dev/null && echo 'public https: OK'
 "
