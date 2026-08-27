@@ -1,0 +1,383 @@
+/* Limooo · Uptime Kuma admin skin
+ *
+ * 配色与交互对齐主站 static/css/base.css：
+ * 暗色 #1b1b1f / 浅色 #ffffff，强调色 #05A5A6，
+ * 圆角 6/10/16，品牌字 Baloo 2，Inter 正文。
+ * 仅通过 admin.limooo.cn 的 Nginx sub_filter 注入，不改上游源码。
+ */
+
+@font-face {
+  font-family: "Inter";
+  src: url("https://images.limooo.cn/static/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Baloo 2";
+  src: url("https://images.limooo.cn/static/fonts/baloo2/baloo2-latin-wght-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --bg: #1b1b1f;
+  --text: #e2e2e3;
+  --line: #2e2e32;
+  --panel-bg: #202127;
+  --highlight: #2a2a2f;
+  --footer-border: #2e2e32;
+  --accent: #05a5a6;
+  --accent-glow: rgba(5, 165, 166, 0.2);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+  color-scheme: dark;
+}
+
+body.light,
+body:not(.dark) {
+  --bg: #ffffff;
+  --text: #1f2328;
+  --line: #e2e2e3;
+  --panel-bg: #f6f6f7;
+  --highlight: #f2f2f3;
+  --footer-border: #e2e2e3;
+  --accent: #05a5a6;
+  --accent-glow: rgba(5, 165, 166, 0.2);
+  color-scheme: light;
+}
+
+body {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background-color: var(--bg) !important;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 100;
+  width: 100%;
+  height: 70px;
+  max-width: 80rem;
+  padding: 0 20px;
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--line) !important;
+  transform: translateX(-50%);
+}
+
+header a.d-flex > object.bi {
+  display: none !important;
+}
+
+header .title {
+  font-size: 0 !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+header .title::before {
+  content: "LIMOOO";
+  display: inline-block;
+  font-family: "Baloo 2", ui-rounded, system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+header .title::after {
+  content: "MONITOR";
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text);
+  opacity: 0.4;
+  transform: translateY(-1px);
+}
+
+header .nav-pills .nav-link {
+  color: var(--text);
+  background: transparent !important;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  transition: color 200ms var(--ease-out);
+}
+
+header .nav-pills .nav-link:hover,
+header .nav-pills .nav-link.active {
+  color: var(--accent) !important;
+  background: transparent !important;
+}
+
+header .dropdown-profile-pic .nav-link {
+  color: var(--text);
+  background: transparent !important;
+  border-radius: var(--radius-md);
+}
+
+header .dropdown-profile-pic .nav-link:hover {
+  background: var(--highlight) !important;
+  color: var(--text);
+}
+
+header .profile-pic {
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+main {
+  padding-top: 105px;
+  padding-right: 20px;
+  padding-left: 20px;
+  min-height: 100vh;
+}
+
+main .container-fluid {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.title {
+  color: var(--text);
+}
+
+.btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  color: #fff !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active {
+  color: #fff !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  opacity: 0.75;
+}
+
+.btn-normal,
+.btn-outline-normal,
+.btn-outline-primary {
+  color: var(--text);
+  background: var(--highlight);
+  border: 1px solid var(--line);
+}
+
+.btn-normal:hover,
+.btn-outline-normal:hover,
+.btn-outline-primary:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.shadow-box,
+.list-group-item,
+.modal-content,
+.dropdown-menu {
+  color: var(--text);
+  background: var(--panel-bg) !important;
+  border-color: var(--line) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+body.light .shadow-box,
+body.light .list-group-item,
+body.light .modal-content,
+body.light .dropdown-menu,
+body:not(.dark) .shadow-box,
+body:not(.dark) .list-group-item,
+body:not(.dark) .modal-content,
+body:not(.dark) .dropdown-menu {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.list-group-item {
+  border-radius: var(--radius-md);
+  transition:
+    background 200ms var(--ease-out),
+    border-color 200ms var(--ease-out);
+}
+
+.list-group-item:hover {
+  background: var(--highlight) !important;
+  border-color: var(--accent);
+}
+
+.form-control,
+.form-select,
+input.form-control {
+  color: var(--text);
+  background: var(--highlight);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.form-control:focus,
+.form-select:focus {
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.form-check-input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.form-check-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+.modal-backdrop.show {
+  opacity: 0.55;
+}
+
+.dropdown-menu {
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  margin-top: 8px !important;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  color: var(--text);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  color: var(--accent);
+  background: var(--highlight);
+}
+
+.form-container {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.form-container .form {
+  max-width: 390px;
+  padding: 32px !important;
+  color: var(--text);
+  background: var(--panel-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+body.light .form-container .form,
+body:not(.dark) .form-container .form {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.alert {
+  border-radius: var(--radius-sm);
+}
+
+.table {
+  color: var(--text);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--highlight);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (max-width: 770px) {
+  header {
+    height: 64px;
+    padding: 0 14px;
+  }
+
+  header .title::after {
+    font-size: 9px;
+  }
+
+  main {
+    padding-top: 96px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}

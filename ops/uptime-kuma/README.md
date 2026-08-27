@@ -9,6 +9,21 @@
 - 访问：`https://admin.limooo.cn`
 - 网络：Docker 只绑定本机 `127.0.0.1:3001`，由 Nginx 反向代理，
   Cloudflare 代理后仍走 VPS Origin CA 证书，不直接暴露 3001 端口
+- 品牌皮肤：`kuma-admin-skin.css` 通过 Nginx `sub_filter` 注入，
+  配色/字体/圆角对齐主站（暗色 `#1b1b1f`、浅色 `#ffffff`、强调色
+  `#05A5A6`、Inter + Baloo 2）；升级 Kuma 不会覆盖皮肤
+
+## 主题调整
+
+修改 `kuma-admin-skin.css` 后同步到服务器，并把 Nginx 中
+`/limooo-admin-skin.css?v=N` 的版本号递增，避免浏览器缓存旧样式：
+
+```bash
+bash ops/uptime-kuma/deploy.sh
+```
+
+回滚：删除 `ops/limooo.conf` 中 admin server 的 `sub_filter` 行，
+或改回 `/limooo-admin-skin.css?v=N` 为空即可，不需要重建容器。
 
 ## 首次部署
 

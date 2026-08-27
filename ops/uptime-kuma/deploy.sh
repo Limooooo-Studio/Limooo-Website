@@ -17,6 +17,7 @@ NOW="$(date '+%Y%m%d-%H%M%S')"
 SSH_OPTS=(-o LogLevel=ERROR -o ConnectTimeout=10)
 LOCAL_OPS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOCAL_COMPOSE="$LOCAL_OPS_DIR/uptime-kuma/compose.yaml"
+LOCAL_SKIN="$LOCAL_OPS_DIR/uptime-kuma/kuma-admin-skin.css"
 LOCAL_NGINX="$LOCAL_OPS_DIR/limooo.conf"
 DRY_RUN=0
 
@@ -36,6 +37,7 @@ if [ "$DRY_RUN" = 1 ]; then
     echo "[uptime-kuma] DRY-RUN：不连接服务器、不创建容器、不改 Nginx。"
     echo "[uptime-kuma] will-run: ssh $REMOTE_HOST mkdir -p $REMOTE_ROOT/data"
     echo "[uptime-kuma] will-run: scp compose.yaml -> $REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
+    echo "[uptime-kuma] will-run: scp kuma-admin-skin.css -> $REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
     echo "[uptime-kuma] will-run: docker pull $IMAGE"
     echo "[uptime-kuma] will-run: docker run -d --name $CONTAINER ... -p 127.0.0.1:3001:3001 -v $REMOTE_ROOT/data:/app/data $IMAGE"
     echo "[uptime-kuma] will-run: scp $LOCAL_NGINX -> /etc/nginx/conf.d/limooo.conf"
@@ -47,21 +49,27 @@ if [ ! -f "$LOCAL_COMPOSE" ]; then
     echo "FATAL: 找不到 compose.yaml: $LOCAL_COMPOSE" >&2
     exit 2
 fi
+if [ ! -f "$LOCAL_SKIN" ]; then
+    echo "FATAL: 找不到 kuma-admin-skin.css: $LOCAL_SKIN" >&2
+    exit 2
+fi
 if [ ! -f "$LOCAL_NGINX" ]; then
     echo "FATAL: 找不到 nginx 配置: $LOCAL_NGINX" >&2
     exit 2
 fi
 
-echo "[uptime-kuma] 1/5 创建远端数据目录"
+echo "[uptime-kuma] 1/6 创建远端数据目录"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/data'"
 
-echo "[uptime-kuma] 2/5 同步 compose.yaml"
+echo "[uptime-kuma] 2/6 同步 compose.yaml 与品牌皮肤"
 scp "${SSH_OPTS[@]}" "$LOCAL_COMPOSE" "$REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
+scp "${SSH_OPTS[@]}" "$LOCAL_SKIN" "$REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
+ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "chmod 0644 '$REMOTE_ROOT/kuma-admin-skin.css'"
 
-echo "[uptime-kuma] 3/5 拉取固定镜像 $IMAGE"
+echo "[uptime-kuma] 3/6 拉取固定镜像 $IMAGE"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "docker pull '$IMAGE'"
 
-echo "[uptime-kuma] 4/5 重建容器（数据目录保持不变）"
+echo "[uptime-kuma] 4/6 重建容器（数据目录保持不变）"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     if docker inspect '$CONTAINER' >/dev/null 2>&1; then
@@ -80,7 +88,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         '$IMAGE'
 "
 
-echo "[uptime-kuma] 5/5 更新 admin.limooo.cn Nginx 配置"
+echo "[uptime-kuma] 5/6 更新 admin.limooo.cn Nginx 配置"
 scp "${SSH_OPTS[@]}" "$LOCAL_NGINX" "$REMOTE_HOST:/tmp/limooo.conf.$NOW"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
@@ -90,7 +98,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     systemctl reload nginx
 "
 
-echo "[uptime-kuma] 部署完成，等待服务就绪/检查:"
+echo "[uptime-kuma] 6/6 部署完成，等待服务就绪/检查:"
 sleep 2
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     docker ps --filter name='^$CONTAINER$' --format 'status={{.Status}} ports={{.Ports}}'
