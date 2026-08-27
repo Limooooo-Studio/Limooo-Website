@@ -81,6 +81,38 @@ def _remove_bad_artifacts(root: str) -> None:
         for name in dirnames:
             if name == "__pycache__":
                 shutil.rmtree(os.path.join(dirpath, name), ignore_errors=True)
+
+
+def write_pages_edge_config(out_dir: str) -> None:
+    """生成 Pages _routes.json 与 _headers，静态资源不再进 Functions。"""
+    with open(os.path.join(out_dir, "_routes.json"), "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "version": 1,
+                "include": ["/*"],
+                "exclude": [
+                    "/static/*",
+                    "/favicon.ico",
+                    "/Limooo-xtext.webp",
+                ],
+            },
+            f,
+            indent=2,
+        )
+        f.write("\n")
+    with open(os.path.join(out_dir, "_headers"), "w", encoding="utf-8") as f:
+        f.write(
+            "/static/*\n"
+            "  Cache-Control: public, max-age=86400, stale-while-revalidate=86400\n"
+            "/static/*.css\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.js\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.woff2\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+        )
+
+
 PORTFOLIO_THUMB_QUALITY = 80
 
 
@@ -587,6 +619,10 @@ def main() -> int:
         shutil.rmtree(PUBLIC_DIR)
     os.makedirs(PUBLIC_DIR)
 
+    # Pages 边缘配置：静态资源完全绕过 Functions（否则每次请求都先冷启动
+    # 中间件后再读 ASSETS）；公开 HTML 仍由中间件按语言/门禁路由。
+    write_pages_edge_config(PUBLIC_DIR)
+
     # 1) 每个语言渲染所有公开页面
     for lang in LANGS:
         lang_dir = os.path.join(PUBLIC_DIR, lang)
@@ -648,10 +684,11 @@ def main() -> int:
         if name.endswith(".html"):
             html = open(os.path.join(src, name), encoding="utf-8").read()
             # 资源引用本地化：https://limooo.cn/static/... 与
-            # https://image.limooo.cn/...（不带 /static 前缀）→ ../static/...
+            # https://images.limooo.cn/static/... 与 image.limooo.cn/...
+            # → ../static/...
             # （只替换 HTML 标签属性，不碰 JS 里的绝对 URL）
             html = re.sub(
-                r'(src|href|data-qr)="https://(?:limooo\.cn/static|image\.limooo\.cn)/',
+                r'(src|href|data-qr)="https://(?:limooo\.cn/static|images\.limooo\.cn/static|image\.limooo\.cn)/',
                 r'\1="../static/',
                 html,
             )

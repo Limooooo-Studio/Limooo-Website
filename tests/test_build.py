@@ -1,5 +1,6 @@
 """构建脚本纯函数测试（不写 public/ 产物）。"""
 
+import json
 from pathlib import Path
 
 import build
@@ -35,6 +36,24 @@ def test_body_translation_dict_does_not_collide_with_i18n_markers():
     assert "getAttribute('data-i18n-dict')" in base_js.read_text(encoding="utf-8")
 
 
+def test_home_image_urls_use_edge_cached_asset_host():
+    html = build.render_page(app, "index.html", "/", "zh-cn")
+    assert "https://images.limooo.cn/static/portfolio/thumbs/" in html
+    assert "https://image.limooo.cn/portfolio/thumbs/" not in html
+
+
+def test_contact_prerenders_all_qr_images():
+    html = build.render_page(app, "contact.html", "/contact", "zh-cn")
+    preloads = html.split('rel="preload" as="image" type="image/webp"')[1:]
+
+    assert len(preloads) == 4
+    assert all('(hover: hover) and (pointer: fine)' in link for link in preloads)
+    assert "/qr-codes/bilibili.webp" in preloads[0]
+    assert "/qr-codes/qq.webp" in preloads[1]
+    assert "/qr-codes/wechat.webp" in preloads[2]
+    assert "/qr-codes/mail-services-zh-cn.webp" in preloads[3]
+
+
 def test_theme_challenge_uses_gate_url_and_skips_gate_page():
     html = build.render_page(app, "index.html", "/", "zh-cn")
     assert 'data-gate-url="https://auth.limooo.cn/__gate"' in html
@@ -67,6 +86,20 @@ def test_static_ignore_skips_parallel_artifacts():
         "legacy.bak",
         "__pycache__",
     }
+
+
+def test_pages_edge_config_excludes_static_assets(tmp_path):
+    build.write_pages_edge_config(str(tmp_path))
+
+    routes = json.loads((tmp_path / "_routes.json").read_text(encoding="utf-8"))
+    assert routes["version"] == 1
+    assert "/static/*" in routes["exclude"]
+    assert "/favicon.ico" in routes["exclude"]
+
+    headers = (tmp_path / "_headers").read_text(encoding="utf-8")
+    assert "Cache-Control: public, max-age=86400" in headers
+    assert "Cache-Control: public, max-age=31536000, immutable" in headers
+    assert "stale-while-revalidate=86400" in headers
 
 
 def test_remove_bad_artifacts(tmp_path):

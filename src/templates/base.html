@@ -35,9 +35,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% endblock %}
 
     <!-- ── 图标 ── -->
-    <link rel="icon" href="{{ image_asset_base }}/icons/favicon.ico" sizes="any">
-    <link rel="icon" href="{{ image_asset_base }}/icons/favicon.png" type="image/png" sizes="256x256">
-    <link rel="apple-touch-icon" href="{{ image_asset_base }}/icons/favicon.png">
+    <link rel="icon" href="{{ image_asset_base }}/static/icons/favicon.ico" sizes="any">
+    <link rel="icon" href="{{ image_asset_base }}/static/icons/favicon.png" type="image/png" sizes="256x256">
+    <link rel="apple-touch-icon" href="{{ image_asset_base }}/static/icons/favicon.png">
+    <link rel="preconnect" href="{{ image_asset_base }}">
+    <link rel="dns-prefetch" href="{{ image_asset_base }}">
+    <link rel="preconnect" href="{{ image_watermark_base }}">
+    <link rel="dns-prefetch" href="{{ image_watermark_base }}">
 
 <!-- Tailwind CSS（本地预编译，替代 Play CDN 运行时编译：消除 ~400KB 渲染阻塞脚本 + 依赖第三方 CDN） -->
     <link rel="stylesheet" href="/static/tailwind.css?v=4">
@@ -46,7 +50,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <link rel="stylesheet" href="/static/fonts.css?v=3">
 
 <!-- 站点基础样式（由模板内联样式轻量化后抽出的统一 CSS） -->
-    <link rel="stylesheet" href="/static/css/base.css?v=12">
+    <link rel="stylesheet" href="/static/css/base.css?v=13">
 
     {% block head_links %}{% endblock %}
 </head>
@@ -145,7 +149,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% endblock %}
 
     <script src="/static/js/actions.js?v=1" defer></script>
-    <script src="/static/js/base.js?v=6" defer></script>
+    <script src="/static/js/base.js?v=7" defer></script>
     {% block scripts %}{% endblock %}
     {% block page_scripts %}{% endblock %}
 </body>

@@ -227,24 +227,24 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
        跨页预取:当前页加载完成后后台预取另外两个主页(HTML + 图片)
        - HTML 用 <link rel=prefetch> 原生缓存(带 cookie 保持语言一致,
          不支持/不缓存时优雅降级)
-       - 图片用 new Image() 预热 HTTP 缓存(image.limooo.cn 由 Worker
-         路由到 limooo.cn/static,跳转后秒出图)
+       - 图片用 new Image() 预热 HTTP 缓存；主页走 images.limooo.cn
+         的静态边缘缓存，联系页二维码继续走 image.limooo.cn Worker
        - 移动端不预取二维码(contact 页二维码仅桌面悬停展示)
        - 图片清单与 index.html / contact.html 的 src 保持同步
        ═══════════════════════════════════════════════════════════════ */
     var PAGE_MANIFEST = {
         '/':        { host: 'limooo.cn',          path: '/',        images: [
-                        '/portfolio/thumbs/IMG_0203-800.webp',
-                        '/portfolio/thumbs/IMG_0146-800.webp',
-                        '/portfolio/thumbs/IMG_0130-800.webp',
-                        '/portfolio/thumbs/IMG_0244-800.webp',
-                        '/portfolio/thumbs/IMG_0115-800.webp',
-                        '/portfolio/thumbs/IMG_0179-800.webp' ] },
+                        '/static/portfolio/thumbs/IMG_0203-800.webp',
+                        '/static/portfolio/thumbs/IMG_0146-800.webp',
+                        '/static/portfolio/thumbs/IMG_0130-800.webp',
+                        '/static/portfolio/thumbs/IMG_0244-800.webp',
+                        '/static/portfolio/thumbs/IMG_0115-800.webp',
+                        '/static/portfolio/thumbs/IMG_0179-800.webp' ], assetBase: true },
         '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
         '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
                         '/qr-codes/bilibili.webp',
                         '/qr-codes/qq.webp',
-                        '/qr-codes/wechat.webp' ], qr: true }
+                        '/qr-codes/wechat.webp' ], qr: true, assetBase: false }
     };
 
     /* 当前所在主页键;生产按子域判断,本地开发按路径 */
@@ -257,10 +257,19 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         return location.pathname;                    /* 本地开发:'/'|'/services'|'/contact' */
     }
 
-    /* 生产图片统一走 image.limooo.cn(Worker 路由到 limooo.cn/static,URL 不带 /static 前缀),本地走当前 origin */
-    function pageOrigin() {
-        var base = document.body && document.body.getAttribute('data-image-watermark-base');
-        return location.hostname.endsWith('limooo.cn') ? (base || 'https://image.limooo.cn') : location.origin;
+    /* 主页图片直接用 images.limooo.cn/static（静态边缘缓存）；
+       二维码仍由 image.limooo.cn Worker 按 Referer 选择水印。 */
+    function pageOrigin(key) {
+        var manifest = PAGE_MANIFEST[key];
+        var attr = manifest && manifest.assetBase
+            ? 'data-image-asset-base'
+            : 'data-image-watermark-base';
+        var base = document.body && document.body.getAttribute(attr);
+        return location.hostname.endsWith('limooo.cn')
+            ? (base || (manifest && manifest.assetBase
+                ? 'https://images.limooo.cn'
+                : 'https://image.limooo.cn'))
+            : location.origin;
     }
 
     /* 兄弟页 HTML 地址:生产为子域根(nginx 根即页面),本地为同源 + 路径 */
@@ -273,8 +282,8 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         var cur = currentPageKey();
         if (!PAGE_MANIFEST[cur]) return;
         var desktop = window.matchMedia('(hover: hover)').matches;
-        var origin = pageOrigin();
         Object.keys(PAGE_MANIFEST).forEach(function(key) {
+            var origin = pageOrigin(key);
             if (key === cur) return;                     /* 当前页已加载 */
             var l = document.createElement('link');
             l.rel = 'prefetch'; l.href = siblingHref(key);

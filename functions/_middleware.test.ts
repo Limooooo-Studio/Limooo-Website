@@ -80,4 +80,29 @@ describe("force theme challenge", () => {
     expect(resp.status).toBe(200);
     expect(await resp.text()).toBe("next");
   });
+
+  it("serves public pages with edge-cache headers", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/", {
+          headers: {
+            "CF-Connecting-IP": "97.64.18.11",
+            Cookie: "user_lang_preference=zh-cn",
+          },
+        }),
+        {
+          ASSETS: {
+            fetch: async () =>
+              new Response("<html>home</html>", {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+              }),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("Cache-Control")).toContain("s-maxage=300");
+    expect(resp.headers.get("Vary")).toContain("Accept-Language");
+  });
 });

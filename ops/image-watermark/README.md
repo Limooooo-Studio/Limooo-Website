@@ -24,7 +24,8 @@ Watermark 变体不在 Worker 里实时合成（Workers Free 套餐单次 CPU 10
 
 ## 缓存策略
 
-- 浏览器侧：`Cache-Control: private, max-age=86400` —— 共享缓存不缓存，避免两种变体串发。
+- 浏览器/边缘侧：`Cache-Control: public, max-age=86400, s-maxage=86400`，
+  配合 `Vary: Referer` 让两种变体按来源分别缓存，避免串发。
 - Worker 侧：按回源 URL（原图/水印变体是不同 URL）写入 Cache API（`public, max-age=86400`），
   互不污染，回源最多每天一次。
 

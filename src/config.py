@@ -186,12 +186,12 @@ APPLEID_KEY_FILE = os.path.join(SECRET_DIR, "appleid_encryption.key")
 
 # ── 统一跳转页预热图片（与 Page 端 manifest 及 Pages 中间件保持一致） ──
 REDIRECT_PRELOAD_IMAGES = [
-    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0203-800.webp",
-    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0146-800.webp",
-    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0130-800.webp",
-    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0244-800.webp",
-    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0115-800.webp",
-    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0179-800.webp",
+    f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0203-800.webp",
+    f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0146-800.webp",
+    f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0130-800.webp",
+    f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0244-800.webp",
+    f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0115-800.webp",
+    f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0179-800.webp",
 ]
 
 # ── 登录使用的 authentik 信息 ─────────────────────────────

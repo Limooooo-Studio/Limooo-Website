@@ -10,7 +10,7 @@
  *     无 Referer 或来自其他站点 → 返回水印变体（limooo.cn/static/wm/<path>，
  *     由 src/build.py 构建时用 Pillow 预先生成）。
  *  3. 非图片请求直接透传 limooo.cn 的响应，不做任何处理。
- *  4. 缓存：浏览器侧 private（共享缓存不缓存，因为响应依赖 Referer），
+ *  4. 缓存：响应按 Referer 区分（Vary: Referer），并允许浏览器/边缘缓存；
  *     Worker 内按「回源 URL」走 Cache API，原图与水印变体是不同 URL，
  *     天然互不污染。
  */
@@ -21,7 +21,8 @@ const ORIGIN = "https://limooo.cn";
 const IMAGE_PATH_RE = /\.(png|jpe?g|webp|avif|gif|bmp|ico)$/i;
 
 // 浏览器缓存 1 天；private 确保共享缓存不会把两种变体混发
-const CLIENT_CACHE = "private, max-age=86400";
+const CLIENT_CACHE =
+  "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400";
 
 // 水印变体版本号：改了水印外观（src/build.py 的生成参数）后 +1，
 // 让 Worker 用新的回源 URL 绕过 CDN/本地缓存里的旧版水印图

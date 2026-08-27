@@ -22,9 +22,18 @@ import {
 import { GATE_I18N } from "../_data/runtime";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-const SITEVERIFY_TIMEOUT_MS = 8000;
+const SITEVERIFY_TIMEOUT_MS = 3000;
 
 const textEncoder = new TextEncoder();
+
+/** 门禁事件日志异步写入，不阻塞验证结果的返回。 */
+function deferLog(context: RequestContext, promise: Promise<unknown>): void {
+  if (typeof context.waitUntil === "function") {
+    context.waitUntil(promise);
+  } else {
+    void promise;
+  }
+}
 
 function toHex(bytes: Uint8Array): string {
   let out = "";
@@ -263,12 +272,15 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
   try {
     form = await request.formData();
   } catch {
-    await logEvent(env, "gate_verify", request, {
-      outcome: "failed",
-      status: 400,
-      durationMs: Date.now() - startedAt,
-      message: "invalid_form",
-    });
+    deferLog(
+      context,
+      logEvent(env, "gate_verify", request, {
+        outcome: "failed",
+        status: 400,
+        durationMs: Date.now() - startedAt,
+        message: "invalid_form",
+      }),
+    );
     return renderGatePage(context, { errorKey: "invalid" });
   }
 
@@ -290,18 +302,21 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
   }
 
   if (!success) {
-    await logEvent(env, "gate_verify", request, {
-      outcome: unavailable ? "unavailable" : "failed",
-      status: unavailable ? 503 : 403,
-      durationMs: Date.now() - startedAt,
-      message: unavailable
-        ? env.TURNSTILE_SECRET
-          ? "turnstile_unavailable"
-          : "turnstile_secret_missing"
-        : token
-          ? "turnstile_rejected"
-          : "missing_token",
-    });
+    deferLog(
+      context,
+      logEvent(env, "gate_verify", request, {
+        outcome: unavailable ? "unavailable" : "failed",
+        status: unavailable ? 503 : 403,
+        durationMs: Date.now() - startedAt,
+        message: unavailable
+          ? env.TURNSTILE_SECRET
+            ? "turnstile_unavailable"
+            : "turnstile_secret_missing"
+          : token
+            ? "turnstile_rejected"
+            : "missing_token",
+      }),
+    );
     return renderGatePage(context, {
       host,
       next,
@@ -311,12 +326,15 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
   }
 
   const cookie = await mintGateCookie(env.GATE_HMAC_KEY);
-  await logEvent(env, "gate_verify", request, {
-    outcome: "success",
-    status: 302,
-    durationMs: Date.now() - startedAt,
-    message: "cookie_issued",
-  });
+  deferLog(
+    context,
+    logEvent(env, "gate_verify", request, {
+      outcome: "success",
+      status: 302,
+      durationMs: Date.now() - startedAt,
+      message: "cookie_issued",
+    }),
+  );
 
   // 验证成功只签发 __gate cookie；若再叠加语言 cookie，Workers 会把两条
   // Set-Cookie 合并，Safari 只认第一条。

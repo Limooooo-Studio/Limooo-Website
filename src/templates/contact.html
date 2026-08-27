@@ -20,6 +20,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}Limooo - Contact{% endblock %}
 
 {% block head_links %}
+    <!-- 二维码预加载：HTML 解析阶段即开始，悬停浮层无需等待 Worker 回源；
+         移动端不展示浮层，通过 media 条件跳过额外下载 -->
+    <link rel="preload" as="image" type="image/webp" href="{{ image_watermark_base }}/qr-codes/bilibili.webp"
+        media="(hover: hover) and (pointer: fine)" referrerpolicy="origin">
+    <link rel="preload" as="image" type="image/webp" href="{{ image_watermark_base }}/qr-codes/qq.webp"
+        media="(hover: hover) and (pointer: fine)" referrerpolicy="origin">
+    <link rel="preload" as="image" type="image/webp" href="{{ image_watermark_base }}/qr-codes/wechat.webp"
+        media="(hover: hover) and (pointer: fine)" referrerpolicy="origin">
+    <link rel="preload" as="image" type="image/webp" href="{{ _('email_qr') }}"
+        media="(hover: hover) and (pointer: fine)" referrerpolicy="origin">
 <link rel="stylesheet" href="/static/css/contact.css?v=1">
 {% endblock %}
 

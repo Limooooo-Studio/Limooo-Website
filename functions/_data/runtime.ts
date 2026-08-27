@@ -92,10 +92,10 @@ export const REDIRECT_I18N: Record<string, { title: string; text: string; footer
   }
 };
 export const REDIRECT_PRELOAD_IMAGES = [
-  "https://image.limooo.cn/portfolio/thumbs/IMG_0203-800.webp",
-  "https://image.limooo.cn/portfolio/thumbs/IMG_0146-800.webp",
-  "https://image.limooo.cn/portfolio/thumbs/IMG_0130-800.webp",
-  "https://image.limooo.cn/portfolio/thumbs/IMG_0244-800.webp",
-  "https://image.limooo.cn/portfolio/thumbs/IMG_0115-800.webp",
-  "https://image.limooo.cn/portfolio/thumbs/IMG_0179-800.webp"
+  "https://images.limooo.cn/static/portfolio/thumbs/IMG_0203-800.webp",
+  "https://images.limooo.cn/static/portfolio/thumbs/IMG_0146-800.webp",
+  "https://images.limooo.cn/static/portfolio/thumbs/IMG_0130-800.webp",
+  "https://images.limooo.cn/static/portfolio/thumbs/IMG_0244-800.webp",
+  "https://images.limooo.cn/static/portfolio/thumbs/IMG_0115-800.webp",
+  "https://images.limooo.cn/static/portfolio/thumbs/IMG_0179-800.webp"
 ];

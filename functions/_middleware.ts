@@ -28,6 +28,7 @@ import {
   GATE_COOKIE,
   GATE_HOSTNAME,
   IMAGES_HOSTNAME,
+  LANG_COOKIE,
   VISITOR_HOSTNAME,
   WWW_HOSTNAME,
 } from "./_lib/config";
@@ -50,6 +51,67 @@ import {
 } from "./_lib/tracking";
 
 type PagesFunction = (context: RequestContext) => Promise<Response>;
+
+/** 非业务日志必须在响应返回后写入，不能阻塞页面/跳转。 */
+function defer(context: RequestContext, promise: Promise<unknown>): void {
+  if (typeof context.waitUntil === "function") {
+    context.waitUntil(promise);
+  } else {
+    void promise;
+  }
+}
+
+/** 公开预渲染页面的边缘缓存策略。 */
+const PAGE_CACHE_CONTROL =
+  "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
+const PAGE_CACHE_VARY = "Accept-Language";
+
+type CacheLike = {
+  match(request: RequestInfo): Promise<Response | undefined>;
+  put(request: RequestInfo, response: Response): Promise<void>;
+};
+
+/** 按语言缓存预渲染页面，避免每次请求都重复读取 ASSETS。 */
+async function cachedPageAsset(
+  context: RequestContext,
+  assetPath: string,
+  lang: string,
+): Promise<Response | null> {
+  const { env, request } = context;
+  if (!env.ASSETS) return null;
+
+  const cacheUrl = new URL(assetPath, BASE_URL);
+  cacheUrl.searchParams.set("__cache", "1");
+  cacheUrl.searchParams.set("lang", lang);
+  const cache = typeof caches !== "undefined"
+    ? (caches as unknown as { default?: CacheLike }).default
+    : undefined;
+
+  if (cache) {
+    const hit = await cache.match(new Request(cacheUrl));
+    if (hit) return hit;
+  }
+
+  const asset = await env.ASSETS.fetch(new URL(assetPath, BASE_URL));
+  if (!asset.ok) return asset;
+
+  const headers = new Headers(asset.headers);
+  headers.set("Cache-Control", PAGE_CACHE_CONTROL);
+  headers.set("Vary", PAGE_CACHE_VARY);
+  const response = new Response(await asset.arrayBuffer(), {
+    status: asset.status,
+    statusText: asset.statusText,
+    headers,
+  });
+
+  // 首次访问还没有语言 cookie 时会补 Set-Cookie，因此只缓存后续请求。
+  if (cache && getCookie(LANG_COOKIE, request.headers.get("Cookie"))) {
+    const put = cache.put(new Request(cacheUrl), response.clone());
+    context.waitUntil?.(put);
+    if (!context.waitUntil) void put;
+  }
+  return response;
+}
 
 /** 统一注入安全响应头；API 只加 nosniff，避免破坏 JSON 接口。 */
 export function withSecurityHeaders(request: Request, resp: Response): Response {
@@ -144,16 +206,10 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   if (hostname === IMAGES_HOSTNAME) {
     const lang = detectLang(request);
     const page = pageAsset(hostname, pathname, lang);
-    if (page && env.ASSETS) {
-      const resp = await env.ASSETS.fetch(new URL(page, BASE_URL));
-      if (resp.ok) {
-        return withLangCookie(request, new Response(resp.body, {
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "private, max-age=300",
-            "Vary": "Cookie",
-          },
-        }));
+    if (page) {
+      const resp = await cachedPageAsset(context, page, lang);
+      if (resp?.ok) {
+        return withLangCookie(request, resp);
       }
     }
     if (env.ASSETS) {
@@ -201,12 +257,15 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   // 快速切换主题触发的强制挑战：即使来自中国大陆 ASN、白名单 IP、
   // 只有有效 __gate cookie 或经 Cloudflare verifiedBot 验证才放行；cf_clearance 不再作为绕过依据。
   if (forceChallenge && hostname !== GATE_HOSTNAME) {
-    await logEvent(env, "gate_redirect", request, {
-      outcome: "forced",
-      status: 302,
-      path: pathname,
-      message: "force_theme_challenge",
-    });
+    defer(
+      context,
+      logEvent(env, "gate_redirect", request, {
+        outcome: "forced",
+        status: 302,
+        path: pathname,
+        message: "force_theme_challenge",
+      }),
+    );
     return forceGateRedirect(request, hostname, pathname, url.search);
   }
 
@@ -219,12 +278,15 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
 
   if (!gated && !forceChallenge) {
     if (whitelisted || trustedCrawler) {
-      await logEvent(env, "gate_bypass", request, {
-        outcome: "trusted",
-        status: 200,
-        path: pathname,
-        message: whitelisted ? "gate_whitelist" : "cf_verified_bot",
-      });
+      defer(
+        context,
+        logEvent(env, "gate_bypass", request, {
+          outcome: "trusted",
+          status: 200,
+          path: pathname,
+          message: whitelisted ? "gate_whitelist" : "cf_verified_bot",
+        }),
+      );
     }
     // 已通过门禁；若仍停在验证子域，送回原主机原路径。
     if (hostname === GATE_HOSTNAME) {
@@ -243,20 +305,13 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
       return withLangCookie(request, resp);
     }
 
-    const asset = pageAsset(hostname, pathname, detectLang(request));
-    if (asset && env.ASSETS) {
+    const lang = detectLang(request);
+    const asset = pageAsset(hostname, pathname, lang);
+    if (asset) {
       const authRedirect = await adminAuthRedirect(env, request, hostname);
       if (authRedirect) return withLangCookie(request, authRedirect);
-      const resp = await env.ASSETS.fetch(new URL(asset, BASE_URL));
-      if (resp.ok) {
-        return withLangCookie(request, new Response(resp.body, {
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "private, max-age=300",
-            "Vary": "Cookie",
-          },
-        }));
-      }
+      const resp = await cachedPageAsset(context, asset, lang);
+      if (resp?.ok) return withLangCookie(request, resp);
     }
     return next();
   }
@@ -266,12 +321,15 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     const gateUrl = new URL("/__gate", `https://${GATE_HOSTNAME}/`);
     gateUrl.searchParams.set("host", hostname);
     gateUrl.searchParams.set("next", pathname + url.search);
-    await logEvent(env, "gate_redirect", request, {
-      outcome: "unverified",
-      status: 302,
-      path: pathname,
-      message: "redirect_to_gate",
-    });
+    defer(
+      context,
+      logEvent(env, "gate_redirect", request, {
+        outcome: "unverified",
+        status: 302,
+        path: pathname,
+        message: "redirect_to_gate",
+      }),
+    );
     return withLangCookie(request, new Response(null, {
       status: 302,
       headers: {
