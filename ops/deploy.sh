@@ -256,6 +256,8 @@ WEOF
 
     # nginx 主配置只 include /etc/nginx/conf.d/*.conf,必须放到 conf.d/ 才会生效
     # (sites-available/ + sites-enabled/ 的旧做法从未被加载,已废弃)
+    echo "sudo install -d -m 0750 -o nginx -g nginx /var/cache/nginx/authentik"
+    sudo install -d -m 0750 -o nginx -g nginx /var/cache/nginx/authentik
     echo "sudo cp ops/limooo.conf /etc/nginx/conf.d/limooo.conf"
     sudo cp ops/limooo.conf /etc/nginx/conf.d/limooo.conf
     echo "sudo rm -f /etc/nginx/sites-enabled/limooo.conf /etc/nginx/sites-available/limooo.conf"
