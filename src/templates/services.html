@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}Limooo - Services{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="https://limooo.cn/static/css/services.css?v=2">
+<link rel="stylesheet" href="https://limooo.cn/static/css/services.css?v=3">
 {% endblock %}
 
 
@@ -80,6 +80,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             <span class="modal-index">01 / CONVENTION</span>
             <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
         </div>
+        <div class="modal-body">
         <h3 class="modal-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
 
         <div class="plan-grid plan-grid-quad">
@@ -112,6 +113,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 <a class="cta-link" href="https://contact.limooo.cn" data-i18n="book_consult">{{ _('book_consult') }}</a>
             </div>
         </div>
+        </div>
     </div>
 </div>
 
@@ -124,6 +126,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             <span class="modal-index">02 / OUTDOOR</span>
             <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
         </div>
+        <div class="modal-body">
         <h3 class="modal-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
 
         <div class="plan-grid plan-grid-quad">
@@ -166,10 +169,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 <a class="cta-link" href="https://contact.limooo.cn" data-i18n="book_consult">{{ _('book_consult') }}</a>
             </div>
         </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://limooo.cn/static/js/services.js?v=1" defer></script>
+<script src="https://limooo.cn/static/js/services.js?v=2" defer></script>
 {% endblock %}
