@@ -1,20 +1,20 @@
 {
-    "name": "Uptime Kuma",
-    "short_name": "Uptime Kuma",
-    "description": "An easy-to-use self-hosted monitoring tool.",
-    "theme_color": "#5cdd8b",
+    "name": "Limooo Monitor",
+    "short_name": "Limooo",
+    "description": "Limooo self-hosted health checks and monitoring dashboard.",
+    "theme_color": "#1b1b1f",
     "start_url": "/",
-    "background_color": "#fff",
+    "background_color": "#1b1b1f",
     "display": "standalone",
     "icons": [
         {
-            "src": "icon-192x192.png",
-            "sizes": "192x192",
+            "src": "limooo-favicon.png",
+            "sizes": "256x256",
             "type": "image/png"
         },
         {
-            "src": "icon-512x512.png",
-            "sizes": "512x512",
+            "src": "limooo-favicon.png",
+            "sizes": "256x256",
             "type": "image/png"
         }
     ],
@@ -26,8 +26,8 @@
             "url": "/dashboard",
             "icons": [
                 {
-                    "src": "icon-192x192.png",
-                    "sizes": "192x192",
+                    "src": "limooo-favicon.png",
+                    "sizes": "256x256",
                     "type": "image/png"
                 }
             ]
@@ -39,8 +39,8 @@
             "url": "/add",
             "icons": [
                 {
-                    "src": "icon-192x192.png",
-                    "sizes": "192x192",
+                    "src": "limooo-favicon.png",
+                    "sizes": "256x256",
                     "type": "image/png"
                 }
             ]
@@ -52,8 +52,8 @@
             "url": "/list",
             "icons": [
                 {
-                    "src": "icon-192x192.png",
-                    "sizes": "192x192",
+                    "src": "limooo-favicon.png",
+                    "sizes": "256x256",
                     "type": "image/png"
                 }
             ]
@@ -65,8 +65,8 @@
             "url": "/settings",
             "icons": [
                 {
-                    "src": "icon-192x192.png",
-                    "sizes": "192x192",
+                    "src": "limooo-favicon.png",
+                    "sizes": "256x256",
                     "type": "image/png"
                 }
             ]
@@ -78,8 +78,8 @@
             "url": "/maintenance",
             "icons": [
                 {
-                    "src": "icon-192x192.png",
-                    "sizes": "192x192",
+                    "src": "limooo-favicon.png",
+                    "sizes": "256x256",
                     "type": "image/png"
                 }
             ]
