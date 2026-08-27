@@ -44,7 +44,7 @@ function baseClaims(overrides: Record<string, unknown> = {}): Record<string, unk
     preferred_username: "alice",
     email: "alice@example.com",
     groups: ["authentik Admins"],
-    iss: env.AUTHENTIK_URL,
+    iss: `${env.AUTHENTIK_URL}/application/o/visitor/`,
     aud: env.AUTHENTIK_CLIENT_ID,
     exp: now + 300,
     iat: now,
@@ -226,10 +226,23 @@ describe("oidc", () => {
     expect(result.reason).toBe("jwt_signature_invalid");
   });
 
-  it("rejects the wrong issuer", async () => {
+  it("rejects an unrelated issuer", async () => {
     const token = await signToken(
       { alg: "RS256", kid: KEY_ID },
       baseClaims({ iss: "https://evil.example" }),
+    );
+    mockFetch(tokenFetch(token));
+    const result = await exchangeCode(env, "code", "https://limooo.cn/login/callback", {
+      nonce: "nonce-1",
+      codeVerifier: "verifier",
+    });
+    expect(result.reason).toBe("id_token_issuer_mismatch");
+  });
+
+  it("rejects the instance root before the provider slug issuer", async () => {
+    const token = await signToken(
+      { alg: "RS256", kid: KEY_ID },
+      baseClaims({ iss: env.AUTHENTIK_URL }),
     );
     mockFetch(tokenFetch(token));
     const result = await exchangeCode(env, "code", "https://limooo.cn/login/callback", {

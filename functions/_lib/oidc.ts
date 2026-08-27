@@ -122,6 +122,10 @@ function oidcBase(env: Env): string {
   return stripTrailingSlash(env.AUTHENTIK_URL || IDENTITY_URL);
 }
 
+function oidcIssuer(env: Env): string {
+  return `${oidcBase(env)}/application/o/${AUTHENTIK_PROVIDER_SLUG}`;
+}
+
 function jwksUrl(env: Env): string {
   if (env.AUTHENTIK_JWKS_URL) return env.AUTHENTIK_JWKS_URL;
   return `${oidcBase(env)}/application/o/${AUTHENTIK_PROVIDER_SLUG}/jwks/`;
@@ -271,7 +275,7 @@ function validateClaims(
   if (!claims || typeof claims !== "object") return "id_token_no_claims";
   if (!claims.sub || typeof claims.sub !== "string") return "id_token_no_sub";
 
-  const expectedIssuer = oidcBase(env);
+  const expectedIssuer = oidcIssuer(env);
   const actualIssuer = typeof claims.iss === "string" ? stripTrailingSlash(claims.iss) : "";
   if (!actualIssuer || actualIssuer !== expectedIssuer) return "id_token_issuer_mismatch";
 

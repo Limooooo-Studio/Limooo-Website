@@ -238,7 +238,7 @@ Configured under **Pages project settings → Environment variables → Encrypt 
 | `TURNSTILE_SITEKEY` | Public sitekey of the Turnstile widget on the gate page |
 | `TURNSTILE_SECRET` | Server-side siteverify secret |
 | `GATE_HMAC_KEY` | HMAC-SHA256 signing key for the `__gate` cookie (`openssl rand -hex 32`) |
-| `AUTHENTIK_URL` | Public authentik URL (default `https://identity.limooo.cn`) |
+| `AUTHENTIK_URL` | Public authentik URL (default `https://identity.limooo.cn`); ID Token issuer is validated as `${AUTHENTIK_URL}/application/o/visitor/` |
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | authentik OIDC client (reuses the existing one) |
 | `AUTHENTIK_ADMIN_GROUPS` | Admin group (default `authentik Admins`) |
 | `SESSION_HMAC_KEY` | Pages session-cookie signing key (separate from `GATE_HMAC_KEY`) |
