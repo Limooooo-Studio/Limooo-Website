@@ -55,6 +55,9 @@ D1_WRITE_ERROR_THRESHOLD = int(
 VISITOR_DROP_THRESHOLD = float(
     os.environ.get("HEALTH_VISITOR_DROP_THRESHOLD", "50.0")
 )
+VISITOR_DROP_ALERTS_ENABLED = (
+    os.environ.get("HEALTH_VISITOR_DROP_ALERTS_ENABLED", "0") == "1"
+)
 ALERT_COOLDOWN_SECONDS = int(
     os.environ.get("HEALTH_ALERT_COOLDOWN_SECONDS", "3600")
 )
@@ -173,7 +176,10 @@ def _as_float(value: Any) -> float:
         return 0.0
 
 
-def evaluate_metrics(data: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+def evaluate_metrics(
+    data: dict[str, list[dict[str, Any]]],
+    visitor_drop_enabled: bool = VISITOR_DROP_ALERTS_ENABLED,
+) -> dict[str, Any]:
     gate_row = (data.get("gate_verify_summary_1h") or [{}])[0]
     login_row = (data.get("login_callback_summary_1h") or [{}])[0]
     gate_ok = _as_int(gate_row.get("ok"))
@@ -233,7 +239,7 @@ def evaluate_metrics(data: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
             "key": "d1_write_errors",
             "message": f"D1 写入失败事件 {d1_errors} (> {D1_WRITE_ERROR_THRESHOLD})",
         })
-    if previous_hour and visitor_drop > VISITOR_DROP_THRESHOLD:
+    if visitor_drop_enabled and previous_hour and visitor_drop > VISITOR_DROP_THRESHOLD:
         alerts.append({
             "key": "visitor_drop",
             "message": (
@@ -534,6 +540,7 @@ def main() -> int:
                 "login_failure_rate": LOGIN_FAILURE_RATE_THRESHOLD,
                 "d1_write_errors": D1_WRITE_ERROR_THRESHOLD,
                 "visitor_drop": VISITOR_DROP_THRESHOLD,
+                "visitor_drop_alerts_enabled": VISITOR_DROP_ALERTS_ENABLED,
             },
             "smtp_configured": bool(
                 env_value(env, "SMTP_HOST", "ALERT_SMTP_HOST", "UPSTREAM_HOST")

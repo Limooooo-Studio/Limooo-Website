@@ -40,7 +40,7 @@ class HealthScriptTests(unittest.TestCase):
                 "previous_hour": 100,
             }],
             "ray_status_distribution_1h": [],
-        })
+        }, visitor_drop_enabled=True)
         self.assertEqual(metrics["gate_verify_1h"]["failure_rate_pct"], 11.0)
         self.assertEqual(metrics["login_callback_1h"]["failure_rate_pct"], 5.0)
         self.assertEqual(metrics["block_rate_pct"], 3.0)
@@ -94,7 +94,7 @@ class HealthScriptTests(unittest.TestCase):
                 "current_hour": 40, "previous_hour": 100,
             }],
             "ray_status_distribution_1h": [],
-        })
+        }, visitor_drop_enabled=True)
         subject, plain, html = check_health.render_health_alert_email(
             {},
             metrics,
@@ -105,6 +105,24 @@ class HealthScriptTests(unittest.TestCase):
         self.assertIn("https://admin.limooo.cn", html)
         self.assertIn("关键指标", html)
         self.assertNotIn("__TITLE__", html)
+
+    def test_visitor_drop_alert_can_be_disabled(self) -> None:
+        metrics = check_health.evaluate_metrics({
+            "gate_verify_summary_1h": [{
+                "ok": 0, "failed": 0, "unavailable": 0, "total": 0,
+            }],
+            "login_callback_summary_1h": [{
+                "ok": 0, "failed": 0, "total": 0,
+            }],
+            "block_match_count_1h": [{"count": 0}],
+            "ray_request_count_1h": [{"count": 0}],
+            "d1_write_errors_24h": [{"count": 0}],
+            "visitor_trend_1h": [{
+                "current_hour": 10, "previous_hour": 100,
+            }],
+            "ray_status_distribution_1h": [],
+        }, visitor_drop_enabled=False)
+        self.assertNotIn("visitor_drop", [a["key"] for a in metrics["alerts"]])
 
     def test_send_alert_builds_multipart_html_message(self) -> None:
         from email.message import EmailMessage
