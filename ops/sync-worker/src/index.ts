@@ -1,5 +1,5 @@
 /**
- * 每日 03:00 把 D1 里的 blocked_ips 增量同步到 Cloudflare IP List
+ * 每日 03:30 把 D1 里的 active blocked_ips 增量同步到 Cloudflare IP List
  * （原 auto_block.py 的 sync_cloudflare 移植；ipset/iptables 部分随迁移放弃）
  */
 
@@ -26,6 +26,20 @@ interface Env {
 const LIST_NAME = "limooo_blocklist";
 const API = "https://api.cloudflare.com/client/v4";
 const BATCH = 200;
+
+export interface SyncResult {
+  toAdd: string[];
+  toRemove: string[];
+}
+
+export function diffSync(
+  desired: Set<string>,
+  existing: Map<string, string>,
+): SyncResult {
+  const toAdd = [...desired].filter((cidr) => !existing.has(cidr));
+  const toRemove = [...existing.keys()].filter((cidr) => !desired.has(cidr));
+  return { toAdd, toRemove };
+}
 
 async function cf(token: string, method: string, url: string, body?: unknown): Promise<any> {
   const resp = await fetch(url, {
@@ -71,15 +85,21 @@ async function listItems(token: string, accountId: string, listId: string): Prom
   return items;
 }
 
-async function sync(env: Env): Promise<void> {
+export async function sync(
+  env: Env,
+  options: { dryRun?: boolean } = {},
+): Promise<SyncResult> {
   const token = env.CLOUDFLARE_API_TOKEN;
   const accountId = env.CLOUDFLARE_ACCOUNT_ID;
   if (!token || !accountId) {
     console.log("[cf] missing credentials, skipping");
-    return;
+    return { toAdd: [], toRemove: [] };
   }
 
-  const rows = await env.DB.prepare("SELECT cidr FROM blocked_ips").all<{ cidr: string }>();
+  // 只同步 active 行：admin/unblock 的软删除墓碑不会重新出现在 CF List。
+  const rows = await env.DB.prepare(
+    "SELECT cidr FROM blocked_ips WHERE active = 1",
+  ).all<{ cidr: string }>();
   const desired = new Set((rows.results ?? []).map((r) => r.cidr));
 
   const lists = await cf(token, "GET", `${API}/accounts/${accountId}/rules/lists?per_page=100`);
@@ -95,8 +115,11 @@ async function sync(env: Env): Promise<void> {
   if (!list?.id) throw new Error("list not found/created");
 
   const existing = await listItems(token, accountId, list.id);
-  const toAdd = [...desired].filter((ip) => !existing.has(ip));
-  const toRemove = [...existing.keys()].filter((ip) => !desired.has(ip));
+  const { toAdd, toRemove } = diffSync(desired, existing);
+  if (options.dryRun) {
+    console.log(`[cf] dry-run: +${toAdd.length} -${toRemove.length}`);
+    return { toAdd, toRemove };
+  }
 
   for (let i = 0; i < toAdd.length; i += BATCH) {
     const chunk = toAdd.slice(i, i + BATCH).map((ip) => ({ ip }));
@@ -115,10 +138,23 @@ async function sync(env: Env): Promise<void> {
     await waitOperation(token, accountId, resp?.result?.operation_id);
   }
   console.log(`[cf] synced: +${toAdd.length} -${toRemove.length}`);
+  return { toAdd, toRemove };
 }
 
 export default {
-  async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+  async scheduled(
+    _event: unknown,
+    env: Env,
+    ctx: { waitUntil(p: Promise<unknown>): void },
+  ): Promise<void> {
     ctx.waitUntil(sync(env));
+  },
+  async fetch(request: Request, env: Env): Promise<Response> {
+    if (request.method !== "GET") {
+      return new Response("Method Not Allowed", { status: 405 });
+    }
+    const dryRun = new URL(request.url).searchParams.get("dry-run") === "1";
+    const result = await sync(env, { dryRun });
+    return Response.json({ ok: true, ...result });
   },
 };

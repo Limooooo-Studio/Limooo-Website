@@ -31,26 +31,26 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
     <!-- 预加载主题脚本：在渲染之前检测 localStorage，防止浅色模式下的白色闪烁 -->
     {% block theme_preload %}
-    <script>(function(){var t=localStorage.getItem('theme');if(t==='light'||(!t&&window.matchMedia('(prefers-color-scheme:light)').matches))document.documentElement.classList.add('light-mode')})();</script>
+    <script src="/static/js/theme-preload.js"></script>
     {% endblock %}
 
     <!-- ── 图标 ── -->
-    <link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
-    <link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
-    <link rel="apple-touch-icon" href="https://images.limooo.cn/icons/favicon.png">
+    <link rel="icon" href="{{ image_asset_base }}/icons/favicon.ico" sizes="any">
+    <link rel="icon" href="{{ image_asset_base }}/icons/favicon.png" type="image/png" sizes="256x256">
+    <link rel="apple-touch-icon" href="{{ image_asset_base }}/icons/favicon.png">
 
 <!-- Tailwind CSS（本地预编译，替代 Play CDN 运行时编译：消除 ~400KB 渲染阻塞脚本 + 依赖第三方 CDN） -->
-    <link rel="stylesheet" href="https://limooo.cn/static/tailwind.css?v=3">
+    <link rel="stylesheet" href="/static/tailwind.css?v=4">
 
-<!-- Inter 自托管字体（变量字体，按 unicode-range 按需下载，font-display: swap） -->
-    <link rel="stylesheet" href="https://limooo.cn/static/fonts.css?v=2">
+<!-- Inter/Baloo 2 自托管字体（与 auth/redirect 页面共用；许可见 static/fonts/LICENSE.txt 与 OFL.txt） -->
+    <link rel="stylesheet" href="/static/fonts.css?v=3">
 
 <!-- 站点基础样式（由模板内联样式轻量化后抽出的统一 CSS） -->
-    <link rel="stylesheet" href="https://limooo.cn/static/css/base.css?v=11">
+    <link rel="stylesheet" href="/static/css/base.css?v=12">
 
     {% block head_links %}{% endblock %}
 </head>
-<body class="antialiased" data-lang="{{ g.lang }}" data-i18n-dict='{{ translations | tojson }}'>
+<body class="antialiased" data-lang="{{ g.lang }}" data-gate-url="{{ gate_url }}" data-image-asset-base="{{ image_asset_base }}" data-image-watermark-base="{{ image_watermark_base }}" data-i18n-dict='{{ translations | tojson }}'>
 
     <!-- 闪光灯组件（由各页面按需启用，默认隐藏） -->
     {% block flash %}{% endblock %}
@@ -90,22 +90,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
             <!-- 语言切换（文A + 下箭头，桌面端悬停展开） -->
             <div class="theme-toggle lang-flyout">
-                <button class="lang-btn" onclick="toggleLangMenu(event)" aria-label="{{ _('lang_aria') }}" data-i18n-attr="aria-label:lang_aria" aria-haspopup="true">
+                <button class="lang-btn" data-action="toggleLangMenu" data-needs-event aria-label="{{ _('lang_aria') }}" data-i18n-attr="aria-label:lang_aria" aria-haspopup="true">
                     <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
                     <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <div id="langMenu" class="theme-menu">
-                    <div class="theme-option{% if g.lang == 'zh-cn' %} selected{% endif %}" data-lang="zh-cn" onclick="setLang('zh-cn')"><span class="lang-flag">🇨🇳</span><span data-i18n="lang_zh">{{ _('lang_zh') }}</span></div>
-                    <div class="theme-option{% if g.lang == 'en-us' %} selected{% endif %}" data-lang="en-us" onclick="setLang('en-us')"><span class="lang-flag">🇺🇸</span><span data-i18n="lang_en">{{ _('lang_en') }}</span></div>
-                    <div class="theme-option{% if g.lang == 'ja-jp' %} selected{% endif %}" data-lang="ja-jp" onclick="setLang('ja-jp')"><span class="lang-flag">🇯🇵</span><span data-i18n="lang_ja">{{ _('lang_ja') }}</span></div>
-                    <div class="theme-option{% if g.lang == 'ko-kr' %} selected{% endif %}" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span data-i18n="lang_ko">{{ _('lang_ko') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'zh-cn' %} selected{% endif %}" data-lang="zh-cn" data-action="setLang" data-arg="zh-cn"><span class="lang-flag">🇨🇳</span><span data-i18n="lang_zh">{{ _('lang_zh') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'en-us' %} selected{% endif %}" data-lang="en-us" data-action="setLang" data-arg="en-us"><span class="lang-flag">🇺🇸</span><span data-i18n="lang_en">{{ _('lang_en') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'ja-jp' %} selected{% endif %}" data-lang="ja-jp" data-action="setLang" data-arg="ja-jp"><span class="lang-flag">🇯🇵</span><span data-i18n="lang_ja">{{ _('lang_ja') }}</span></div>
+                    <div class="theme-option{% if g.lang == 'ko-kr' %} selected{% endif %}" data-lang="ko-kr" data-action="setLang" data-arg="ko-kr"><span class="lang-flag">🇰🇷</span><span data-i18n="lang_ko">{{ _('lang_ko') }}</span></div>
                 </div>
             </div>
             <span class="nav-divider hidden md:block"></span>
 
             {% block theme_toggle %}
             <!-- 深浅切换（太阳-月亮胶囊滑块） -->
-            <button class="appearance-switch" type="button" role="switch" aria-checked="false" onclick="toggleTheme()" aria-label="{{ _('theme_aria') }}" data-i18n-attr="aria-label:theme_aria">
+            <button class="appearance-switch" type="button" role="switch" aria-checked="false" data-action="toggleTheme" aria-label="{{ _('theme_aria') }}" data-i18n-attr="aria-label:theme_aria">
                 <span class="appearance-check">
                     <span class="appearance-icon">
                         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -144,7 +144,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% endblock %}
     {% endblock %}
 
-    <script src="https://limooo.cn/static/js/base.js?v=5" defer></script>
+    <script src="/static/js/actions.js?v=1" defer></script>
+    <script src="/static/js/base.js?v=6" defer></script>
     {% block scripts %}{% endblock %}
     {% block page_scripts %}{% endblock %}
 </body>

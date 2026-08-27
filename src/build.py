@@ -11,10 +11,14 @@
 """
 
 import json
+import hashlib
 import os
 import re
 import shutil
+import subprocess
 import sys
+
+from flask import Flask, g, render_template
 
 try:
     from PIL import Image, ImageDraw
@@ -24,10 +28,11 @@ except ImportError:
 from config import (
     BASE_DIR,
     BASE_URL,
+    BUILD_MODE,
     GATE_HOST,
-    LANG_COOKIE,
-    LANG_COOKIE_MAX_AGE,
     LOCALES_DIR,
+    MANAGED_HOSTS,
+    PAGE_ROUTES,
     PREVIEW_DIR,
     PUBLIC_DIR,
     REDIRECT_PRELOAD_IMAGES,
@@ -40,6 +45,48 @@ FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
 
 
 CONTRACT_PATH = os.path.join(BASE_DIR, "config-contract.json")
+
+# 作品集卡片缩略图：只保留足够卡片显示的分辨率，避免首屏直接下载 1080×1440 原图
+PORTFOLIO_THUMB_WIDTHS = (640, 800)
+
+# 并行/备份过程可能产生 “visitor 2.js”“visitors 3.ts” 等带空格的副本，
+# 它们不是站点资源；构建时统一跳过，避免误部署到 public/。
+_PARALLEL_ARTIFACT_RE = re.compile(r"\s\d+\.(?:ts|js|py|sql|json|md|map)$")
+
+
+def _static_ignore(dirpath: str, names: list[str]) -> set[str]:
+    del dirpath
+    ignored = {".DS_Store", "__pycache__"}
+    ignored.update(
+        name for name in names
+        if name.endswith((".bak", ".orig", ".rej"))
+        or _PARALLEL_ARTIFACT_RE.search(name)
+    )
+    return ignored
+
+
+def _remove_bad_artifacts(root: str) -> None:
+    """构建完成后清理外部进程可能再次写入的 .DS_Store / 并行副本。"""
+    for dirpath, dirnames, filenames in os.walk(root, topdown=False):
+        for name in filenames:
+            if (
+                name == ".DS_Store"
+                or name.endswith((".bak", ".orig", ".rej"))
+                or _PARALLEL_ARTIFACT_RE.search(name)
+            ):
+                try:
+                    os.remove(os.path.join(dirpath, name))
+                except OSError:
+                    pass
+        for name in dirnames:
+            if name == "__pycache__":
+                shutil.rmtree(os.path.join(dirpath, name), ignore_errors=True)
+PORTFOLIO_THUMB_QUALITY = 80
+
+
+def _app_instance(appmod) -> Flask:
+    """兼容传入 Flask 模块（旧测试）或 Flask 应用实例（构建期纯渲染）。"""
+    return appmod.app if hasattr(appmod, "app") else appmod
 
 # (模板, 输出文件名, 渲染路径) —— 用 Host: limooo.cn 渲染（is_prod=True），
 # 导航链接保留子域绝对地址（limooo.cn / services.limooo.cn / contact.limooo.cn），
@@ -99,52 +146,38 @@ GATE_I18N = _load_gate_i18n()
 
 def render_page(appmod, template: str, path: str, lang: str, extra=None) -> str:
     """用 Flask 渲染上下文渲染单个页面（Host 固定为 limooo.cn）"""
+    app = _app_instance(appmod)
     kwargs = {}
     if extra == "redirect":
-        # 预渲染默认跳转目标；实际登录/登出回跳由中间件动态拼接 to 参数
+        # 预渲染统一跳转页外壳；实际 to / preload 由中间件按请求动态注入。
         kwargs = {
-            "to": f"{BASE_URL}/",
-            "preload": True,
-            "preload_images": appmod.REDIRECT_PRELOAD_IMAGES,
+            "to": "{{to}}",
+            "preload": False,
+            "preload_images": [],
+            "preload_placeholder": "{{preload}}",
+            "preload_links": "{{preload_links}}",
         }
-    with appmod.app.test_request_context(path, headers={"Host": ROOT_DOMAIN}):
-        appmod.g.lang = lang
-        html = appmod.render_template(template, **kwargs)
+    with app.test_request_context(path, headers={"Host": ROOT_DOMAIN}):
+        g.lang = lang
+        html = render_template(template, **kwargs)
     # 模板中 lang 固定为合法静态值以通过静态检查；构建时替换为实际语言
     html = html.replace("<html lang=\"zh-cn\">", f"<html lang=\"{lang}\">", 1)
     # 相对资源统一加根斜杠：模板里是 src="static/..."，在 /zh-cn 这类子路径下
     # 会解析错位，改成 /static/... 后任何路径都正确（配合中间件干净 URL）
     html = html.replace('src="static/', 'src="/static/')
     html = html.replace('href="static/', 'href="/static/')
-    # 记住当前语言，保证根路径重定向时语言不跳变
-    cookie_js = (
-        "<script>try{document.cookie='" + LANG_COOKIE + "=" + lang +
-        ";path=/;max-age=" + str(LANG_COOKIE_MAX_AGE) +
-        ";SameSite=Lax'+(location.protocol==='https:'?';Secure':'')}"
-        "catch(e){}</script>"
-    )
-    html = html.replace("</body>", cookie_js + "</body>")
     return html
 
 
 def render_gate(appmod, lang: str) -> str:
     """按语言预渲染人机验证门禁页（auth.limooo.cn/__gate）"""
+    app = _app_instance(appmod)
     t = GATE_I18N[lang]
-    sitekey = os.environ.get("TURNSTILE_SITEKEY", "")
-    if sitekey:
-        turnstile_html = '<div id="turnstile-wrap"></div>'
-        turnstile_src = (
-            '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?'
-            'onload=onloadTurnstileCallback" defer></script>'
-        )
-    else:
-        turnstile_html = (
-            f'<div class="error" data-i18n="error_sitekey">{t["error_sitekey"]}</div>'
-        )
-        turnstile_src = ""
-    with appmod.app.test_request_context("/__gate", headers={"Host": GATE_HOST}):
-        appmod.g.lang = lang
-        html = appmod.render_template(
+    # sitekey 与完整 i18n 由 /__gate/config 运行时下发；构建产物不写密钥相关值。
+    turnstile_html = '<div id="turnstile-wrap" class="turnstile-wrap"></div>'
+    with app.test_request_context("/__gate", headers={"Host": GATE_HOST}):
+        g.lang = lang
+        html = render_template(
             "auth.html",
             lang=lang,
             title=t["title"],
@@ -155,13 +188,13 @@ def render_gate(appmod, lang: str) -> str:
             foot=t["foot"],
             lang_aria=t["lang_aria"],
             theme_aria=t["theme_aria"],
-            error_html="",
+            error_html="{{error}}",
             turnstile_html=turnstile_html,
-            turnstile_src=turnstile_src,
-            sitekey=sitekey,
+            turnstile_src="",
+            sitekey="",
             gate_i18n=GATE_I18N,
-            host="",
-            next="/",
+            host="{{host}}",
+            next="{{next}}",
         )
     html = html.replace("<html lang=\"zh-cn\">", f"<html lang=\"{lang}\">", 1)
     return html
@@ -215,6 +248,15 @@ def write_config_functions() -> None:
         "export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;",
         "export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;",
         "export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);",
+        "export const MANAGED_HOSTS: Set<string> = new Set(CONTRACT.managed_hosts);",
+        "export const PAGE_ROUTES: Record<string, Record<string, string>> = CONTRACT.page_routes;",
+        "export const IMAGE_ASSET_HOSTNAME = CONTRACT.image_asset_host;",
+        "export const IMAGE_WATERMARK_HOSTNAME = CONTRACT.image_watermark_host;",
+        "export const IMAGE_ASSET_BASE = `https://${IMAGE_ASSET_HOSTNAME}`;",
+        "export const IMAGE_WATERMARK_BASE = `https://${IMAGE_WATERMARK_HOSTNAME}`;",
+        "export const GATE_TRUST = CONTRACT.gate_trust;",
+        "export const OBSERVABILITY_HMAC_ENV = CONTRACT.observability_hmac_env;",
+        "export const WHITELIST_FILE = CONTRACT.whitelist_file;",
         "export const SUPPORTED_LANGS = CONTRACT.supported_langs;",
         "export const DEFAULT_LANG = CONTRACT.default_lang;",
         "export const KEY_FALLBACK_LANG = CONTRACT.key_fallback_lang;",
@@ -223,6 +265,7 @@ def write_config_functions() -> None:
         "export const GATE_COOKIE = CONTRACT.gate_cookie;",
         "export const SESSION_COOKIE = CONTRACT.session_cookie;",
         "export const PENDING_COOKIE = CONTRACT.pending_cookie;",
+        "export const CSRF_COOKIE = CONTRACT.csrf_cookie;",
         "export const GATE_TTL_SECONDS = CONTRACT.gate_ttl_seconds;",
         "export const SESSION_TTL_SECONDS = CONTRACT.session_ttl_seconds;",
         "export const PENDING_TTL_SECONDS = CONTRACT.pending_ttl_seconds;",
@@ -309,7 +352,113 @@ def write_runtime_functions() -> None:
     print("[build] runtime functions generated", flush=True)
 
 
-def generate_watermarks() -> int:
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_manifest() -> dict:
+    """生成 public/manifest.json，并报告与上一次构建产物的差异。
+
+    manifest 不包含时间戳，只包含文件哈希，保证同一源码在干净环境中的输出
+    可复现；部署脚本把整个 public/ 上传时，manifest 会作为构建证据一并上传。
+    """
+    files: dict[str, str] = {}
+    for root, _dirs, names in os.walk(PUBLIC_DIR):
+        for name in names:
+            path = os.path.join(root, name)
+            rel = os.path.relpath(path, PUBLIC_DIR).replace(os.sep, "/")
+            if rel == "manifest.json":
+                continue
+            files[rel] = _sha256_file(path)
+
+    manifest_path = os.path.join(PUBLIC_DIR, "manifest.json")
+    previous: dict | None = None
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            previous_data = json.load(f)
+        if isinstance(previous_data, dict) and isinstance(previous_data.get("files"), dict):
+            previous = previous_data
+    except (OSError, json.JSONDecodeError):
+        previous = None
+
+    manifest = {
+        "schema_version": 1,
+        "tool": "limooo-build",
+        "count": len(files),
+        "files": files,
+    }
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2, sort_keys=True)
+        f.write("\n")
+
+    if previous is not None:
+        old_files = previous.get("files", {})
+        changed = sorted(k for k in files if old_files.get(k) != files[k])
+        added = sorted(k for k in files if k not in old_files)
+        removed = sorted(k for k in old_files if k not in files)
+        if changed or added or removed:
+            print(
+                f"[build] manifest changed: +{len(added)} -{len(removed)} ~{len(changed)}",
+                flush=True,
+            )
+    return manifest
+
+
+def generate_portfolio_thumbs(source_dir=None, output_dir=None) -> int:
+    """为作品集生成 640/800px WebP 缩略图到构建输出目录。
+
+    缩略图只给首页卡片预览用；完整原图仍保留在 public/static/portfolio/，
+    后续如果增加大图查看功能可以直接使用。
+    """
+    source_dir = source_dir or os.path.join(STATIC_DIR, "portfolio")
+    output_dir = output_dir or os.path.join(
+        PUBLIC_DIR, "static", "portfolio", "thumbs"
+    )
+    if Image is None:
+        raise RuntimeError(
+            "Pillow 未安装，无法生成作品集缩略图。请先执行 "
+            "`pip install -r ops/requirements.txt` 再运行 build.py。"
+        )
+
+    os.makedirs(output_dir, exist_ok=True)
+    resampling = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+    count = 0
+
+    for name in sorted(os.listdir(source_dir)):
+        if not re.search(r"\.(png|jpe?g|webp)$", name, re.I):
+            continue
+        src_path = os.path.join(source_dir, name)
+        try:
+            with Image.open(src_path) as opened:
+                image = opened.convert("RGB")
+        except Exception as exc:
+            print(f"[build] thumbnail skip {name}: {exc}", flush=True)
+            continue
+
+        base = os.path.splitext(name)[0]
+        for width in PORTFOLIO_THUMB_WIDTHS:
+            height = round(image.height * width / image.width)
+            thumb = image.resize((width, height), resampling)
+            out_path = os.path.join(output_dir, f"{base}-{width}.webp")
+            # 并行构建可能重建 public/ 后删掉目录；保存前再次确保目录存在。
+            os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            thumb.save(
+                out_path,
+                "WEBP",
+                quality=PORTFOLIO_THUMB_QUALITY,
+                method=6,
+            )
+            count += 1
+
+    print(f"[build] portfolio thumbnails: {count}", flush=True)
+    return count
+
+
+def generate_watermarks(source_root=None, out_root=None) -> int:
     """为 image.limooo.cn Worker 生成左下角水印变体到 public/static/wm/。
 
     规则（与 Worker 里的 shouldWatermark 保持一致）：
@@ -326,8 +475,11 @@ def generate_watermarks() -> int:
     BACKDROP_ALPHA = 105         # 深色底衬不透明度（0-255，0 = 不要底衬）
     PAD_RATIO = 0.08             # 底衬相对水印宽度的内边距
 
+    source_root = source_root or STATIC_DIR
+    out_root = out_root or os.path.join(PUBLIC_DIR, "static", "wm")
+
     if Image is None or ImageDraw is None:
-        portfolio_dir = os.path.join(STATIC_DIR, "portfolio")
+        portfolio_dir = os.path.join(source_root, "portfolio")
         if os.path.isdir(portfolio_dir) and any(
             name.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
             for name in os.listdir(portfolio_dir)
@@ -340,16 +492,15 @@ def generate_watermarks() -> int:
         return 0
 
     wm_path = os.path.join(STATIC_DIR, "icons", "Limooo-watermark.webp")
-    out_root = os.path.join(PUBLIC_DIR, "static", "wm")
     os.makedirs(out_root, exist_ok=True)
 
     wm = Image.open(wm_path).convert("RGBA")
     wm_w0, wm_h0 = wm.size
     count = 0
 
-    for root, _dirs, files in os.walk(STATIC_DIR):
+    for root, _dirs, files in os.walk(source_root):
         for name in files:
-            rel = os.path.relpath(os.path.join(root, name), STATIC_DIR)
+            rel = os.path.relpath(os.path.join(root, name), source_root)
             # 只给作品集图片加水印
             if not rel.replace(os.sep, "/").startswith("portfolio/"):
                 continue
@@ -412,9 +563,19 @@ def generate_watermarks() -> int:
 
 
 def main() -> int:
-    # 引入 Flask app（本机依赖齐全；渲染完不启动服务）
+    # 从 data/whitelist.txt 生成门禁信任配置，与中间件共用同一事实源。
+    subprocess.run(
+        [
+            sys.executable,
+            str(os.path.join(BASE_DIR, "ops", "check_gate_trust.py")),
+            "--emit",
+        ],
+        check=True,
+    )
+    # 构建态标记：只读最小 Flask 渲染器，不导入业务 app，不初始化数据库/密钥。
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import app as appmod
+    os.environ.setdefault("LIMOOO_BUILD", "1")
+    from render_app import RENDER_APP as appmod
 
     # 清空并重建输出目录（public/ 为纯生成产物）
     if os.path.isdir(PUBLIC_DIR):
@@ -435,9 +596,19 @@ def main() -> int:
         print(f"[build] {lang} rendered", flush=True)
 
     # 3) 静态资源镜像
-    shutil.copytree(STATIC_DIR, os.path.join(PUBLIC_DIR, "static"))
-    # 3.1) 水印变体（image.limooo.cn Worker 按 Referer 选择原图 / 水印图）
-    generate_watermarks()
+    shutil.copytree(
+        STATIC_DIR,
+        os.path.join(PUBLIC_DIR, "static"),
+        dirs_exist_ok=True,
+        ignore=_static_ignore,
+    )
+    # 3.1) 作品集卡片缩略图（首页只加载这些，不再直接下载 1080×1440 原图）
+    generate_portfolio_thumbs(
+        os.path.join(PUBLIC_DIR, "static", "portfolio"),
+        os.path.join(PUBLIC_DIR, "static", "portfolio", "thumbs"),
+    )
+    # 3.2) 水印变体（image.limooo.cn Worker 按 Referer 选择原图 / 水印图）
+    generate_watermarks(os.path.join(PUBLIC_DIR, "static"))
     # 门禁验证页引用的根路径 logo（放行路径之一）
     shutil.copy2(
         os.path.join(STATIC_DIR, "icons", "Limooo-xtext.webp"),
@@ -456,7 +627,16 @@ def main() -> int:
     if os.path.isdir(PREVIEW_DIR):
         shutil.rmtree(PREVIEW_DIR)
     os.makedirs(PREVIEW_OUT)
-    shutil.copytree(STATIC_DIR, os.path.join(PREVIEW_DIR, "static"))
+    shutil.copytree(
+        STATIC_DIR,
+        os.path.join(PREVIEW_DIR, "static"),
+        dirs_exist_ok=True,
+        ignore=_static_ignore,
+    )
+    generate_portfolio_thumbs(
+        os.path.join(PREVIEW_DIR, "static", "portfolio"),
+        os.path.join(PREVIEW_DIR, "static", "portfolio", "thumbs"),
+    )
     PREVIEW_LANG = "zh-cn"
     src = os.path.join(PUBLIC_DIR, PREVIEW_LANG)
     for name in os.listdir(src):
@@ -488,6 +668,13 @@ def main() -> int:
             # redirect 预览默认目标也指向本地首页
             html = re.sub(r'url=https://limooo\.cn/', 'url=index.html', html)
             html = html.replace('"https://limooo.cn/"', '"index.html"')
+            # 门禁/跳转页的运行时注入占位符，在本地预览中填默认值
+            html = html.replace("{{host}}", "limooo.cn")
+            html = html.replace("{{next}}", "/")
+            html = html.replace("{{error}}", "")
+            html = html.replace("{{preload}}", "[]")
+            html = html.replace("{{preload_links}}", "")
+            html = html.replace("{{to}}", "index.html")
             # redirect 预览：静止展示跳转页，不自动跳走
             if name == "redirect.html":
                 html = re.sub(r'<meta http-equiv="refresh"[^>]*>', '', html)
@@ -500,8 +687,8 @@ def main() -> int:
             with open(os.path.join(PREVIEW_OUT, name), "w", encoding="utf-8") as f:
                 f.write(html)
     # 预览索引（列出所有子域页面，模板在 Flask/src/templates/preview.html）
-    with appmod.app.test_request_context("/", headers={"Host": "limooo.cn"}):
-        index_html = appmod.render_template(
+    with appmod.test_request_context("/", headers={"Host": "limooo.cn"}):
+        index_html = render_template(
             "preview.html",
             pages=[
                 "index.html",
@@ -522,6 +709,13 @@ def main() -> int:
     # 保留 .gitkeep（git 只跟踪它，生成内容不入库）
     with open(os.path.join(PUBLIC_DIR, ".gitkeep"), "w", encoding="utf-8"):
         pass
+
+    # 外部进程可能在构建期间写入 .DS_Store / “file 2.ext” 副本，
+    # 在生成 manifest 和部署前统一清理。
+    _remove_bad_artifacts(PUBLIC_DIR)
+
+    # 生成构建清单；部署脚本会在上传前校验产物哈希。
+    write_manifest()
 
     total = 0
     for root, _dirs, files in os.walk(PUBLIC_DIR):

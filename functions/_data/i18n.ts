@@ -147,7 +147,9 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_add_failed": "添加失败",
     "toast_updated": "已更新",
     "toast_added": "已添加",
-    "toast_op_failed": "操作失败"
+    "toast_op_failed": "操作失败",
+    "toast_no_permission": "无权限",
+    "no_permission": "无权限"
   },
   "en-us": {
     "redirect_title": "Redirecting",
@@ -296,7 +298,9 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_add_failed": "Add failed",
     "toast_updated": "Updated",
     "toast_added": "Added",
-    "toast_op_failed": "Operation failed"
+    "toast_op_failed": "Operation failed",
+    "toast_no_permission": "No permission",
+    "no_permission": "No permission"
   },
   "ja-jp": {
     "redirect_title": "リダイレクト中",
@@ -445,7 +449,9 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_add_failed": "追加に失敗",
     "toast_updated": "更新しました",
     "toast_added": "追加しました",
-    "toast_op_failed": "操作に失敗"
+    "toast_op_failed": "操作に失敗",
+    "toast_no_permission": "権限がありません",
+    "no_permission": "権限がありません"
   },
   "ko-kr": {
     "redirect_title": "리다이렉트 중",
@@ -594,6 +600,8 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_add_failed": "추가 실패",
     "toast_updated": "업데이트됨",
     "toast_added": "추가됨",
-    "toast_op_failed": "작업 실패"
+    "toast_op_failed": "작업 실패",
+    "toast_no_permission": "권한이 없습니다",
+    "no_permission": "권한이 없습니다"
   }
 };

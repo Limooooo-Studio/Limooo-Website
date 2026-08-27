@@ -1,15 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════
-   作品图加载（不影响任何动画）：
-   work-img 初始不带 src，等 window load 触发（标题/滚动提示入场
-   动画照常在其后播放）再赋 src，避免 6 张作品图把 load 拖到
-   图片下载完，造成"只有菜单没有画面"的空窗。
+   作品图加载（不影响首屏）：
+   缩略图只在切换到作品区时才启动，避免 6 张图在首屏阶段抢占带宽；
+   进入作品区后按 srcset 选择合适尺寸。
    ═══════════════════════════════════════════════════════════════ */
-window.addEventListener('load', function () {
+function loadWorkImages() {
     document.querySelectorAll('.work-img[data-src]').forEach(function (img) {
-        img.removeAttribute('loading'); /* load 已过，立即下载，不等懒加载视口判定 */
+        img.removeAttribute('loading');
+        if (img.dataset.srcset) img.srcset = img.dataset.srcset;
         img.src = img.dataset.src;
     });
-});
+}
 
 /* ═══════════════════════════════════════════════════════════════
    首页滚动切换动画
@@ -103,6 +103,7 @@ function showPortfolio() {
     homeScreen.style.display = 'none';
     portfolioScreen.style.visibility = 'visible';
     portfolioScreen.style.opacity = '1';
+    loadWorkImages();
     // 下滑切换到作品区：地址栏渲染 /#portfolio
     if (location.hash !== '#portfolio') location.hash = 'portfolio';
 
@@ -151,6 +152,7 @@ function showPortfolioDirect() {
     }
     portfolioScreen.style.visibility = 'visible';
     portfolioScreen.style.opacity = '1';
+    loadWorkImages();
     setTimeout(function() {
         if (seq !== animSeq) return;
         portfolioTitle.classList.add('show');

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "functions/**/*.ts",
+    "functions/**/*.d.ts",
+    "ops/sync-worker/src/**/*.ts"
+  ],
+  "exclude": [
+    "**/* 2.ts",
+    "**/*.test.ts"
+  ]
+}

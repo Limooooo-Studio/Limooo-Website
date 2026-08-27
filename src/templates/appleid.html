@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}Limooo - Apple ID{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="https://limooo.cn/static/css/appleid.css?v=1">
+<link rel="stylesheet" href="/static/css/appleid.css?v=1">
 {% endblock %}
 
 {% block nav_links %}
@@ -57,7 +57,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 {% block nav_dropdown %}
 <div class="theme-toggle">
-    <button class="theme-btn nav-mobile-menu" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+    <button class="theme-btn nav-mobile-menu" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
         <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -65,11 +65,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         </svg>
     </button>
     <div id="navLinksDropdown" class="theme-menu">
-        <div class="theme-option" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
-        <div class="theme-option" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
-        <div class="theme-option" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
-        <div class="theme-option" data-i18n="nav_visitor" onclick="navigateTo('https://visitor.limooo.cn')">{{ _('nav_visitor') }}</div>
-        <div class="theme-option selected" data-i18n="nav_appleid" onclick="navigateTo('https://appleid.limooo.cn')">{{ _('nav_appleid') }}</div>
+        <div class="theme-option" data-i18n="nav_home" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-i18n="nav_services" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
+        <div class="theme-option" data-i18n="nav_visitor" data-action="navigateTo" data-arg="https://visitor.limooo.cn">{{ _('nav_visitor') }}</div>
+        <div class="theme-option selected" data-i18n="nav_appleid" data-action="navigateTo" data-arg="https://appleid.limooo.cn">{{ _('nav_appleid') }}</div>
     </div>
 </div>
 {% endblock %}
@@ -77,10 +77,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block content %}
 <div id="dashboard" class="hidden">
     <div class="search-bar">
-        <input type="text" id="search" placeholder="{{ _('search_placeholder') }}" oninput="renderList()" autocomplete="off" data-i18n-attr="placeholder:search_placeholder">
+        <input type="text" id="search" placeholder="{{ _('search_placeholder') }}" data-input="renderList" autocomplete="off" data-i18n-attr="placeholder:search_placeholder">
         <div class="search-actions">
-            <button class="btn btn-primary" onclick="openAddModal()" data-i18n="add">{{ _('add') }}</button>
-            <button class="btn btn-danger" onclick="handleLogout()" data-i18n="logout">{{ _('logout') }}</button>
+            <button class="btn btn-primary" data-action="openAddModal" data-i18n="add">{{ _('add') }}</button>
+            <button class="btn btn-danger" data-action="handleLogout" data-i18n="logout">{{ _('logout') }}</button>
         </div>
     </div>
     <div class="count-badge" id="count-badge"></div>
@@ -99,7 +99,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <label data-i18n="label_password">{{ _('label_password') }}</label>
         <div class="pw-field">
             <input type="text" id="field-password" placeholder="{{ _('pw_placeholder') }}" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:pw_placeholder">
-            <button type="button" class="pw-eye" id="field-password-eye" onclick="toggleFieldPw()" title="{{ _('show_password') }}" aria-label="{{ _('show_password') }}" data-i18n-attr="title,aria-label:show_password">
+            <button type="button" class="pw-eye" id="field-password-eye" data-action="toggleFieldPw" title="{{ _('show_password') }}" aria-label="{{ _('show_password') }}" data-i18n-attr="title,aria-label:show_password">
                 <svg id="field-password-eye-open" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 <svg id="field-password-eye-closed" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -107,8 +107,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <label data-i18n="label_notes">{{ _('label_notes') }}</label>
         <textarea id="field-notes" placeholder="{{ _('notes_placeholder') }}" spellcheck="false" data-i18n-attr="placeholder:notes_placeholder"></textarea>
         <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closeModal()" data-i18n="cancel">{{ _('cancel') }}</button>
-            <button class="btn btn-primary" id="modal-save-btn" onclick="saveAccount()" data-i18n="save">{{ _('save') }}</button>
+            <button class="btn btn-outline" data-action="closeModal" data-i18n="cancel">{{ _('cancel') }}</button>
+            <button class="btn btn-primary" id="modal-save-btn" data-action="saveAccount" data-i18n="save">{{ _('save') }}</button>
         </div>
     </div>
 </div>
@@ -118,8 +118,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <h2 data-i18n="delete_title">{{ _('delete_title') }}</h2>
         <p class="desc" id="delete-desc">{{ _('delete_desc') }}</p>
         <div class="modal-actions">
-            <button class="btn btn-outline" onclick="closeDeleteModal()" data-i18n="cancel">{{ _('cancel') }}</button>
-            <button class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDelete()" data-i18n="delete">{{ _('delete') }}</button>
+            <button class="btn btn-outline" data-action="closeDeleteModal" data-i18n="cancel">{{ _('cancel') }}</button>
+            <button class="btn btn-danger" id="delete-confirm-btn" data-action="confirmDelete" data-i18n="delete">{{ _('delete') }}</button>
         </div>
     </div>
 </div>
@@ -128,11 +128,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block footer %}
-<footer class="global-footer hidden" id="global-footer">
-    <div class="footer-text">LIMOOO</div>
+<footer class="global-footer" id="global-footer">
+    <div class="footer-link">
+        <div class="footer-text"><span class="footer-brand">LIMOOO</span></div>
+    </div>
 </footer>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://limooo.cn/static/js/appleid.js?v=1" defer></script>
+    <script src="/static/js/appleid.js?v=2" defer></script>
 {% endblock %}

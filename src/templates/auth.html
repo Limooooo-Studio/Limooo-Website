@@ -1,7 +1,7 @@
 {# Limooo - 人机验证门禁页（auth.limooo.cn/__gate）
    由 build.py 按 4 种语言预渲染为 public/<lang>/auth.html。
-   动态部分（Turnstile sitekey / 错误提示）在构建时注入，诊断信息由 /__gate/diag 实时获取。
-   此模板与 functions/_middleware.ts 的 renderGatePage 保持同一套样式与交互。 #}
+   Turnstile sitekey、完整 i18n 和错误信息由运行时 /__gate/config 与
+   {{error}} 占位符注入；CSS/JS 全部外置，不再在 HTML 内维护样式。 #}
 <!doctype html>
 <html lang="zh-cn">
 <head>
@@ -9,38 +9,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark light">
-<!-- ── 图标（与主站 base.html 一致） ── -->
-<link rel="icon" href="https://images.limooo.cn/icons/favicon.ico" sizes="any">
-<link rel="icon" href="https://images.limooo.cn/icons/favicon.png" type="image/png" sizes="256x256">
-<link rel="apple-touch-icon" href="https://images.limooo.cn/icons/favicon.png">
+<link rel="icon" href="/static/icons/favicon.ico" sizes="any">
+<link rel="icon" href="/static/icons/favicon.png" type="image/png" sizes="256x256">
+<link rel="apple-touch-icon" href="/static/icons/favicon.png">
 <title>{{ title }}</title>
-<script>
-  // 与主站共用 localStorage key "theme"：首次跟随系统，点击后固定并缓存
-  (function () {
-    var t = localStorage.getItem('theme');
-    if (t === 'light' || (!t && window.matchMedia('(prefers-color-scheme: light)').matches)) {
-      document.documentElement.classList.add('light-mode');
-    }
-  })();
-</script>
-
-<link rel="stylesheet" href="https://limooo.cn/static/css/auth.css?v=2">
+<link rel="stylesheet" href="/static/fonts.css?v=3">
+<script src="/static/js/theme-preload.js"></script>
+<link rel="stylesheet" href="/static/css/auth.css?v=5">
 </head>
-<body data-lang="{{ lang }}" data-sitekey="{{ sitekey }}" data-gate-i18n='{{ gate_i18n|tojson }}'>
+<body data-lang="{{ lang }}" data-gate-error="{{ error_html }}">
 <div class="gate-controls">
   <div class="theme-toggle lang-flyout">
-    <button class="lang-btn" onclick="toggleLangMenu(event)" aria-haspopup="true" aria-label="{{ lang_aria }}" data-i18n-attr="aria-label:lang_aria">
+    <button class="lang-btn" data-action="toggleLangMenu" data-needs-event aria-haspopup="true" aria-label="{{ lang_aria }}" data-i18n-attr="aria-label:lang_aria">
       <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
       <svg class="lang-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
     </button>
     <div id="langMenu" class="theme-menu">
-      <div class="theme-option{% if lang == 'zh-cn' %} selected{% endif %}" data-lang="zh-cn" onclick="setLang('zh-cn')"><span class="lang-flag">🇨🇳</span><span>简体中文</span></div>
-      <div class="theme-option{% if lang == 'en-us' %} selected{% endif %}" data-lang="en-us" onclick="setLang('en-us')"><span class="lang-flag">🇺🇸</span><span>English</span></div>
-      <div class="theme-option{% if lang == 'ja-jp' %} selected{% endif %}" data-lang="ja-jp" onclick="setLang('ja-jp')"><span class="lang-flag">🇯🇵</span><span>日本語</span></div>
-      <div class="theme-option{% if lang == 'ko-kr' %} selected{% endif %}" data-lang="ko-kr" onclick="setLang('ko-kr')"><span class="lang-flag">🇰🇷</span><span>한국어</span></div>
+      <div class="theme-option{% if lang == 'zh-cn' %} selected{% endif %}" data-lang="zh-cn" data-action="setLang" data-arg="zh-cn"><span class="lang-flag">🇨🇳</span><span>简体中文</span></div>
+      <div class="theme-option{% if lang == 'en-us' %} selected{% endif %}" data-lang="en-us" data-action="setLang" data-arg="en-us"><span class="lang-flag">🇺🇸</span><span>English</span></div>
+      <div class="theme-option{% if lang == 'ja-jp' %} selected{% endif %}" data-lang="ja-jp" data-action="setLang" data-arg="ja-jp"><span class="lang-flag">🇯🇵</span><span>日本語</span></div>
+      <div class="theme-option{% if lang == 'ko-kr' %} selected{% endif %}" data-lang="ko-kr" data-action="setLang" data-arg="ko-kr"><span class="lang-flag">🇰🇷</span><span>한국어</span></div>
     </div>
   </div>
-  <button class="appearance-switch" type="button" role="switch" aria-checked="false" aria-label="{{ theme_aria }}" data-i18n-attr="aria-label:theme_aria" onclick="toggleTheme()">
+  <button class="appearance-switch" type="button" role="switch" aria-checked="false" aria-label="{{ theme_aria }}" data-i18n-attr="aria-label:theme_aria" data-action="toggleTheme">
     <span class="appearance-check">
       <span class="appearance-icon">
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -50,13 +41,13 @@
   </button>
 </div>
 <main class="card">
-  <img class="logo" src="https://image.limooo.cn/icons/Limooo-xtext.webp" alt="LIMOOO" width="220">
+  <img class="logo" src="/static/icons/Limooo-xtext.webp" alt="LIMOOO" width="220">
   <h1 data-i18n="heading">{{ heading }}</h1>
-  {{ error_html|safe }}
+  <div id="gate-error" class="error" hidden></div>
   <form id="gate" method="post" action="/__gate/verify">
     <input type="hidden" name="host" value="{{ host }}">
     <input type="hidden" name="next" value="{{ next }}">
-    <div class="turnstile-wrap">{{ turnstile_html|safe }}</div>
+    <div id="turnstile-wrap" class="turnstile-wrap"></div>
   </form>
   <hr class="divider">
   <dl class="diag">
@@ -66,13 +57,12 @@
   </dl>
   <p class="foot" data-i18n="foot">{{ foot }}</p>
 </main>
-<!-- ═══ 底部版权（与主站 base.html 一致） ═══ -->
 <footer class="global-footer" id="global-footer">
   <div class="footer-link">
     <div class="footer-text">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
   </div>
 </footer>
-{{ turnstile_src|safe }}
-    <script src="https://limooo.cn/static/js/auth.js?v=1"></script>
+    <script src="/static/js/actions.js?v=1" defer></script>
+    <script src="/static/js/auth.js?v=2" defer></script>
 </body>
 </html>

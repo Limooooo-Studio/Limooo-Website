@@ -27,6 +27,21 @@
 
 set -e
 
+DRY_RUN=0
+DO_COMMIT=0
+DO_PUSH=0
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=1 ;;
+        --commit) DO_COMMIT=1 ;;
+        --push) DO_PUSH=1 ;;
+        *)
+            echo "FATAL: 未知参数 $arg（支持 --dry-run / --commit / --push）" >&2
+            exit 2
+            ;;
+    esac
+done
+
 # Config(走 ~/.ssh/config 的 limooo 别名:IP/密钥/端口都在那里)
 REMOTE_HOST="limooo"   # <-- 换服务器时改这里(改成新服务器的 ssh config 别名或 IP)
 REMOTE_DIR="/var/www/limooo"
@@ -36,24 +51,29 @@ SSH_OPTS="-o LogLevel=ERROR"
 echo "cd $LOCAL_DIR"
 cd "$LOCAL_DIR" || { echo "FATAL: 本地目录不存在 $LOCAL_DIR"; exit 1; }
 
-# 部署前自动提交本地改动到 GitHub(保持 GitHub 与服务器代码一致)
-echo "git rev-parse --is-inside-work-tree"
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+echo "git status --short"
+git status --short || true
+
+if [ "$DRY_RUN" = 1 ]; then
+    echo "[deploy] DRY-RUN: 不 commit、不 push、不 SSH、不 rsync。"
+    echo "[deploy] would-run: rsync -avz --delete ... $REMOTE_HOST:$REMOTE_DIR"
+    echo "[deploy] would-run: ssh $REMOTE_HOST (安装依赖 / systemd / nginx / cron)"
+    echo "[deploy] would-run: bash ops/pages_deploy.sh"
+    bash ops/pages_deploy.sh --dry-run
+    exit 0
+fi
+
+if [ "$DO_COMMIT" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "git add -A -- . ':!limooo.cn.png'"
     git add -A -- . ':!limooo.cn.png'
     if ! git diff --cached --quiet; then
-        echo "git commit -m \"deploy: auto-commit $(date '+%Y-%m-%d %H:%M')\""
-        git commit -m "deploy: auto-commit $(date '+%Y-%m-%d %H:%M')"
-        echo "Git: committed local changes"
+        echo "git commit -m \"deploy: $(date '+%Y-%m-%d %H:%M')\""
+        git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')"
     fi
+fi
+if [ "$DO_PUSH" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "git push origin main"
-    if git push origin main; then
-        echo "Git: pushed to GitHub"
-    else
-        echo "Warning: git push failed, continuing deploy"
-    fi
-else
-    echo "Warning: not a git repo, skipping auto-commit"
+    git push origin main
 fi
 
 # 先把服务器上的业务库(geo_cache.db 缓存 + appleid.db 账户)拉回本地覆盖,再推代码
@@ -77,12 +97,15 @@ rsync -avz --delete -e "ssh $SSH_OPTS" \
     --exclude '.venv-build' \
     --exclude '.wrangler' \
     --exclude '.pytest_cache' \
+    --exclude 'public/' \
+    --exclude 'preview/' \
     --exclude 'deploy.sh' \
     --exclude 'upload.sh' \
     --exclude 'node_modules' \
     --exclude 'GeoLite2-City.mmdb' \
     --exclude 'GeoLite2-ASN.mmdb' \
     --exclude '.gitignore' \
+    --exclude '.d1-migrations' \
     --exclude '.claude' \
     --exclude 'command.txt' \
     --exclude 'flask_secret.key' \

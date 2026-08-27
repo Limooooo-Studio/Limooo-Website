@@ -1,61 +1,90 @@
-/** PUT /api/appleid/accounts/:id（更新） / DELETE（删除，需 admin） */
+/** PUT /api/appleid/accounts/:id（更新） / DELETE（删除，需 admin + CSRF） */
 
 import { queryAll, execute } from "../../../_lib/d1";
 import { fernetEncrypt } from "../../../_lib/fernet";
-import { requireAuth } from "../../../_lib/session";
+import { authUnavailableResponse, requireAuth } from "../../../_lib/session";
+import { verifyCsrf } from "../../../_lib/csrf";
+import { parseAccountId, validateUpdatePayload } from "../../../_lib/appleid";
 import type { Env } from "../../../_lib/env";
 
-const APPLEID_DOMAIN = "@appleid.limooo.cn";
-
-function normalizeEmail(raw: string): string {
-  return raw.trim().split("@", 1)[0] + APPLEID_DOMAIN;
-}
+const NO_STORE = { "Cache-Control": "no-store" };
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
-  const session = await requireAuth(context.env, context.request);
-  if (!session) return Response.json({ error: "未登录" }, { status: 401 });
-  if (session.role !== "admin") return Response.json({ error: "只读账户，无写入权限" }, { status: 403 });
-
-  const id = Number((context.params as { id?: string }).id);
-  let data: { email?: string; password?: string; notes?: string; password_changed?: boolean };
+  let session: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    data = (await context.request.json()) as typeof data;
+    session = await requireAuth(context.env, context.request);
   } catch {
-    return Response.json({ error: "无效请求" }, { status: 400 });
+    return authUnavailableResponse();
+  }
+  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: NO_STORE });
+  if (session.role !== "admin") {
+    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: NO_STORE });
+  }
+  const id = parseAccountId((context.params as { id?: string }).id);
+  if (!id) return Response.json({ error: "无效请求" }, { status: 400, headers: NO_STORE });
+  if (!(await verifyCsrf(context.env, context.request))) {
+    return Response.json({ error: "无权限" }, { status: 403, headers: NO_STORE });
   }
 
+  let data: unknown;
+  try {
+    data = await context.request.json();
+  } catch {
+    return Response.json({ error: "无效请求" }, { status: 400, headers: NO_STORE });
+  }
+  const parsed = validateUpdatePayload(data);
+  if (!parsed) return Response.json({ error: "无效请求" }, { status: 400, headers: NO_STORE });
+
   let password = "";
-  if (data.password_changed && data.password) {
+  if (parsed.passwordChanged) {
     if (!context.env.APPLEID_ENCRYPTION_KEY) {
-      return Response.json({ error: "服务器未配置加密密钥" }, { status: 500 });
+      return Response.json({ error: "服务器未配置加密密钥" }, { status: 500, headers: NO_STORE });
     }
-    password = await fernetEncrypt(data.password, context.env.APPLEID_ENCRYPTION_KEY);
+    password = await fernetEncrypt(parsed.password ?? "", context.env.APPLEID_ENCRYPTION_KEY);
   } else {
     const existing = await queryAll<{ password: string }>(
       context.env.DB,
       "SELECT password FROM apple_accounts WHERE id = ?",
       id,
     );
-    password = existing.length ? existing[0].password : "";
+    if (!existing.length) return Response.json({ error: "未找到" }, { status: 404, headers: NO_STORE });
+    password = existing[0].password;
   }
 
-  const ok = await execute(
-    context.env.DB,
-    "UPDATE apple_accounts SET email = ?, password = ?, notes = ?, updated_at = datetime('now') WHERE id = ?",
-    normalizeEmail(data.email ?? ""),
-    password,
-    data.notes ?? "",
-    id,
-  );
-  return Response.json({ status: ok ? "ok" : "not found" }, { status: ok ? 200 : 404 });
+  let ok = false;
+  try {
+    ok = await execute(
+      context.env.DB,
+      "UPDATE apple_accounts SET email = ?, password = ?, notes = ?, updated_at = datetime('now') WHERE id = ?",
+      parsed.email,
+      password,
+      parsed.notes,
+      id,
+    );
+  } catch {
+    return Response.json({ error: "该邮箱已存在" }, { status: 409, headers: NO_STORE });
+  }
+  return Response.json({ status: ok ? "ok" : "not found" }, { status: ok ? 200 : 404, headers: NO_STORE });
 };
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  const session = await requireAuth(context.env, context.request);
-  if (!session) return Response.json({ error: "未登录" }, { status: 401 });
-  if (session.role !== "admin") return Response.json({ error: "只读账户，无写入权限" }, { status: 403 });
-
-  const id = Number((context.params as { id?: string }).id);
+  let session: Awaited<ReturnType<typeof requireAuth>>;
+  try {
+    session = await requireAuth(context.env, context.request);
+  } catch {
+    return authUnavailableResponse();
+  }
+  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: NO_STORE });
+  if (session.role !== "admin") {
+    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: NO_STORE });
+  }
+  const id = parseAccountId((context.params as { id?: string }).id);
+  if (!id) return Response.json({ error: "无效请求" }, { status: 400, headers: NO_STORE });
+  if (!(await verifyCsrf(context.env, context.request))) {
+    return Response.json({ error: "无权限" }, { status: 403, headers: NO_STORE });
+  }
+  const existing = await queryAll<{ id: number }>(context.env.DB, "SELECT id FROM apple_accounts WHERE id = ?", id);
+  if (!existing.length) return Response.json({ error: "未找到" }, { status: 404, headers: NO_STORE });
   const ok = await execute(context.env.DB, "DELETE FROM apple_accounts WHERE id = ?", id);
-  return Response.json({ status: ok ? "ok" : "not found" }, { status: ok ? 200 : 404 });
+  return Response.json({ status: ok ? "ok" : "not found" }, { status: ok ? 200 : 404, headers: NO_STORE });
 };

@@ -145,5 +145,7 @@
   "toast_add_failed": "Add failed",
   "toast_updated": "Updated",
   "toast_added": "Added",
-  "toast_op_failed": "Operation failed"
+  "toast_op_failed": "Operation failed",
+  "toast_no_permission": "No permission",
+  "no_permission": "No permission"
 }

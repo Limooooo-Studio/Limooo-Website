@@ -6,7 +6,7 @@
 {% block title %}Limooo{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="https://limooo.cn/static/css/images.css?v=1">
+<link rel="stylesheet" href="/static/css/images.css?v=1">
 {% endblock %}
 
 
@@ -14,7 +14,7 @@
 {# 移动端汉堡菜单（与 index/services/contact 一致，桌面端由 base.html 提供） #}
 {% block nav_dropdown %}
 <div class="theme-toggle nav-mobile-menu">
-    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+    <button class="theme-btn" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
         <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -22,9 +22,9 @@
         </svg>
     </button>
     <div id="navLinksDropdown" class="theme-menu">
-        <div class="theme-option" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
-        <div class="theme-option" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
-        <div class="theme-option" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
+        <div class="theme-option" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
     </div>
 </div>
 {% endblock %}
@@ -33,15 +33,15 @@
 <div class="images-main">
     <!-- 三个可点击路径：点击后前端 URL 变为 /路径（pushState，不真实跳转），打开对应界面 -->
     <div class="path-cards">
-        <a class="path-card active" data-path="portfolio" href="/portfolio" onclick="return showPath('portfolio', event)">
+        <a class="path-card active" data-path="portfolio" href="/portfolio" data-action="showPath" data-arg="portfolio" data-needs-event data-prevent>
             <span class="pc-name" data-i18n="tab_portfolio">{{ _('tab_portfolio') }}</span>
             <span class="pc-path">/portfolio</span>
         </a>
-        <a class="path-card" data-path="qr-codes" href="/qr-codes" onclick="return showPath('qr-codes', event)">
+        <a class="path-card" data-path="qr-codes" href="/qr-codes" data-action="showPath" data-arg="qr-codes" data-needs-event data-prevent>
             <span class="pc-name" data-i18n="tab_qr">{{ _('tab_qr') }}</span>
             <span class="pc-path">/qr-codes</span>
         </a>
-        <a class="path-card" data-path="icons" href="/icons" onclick="return showPath('icons', event)">
+        <a class="path-card" data-path="icons" href="/icons" data-action="showPath" data-arg="icons" data-needs-event data-prevent>
             <span class="pc-name" data-i18n="tab_icons">{{ _('tab_icons') }}</span>
             <span class="pc-path">/icons</span>
         </a>
@@ -104,5 +104,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://limooo.cn/static/js/images.js?v=1" defer></script>
+    <script src="/static/js/images.js?v=2" defer></script>
 {% endblock %}

@@ -1,20 +1,21 @@
-"""几个不依赖登录/外部服务的路由冒烟测试。"""
+"""最小 Flask 运行时的冒烟测试：只验证 VPS 保留路由。"""
 
 import app
 
 
-def test_api_i18n_returns_locale():
+def test_backchannel_logout_rejects_missing_token():
     client = app.app.test_client()
-    resp = client.get("/api/i18n/en-us")
-    assert resp.status_code == 200
-    assert resp.get_json()["redirect_title"] == "Redirecting"
+    resp = client.post("/logout/backchannel", data={})
+    assert resp.status_code == 400
 
 
-def test_api_i18n_rejects_unknown_language():
+def test_gate_check_rejects_invalid_cookie():
     client = app.app.test_client()
-    assert client.get("/api/i18n/fr-fr").status_code == 404
+    resp = client.get("/__gate_check", headers={"Cookie": "__gate=invalid"})
+    assert resp.status_code == 403
 
 
-def test_auth_status_not_authenticated():
+def test_gate_check_rejects_missing_key():
     client = app.app.test_client()
-    assert client.get("/api/auth/status").get_json()["authed"] is False
+    resp = client.get("/__gate_check")
+    assert resp.status_code == 403

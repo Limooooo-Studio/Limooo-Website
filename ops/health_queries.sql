@@ -26,7 +26,7 @@ WHERE event = 'block_match' AND ts >= unixepoch() - 3600;
 
 -- name: ray_request_count_1h
 SELECT COUNT(*) AS count
-FROM ray_log
+FROM ray_log_v2
 WHERE ts >= unixepoch() - 3600;
 
 -- name: d1_write_errors_24h
@@ -37,15 +37,28 @@ WHERE event IN ('visit_record_error', 'ray_record_error')
 
 -- name: visitor_trend_1h
 SELECT
-  (SELECT COUNT(*) FROM visitors
-    WHERE ts >= datetime('now', '-1 hour')) AS current_hour,
-  (SELECT COUNT(*) FROM visitors
-    WHERE ts >= datetime('now', '-2 hours')
-      AND ts < datetime('now', '-1 hour')) AS previous_hour;
+  (SELECT COUNT(*) FROM visitors_v2
+    WHERE ts >= unixepoch() - 3600) AS current_hour,
+  (SELECT COUNT(*) FROM visitors_v2
+    WHERE ts >= unixepoch() - 7200
+      AND ts < unixepoch() - 3600) AS previous_hour;
 
 -- name: ray_status_distribution_1h
 SELECT status, COUNT(*) AS count
-FROM ray_log
+FROM ray_log_v2
 WHERE ts >= unixepoch() - 3600
 GROUP BY status
 ORDER BY status;
+
+-- name: visitors_daily_7d
+SELECT day, SUM(requests) AS requests, SUM(unique_ips) AS unique_ips
+FROM visitors_daily
+WHERE day >= date('now', '-7 days')
+GROUP BY day
+ORDER BY day DESC
+LIMIT 8;
+
+-- name: retention_state
+SELECT name, last_run_at, last_success_at, last_error
+FROM retention_state
+ORDER BY name;

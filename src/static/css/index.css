@@ -59,6 +59,7 @@
 /* 裁剪层：固定圆角（外层 16 − 内边距 10），不随 hover 变化 */
 .work-frame {
     width: 100%; height: 100%;
+    aspect-ratio: 3 / 4;
     border-radius: calc(var(--radius-lg) - 10px);
     overflow: hidden;
 }

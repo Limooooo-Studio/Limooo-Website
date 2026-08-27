@@ -10,6 +10,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         document.querySelectorAll('[data-qr]').forEach(function(el) { urls.add(el.dataset.qr); });
         urls.forEach(function(url) {
             var img = new Image();
+            img.referrerPolicy = 'origin';
             img.onerror = function() {}; // 404 时静默忽略，不报控制台错误
             img.src = url;
         });
@@ -42,11 +43,47 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         return (saved === 'light' || saved === 'dark') ? saved : getSystemTheme();
     }
 
+    /* 快速切换检测：1 秒内超过 3 次时强制跳 auth.limooo.cn 验证页（验证页自身不参与触发） */
+    var THEME_TOGGLE_WINDOW_MS = 1000;
+    var THEME_TOGGLE_MAX_COUNT = 3;
+    var themeToggleTimes = [];
+    var themeChallengeStarted = false;
+
+    function themeChallengeUrl() {
+        var base = document.body.getAttribute('data-gate-url') || 'https://auth.limooo.cn/__gate';
+        var url = new URL(base, location.origin);
+        url.searchParams.set('host', location.hostname);
+        url.searchParams.set('next', location.pathname + location.search + location.hash);
+        url.searchParams.set('challenge', '1');
+        return url.toString();
+    }
+
+    function rememberThemeToggle(now) {
+        var cutoff = now - THEME_TOGGLE_WINDOW_MS;
+        themeToggleTimes.push(now);
+        while (themeToggleTimes.length && themeToggleTimes[0] <= cutoff) {
+            themeToggleTimes.shift();
+        }
+    }
+
+    function triggerThemeChallenge() {
+        var challengeUrl = themeChallengeUrl();
+        if (location.hostname === new URL(challengeUrl, location.origin).hostname) return;
+        if (themeChallengeStarted) return;
+        themeChallengeStarted = true;
+        location.replace(challengeUrl);
+    }
+
     /* 点击深浅切换按钮：在浅/深之间切换并缓存，之后不再跟随系统 */
     function toggleTheme() {
+        var now = Date.now();
         var next = effectiveTheme() === 'light' ? 'dark' : 'light';
         localStorage.setItem('theme', next);
         applyTheme(next);
+        rememberThemeToggle(now);
+        if (themeToggleTimes.length > THEME_TOGGLE_MAX_COUNT) {
+            triggerThemeChallenge();
+        }
     }
 
     /* ═══════════════════════════════════════════════════════════════
@@ -187,17 +224,17 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
        ═══════════════════════════════════════════════════════════════ */
     var PAGE_MANIFEST = {
         '/':        { host: 'limooo.cn',          path: '/',        images: [
-                        'https://image.limooo.cn/portfolio/IMG_0203.webp',
-                        'https://image.limooo.cn/portfolio/IMG_0146.webp',
-                        'https://image.limooo.cn/portfolio/IMG_0130.webp',
-                        'https://image.limooo.cn/portfolio/IMG_0244.webp',
-                        'https://image.limooo.cn/portfolio/IMG_0115.webp',
-                        'https://image.limooo.cn/portfolio/IMG_0179.webp' ] },
+                        '/portfolio/thumbs/IMG_0203-800.webp',
+                        '/portfolio/thumbs/IMG_0146-800.webp',
+                        '/portfolio/thumbs/IMG_0130-800.webp',
+                        '/portfolio/thumbs/IMG_0244-800.webp',
+                        '/portfolio/thumbs/IMG_0115-800.webp',
+                        '/portfolio/thumbs/IMG_0179-800.webp' ] },
         '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
         '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
-                        'https://image.limooo.cn/qr-codes/bilibili.webp',
-                        'https://image.limooo.cn/qr-codes/qq.webp',
-                        'https://image.limooo.cn/qr-codes/wechat.webp' ], qr: true }
+                        '/qr-codes/bilibili.webp',
+                        '/qr-codes/qq.webp',
+                        '/qr-codes/wechat.webp' ], qr: true }
     };
 
     /* 当前所在主页键;生产按子域判断,本地开发按路径 */
@@ -212,7 +249,8 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
 
     /* 生产图片统一走 image.limooo.cn(Worker 路由到 limooo.cn/static,URL 不带 /static 前缀),本地走当前 origin */
     function pageOrigin() {
-        return location.hostname.endsWith('limooo.cn') ? 'https://image.limooo.cn' : location.origin;
+        var base = document.body && document.body.getAttribute('data-image-watermark-base');
+        return location.hostname.endsWith('limooo.cn') ? (base || 'https://image.limooo.cn') : location.origin;
     }
 
     /* 兄弟页 HTML 地址:生产为子域根(nginx 根即页面),本地为同源 + 路径 */
@@ -234,6 +272,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
             PAGE_MANIFEST[key].images.forEach(function(rel) {
                 if (PAGE_MANIFEST[key].qr && !desktop) return;   /* 移动端跳过二维码 */
                 var img = new Image();
+                img.referrerPolicy = 'origin';
                 img.onerror = function() {};             /* 404 静默,不报控制台错误 */
                 img.src = rel.indexOf('http') === 0 ? rel : origin + rel;
             });
@@ -290,6 +329,10 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
     function navigateTo(url) {
         closeNavMenu();
         location.href = url;
+    }
+
+    function openNewWindow(url) {
+        window.open(url, "_blank", "noopener");
     }
 
     /* ── DOM 加载完毕后初始化 ── */

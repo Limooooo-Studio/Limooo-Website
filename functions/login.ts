@@ -1,25 +1,30 @@
-/** GET /login → 跳转 authentik 授权（state 存 pending cookie） */
+/** GET /login → 生成 nonce + PKCE + state，跳转 authentik 授权 */
 
-import { buildAuthorizeUrl, redirectUriFor } from "./_lib/oidc";
-import { createPendingCookie } from "./_lib/session";
+import { buildAuthorizeUrl, deriveCodeChallenge, oidcConfigError, redirectUriFor } from "./_lib/oidc";
+import {
+  configErrorResponse,
+  createPendingCookie,
+  randomToken,
+  runtimeConfigError,
+} from "./_lib/session";
 import type { Env } from "./_lib/env";
 import { logEvent } from "./_lib/logging";
-
-function safeNext(raw: string | null): string {
-  if (!raw) return "https://limooo.cn/";
-  if (raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) return raw;
-  // 放行主站及已迁移到 Pages 的管理子域（登录后回跳原页面）
-  if (/^https:\/\/(limooo\.cn|visitor\.limooo\.cn|appleid\.limooo\.cn)\//.test(raw)) return raw;
-  return "https://limooo.cn/";
-}
+import { safeNextUrl } from "./_lib/routing";
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, request } = context;
   const url = new URL(request.url);
   const startedAt = Date.now();
-  const next = safeNext(url.searchParams.get("next"));
-  const state = crypto.randomUUID().replace(/-/g, "");
+  const configError = runtimeConfigError(env) || oidcConfigError(env);
+  if (configError) return configErrorResponse(configError);
+
+  const next = safeNextUrl(url.searchParams.get("next"));
+  const state = randomToken(24);
+  const nonce = randomToken(24);
+  const codeVerifier = randomToken(32);
   const redirectUri = redirectUriFor(url.hostname);
+  const pkceEnabled = env.AUTHENTIK_PKCE_ENABLED !== "false";
+  const codeChallenge = pkceEnabled ? await deriveCodeChallenge(codeVerifier) : undefined;
 
   await logEvent(env, "login_attempt", request, {
     outcome: "started",
@@ -31,8 +36,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   return new Response(null, {
     status: 302,
     headers: {
-      Location: buildAuthorizeUrl(env, state, redirectUri),
-      "Set-Cookie": await createPendingCookie(env, state, next),
+      Location: buildAuthorizeUrl(env, state, redirectUri, { nonce, codeChallenge }),
+      "Set-Cookie": await createPendingCookie(env, {
+        state,
+        nonce,
+        codeVerifier,
+        next,
+      }),
     },
   });
 };

@@ -38,6 +38,14 @@ def main() -> int:
         actual = json.loads(f'"{match.group(1)}"')
         if actual != value:
             errors.append(f"security.ts {name}: JSON={value!r} 实际={actual!r}")
+        if name == "Content-Security-Policy":
+            if "'unsafe-inline'" in actual:
+                errors.append("CSP 仍包含 'unsafe-inline'，docs/14 不允许")
+            script_src = re.search(r"script-src ([^;]+)", actual)
+            style_src = re.search(r"style-src ([^;]+)", actual)
+            for section, match in (("script-src", script_src), ("style-src", style_src)):
+                if match and "https://limooo.cn" in match.group(1):
+                    errors.append(f"CSP {section} 仍放行 https://limooo.cn，应使用 'self'")
 
     if errors:
         print("FATAL: 安全响应头校验失败", file=sys.stderr)

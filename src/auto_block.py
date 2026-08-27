@@ -19,14 +19,18 @@
 
 """
 Auto-block script: scan Nginx access.log for IPs that never returned 200 or hit
-known scan paths, append their /24 to blocklist.txt, then sync to ipset and
-Cloudflare IP List.
+known scan paths, append their /24 to blocklist.txt, then sync to ipset and D1.
+
+权威链路：D1 `blocked_ips` -> 每日 sync-worker -> Cloudflare IP List。
+`blocklist.txt` 是 VPS 本地的导入种子/可审计快照；CF List 只有在显式维护命令
+`auto_block.py cf` 才直接同步，默认运行路径不会写 Cloudflare。
 
 Usage:
-    python3 auto_block.py            # full: scan + write blocklist + sync ipset + CF
-    python3 auto_block.py ipset      # sync blocklist.txt to ipset/iptables only
-    python3 auto_block.py cf         # sync blocklist.txt to Cloudflare only
-    python3 auto_block.py sync       # sync to ipset + Cloudflare
+    python3 auto_block.py                 # full: scan + write blocklist + ipset + D1
+    python3 auto_block.py ipset           # sync blocklist.txt to ipset/iptables only
+    python3 auto_block.py d1 [--dry-run]  # sync blocklist.txt to D1 (full diff)
+    python3 auto_block.py cf              # maintenance: sync blocklist.txt to CF only
+    python3 auto_block.py sync [--dry-run]  # sync to ipset + D1 (不再直写 CF)
 """
 
 import json
@@ -48,6 +52,7 @@ from config import (
     D1_DATABASE_ID,
     ENV_FILE,
 )
+from cidr import normalize_cidr, parse_cidr
 LOG_PATTERN = re.compile(r'^(\S+).*?"([^"]*)"\s+(\d+)')
 
 # 已知恶意扫描路径模式：命中任一条即零容忍封禁
@@ -150,26 +155,21 @@ def read_blocklist_txt(path: str) -> tuple[list[str], set[str]]:
 # ── ipset / iptables 同步（原 sync_blocklist.py） ──────
 def sync_ipset() -> None:
     """把 blocklist.txt 同步到内核 ipset(ban24) + iptables DROP 规则"""
-    entries = []
-    try:
-        with open(BLOCKLIST_TXT) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    entries.append(line)
-    except FileNotFoundError:
+    entries = read_blocklist(BLOCKLIST_TXT)
+    if not entries:
         print("[!] blocklist.txt not found")
         return
 
-    subprocess.run(["ipset", "create", "ban24", "hash:net"], capture_output=True)
+    # 不要因为重复调用而回写默认退出码；创建失败由后续 add 暴露。
+    subprocess.run(["ipset", "create", "ban24", "hash:net", "-exist"], capture_output=True)
 
     count = 0
     for entry in entries:
-        r = subprocess.run(["ipset", "add", "ban24", entry], capture_output=True)
+        r = subprocess.run(["ipset", "add", "ban24", entry, "-exist"], capture_output=True)
         if r.returncode == 0:
             count += 1
 
-    print(f"Added {count} new (skipped existing), total {len(entries)} entries")
+    print(f"[ipset] {count} entries ready, desired total {len(entries)}")
 
     r = subprocess.run(
         ["iptables", "-C", "INPUT", "-m", "set", "--match-set", "ban24", "src", "-j", "DROP"],
@@ -201,13 +201,14 @@ def load_env(path: str) -> dict:
 
 
 def read_blocklist(path: str) -> list[str]:
+    """读取 blocklist.txt 并返回规范化后的 CIDR 列表（无效行/注释忽略）。"""
     entries = []
     try:
         with open(path) as f:
             for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    entries.append(line)
+                cidr = normalize_cidr(line)
+                if cidr and cidr not in entries:
+                    entries.append(cidr)
     except FileNotFoundError:
         print("[!] blocklist.txt not found", file=sys.stderr)
     return entries
@@ -276,14 +277,16 @@ def sync_cloudflare() -> int:
             print(f"[cf] created list {LIST_NAME} with {len(entries)} items", flush=True)
             return 0
 
-        # Current items in CF (ip -> item id for deletion), follow cursor pagination
+        # Current items in CF (canonical cidr -> item id for deletion), follow cursor pagination
         cur = {}
         base = f"{API}/accounts/{account_id}/rules/lists/{lst['id']}/items"
         url = base
         while url:
             resp = _call(token, "GET", url)
             for it in resp.get("result", []):
-                cur[it["ip"]] = it["id"]
+                canonical = _normalize_cidr(it.get("ip", ""))
+                if canonical:
+                    cur[canonical] = it["id"]
             cursors = (resp.get("result_info") or {}).get("cursors") or {}
             after = cursors.get("after")
             url = f"{base}?cursor={after}" if after else None
@@ -314,17 +317,101 @@ def sync_cloudflare() -> int:
 
 
 def _normalize_cidr(line: str) -> str | None:
-    """blocklist.txt 行 → CIDR（裸 a.b.c 补 .0/24，其余保持原样）"""
-    line = line.strip()
-    if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}", line):
-        return f"{line}.0/24"
-    if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(/\d{1,2})?", line):
-        return line
-    return None
+    """兼容旧测试名：统一委托给 src/cidr.py。"""
+    return normalize_cidr(line)
 
 
-def sync_d1() -> int:
-    """把 blocklist.txt 全量 upsert 到 D1 blocked_ips（CF IP List 由 sync-worker 每天同步）"""
+def _sql_str(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _d1_query(token: str, account_id: str, db_id: str, sql: str) -> list[dict]:
+    """执行 D1 HTTP query 并提取首个结果集的 results。"""
+    resp = _call(
+        token,
+        "POST",
+        f"{API}/accounts/{account_id}/d1/database/{db_id}/query",
+        {"sql": sql},
+    )
+    result = resp.get("result") or []
+    if not result:
+        return []
+    first = result[0]
+    if isinstance(first, dict):
+        if first.get("success") is False:
+            raise RuntimeError("D1 query failed")
+        return first.get("results") or []
+    return result
+
+
+def _chunks(values: list[str], size: int) -> list[list[str]]:
+    return [values[i:i + size] for i in range(0, len(values), size)]
+
+
+def _upsert_blocklist(token: str, account_id: str, db_id: str, cidrs: list[str]) -> int:
+    changes = 0
+    for chunk in _chunks(cidrs, BATCH):
+        values = []
+        for cidr in chunk:
+            parsed = parse_cidr(cidr)
+            if parsed is None:
+                continue
+            network, prefix = parsed
+            sql_value = (
+                f"({_sql_str(cidr)}, {_sql_str(network)}, {prefix}, '', "
+                f"'auto_block', datetime('now'), datetime('now'), 'auto_block')"
+            )
+            values.append(sql_value)
+        if not values:
+            continue
+        sql = (
+            f"INSERT INTO blocked_ips "
+            f"(cidr, network, prefix, reason, source, created_at, updated_at, updated_by, active) "
+            f"VALUES {', '.join(values)} "
+            "ON CONFLICT(cidr) DO UPDATE SET "
+            "network=excluded.network, prefix=excluded.prefix, reason=excluded.reason, "
+            "source=excluded.source, updated_at=excluded.updated_at, "
+            "updated_by=excluded.updated_by, active=1"
+        )
+        resp = _call(
+            token,
+            "POST",
+            f"{API}/accounts/{account_id}/d1/database/{db_id}/query",
+            {"sql": sql},
+        )
+        meta = (resp.get("result") or [{}])[0].get("meta", {}) if resp.get("result") else {}
+        changes += int(meta.get("changes", 0) or 0)
+    return changes
+
+
+def _delete_blocklist(token: str, account_id: str, db_id: str, cidrs: list[str]) -> int:
+    changes = 0
+    for chunk in _chunks(cidrs, BATCH):
+        placeholders = ", ".join(_sql_str(cidr) for cidr in chunk)
+        sql = (
+            f"DELETE FROM blocked_ips "
+            f"WHERE cidr IN ({placeholders}) "
+            "AND source IN ('auto_block', 'blocklist.txt')"
+        )
+        resp = _call(
+            token,
+            "POST",
+            f"{API}/accounts/{account_id}/d1/database/{db_id}/query",
+            {"sql": sql},
+        )
+        meta = (resp.get("result") or [{}])[0].get("meta", {}) if resp.get("result") else {}
+        changes += int(meta.get("changes", 0) or 0)
+    return changes
+
+
+def sync_d1(dry_run: bool = False) -> int:
+    """把 blocklist.txt 作为导入快照，与 D1 blocked_ips 做全量 diff。
+
+    - 新增/更新：INSERT ... ON CONFLICT（保留 created_at）
+    - 删除：只删 source=auto_block/blocklist.txt 的活跃行，避免覆盖 admin 来源
+    - 已由 API 解封的行（active=0）保留为审计墓碑，不会被重新加入
+    - ``--dry-run`` 只输出 + / - 集合
+    """
     env = load_env(ENV_FILE)
     token = env.get("CLOUDFLARE_API_TOKEN", "")
     account_id = env.get("CLOUDFLARE_ACCOUNT_ID", "")
@@ -333,29 +420,54 @@ def sync_d1() -> int:
         print("[d1] CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID / D1_DATABASE_ID missing, skipping", file=sys.stderr)
         return 0
 
-    cidrs = []
-    for line in read_blocklist(BLOCKLIST_TXT):
-        c = _normalize_cidr(line)
-        if c and c not in cidrs:
-            cidrs.append(c)
+    cidrs = read_blocklist(BLOCKLIST_TXT)
     if not cidrs:
         print("[d1] blocklist empty, skipping", file=sys.stderr)
         return 0
 
-    values = ",".join(f"('{c}', 'auto_block')" for c in cidrs)
-    sql = f"INSERT OR IGNORE INTO blocked_ips (cidr, note) VALUES {values};"
     try:
-        resp = _call(token, "POST",
-                     f"{API}/accounts/{account_id}/d1/database/{db_id}/query",
-                     {"sql": sql})
-        meta = resp.get("result", [{}])[0].get("meta", {})
-        print(f"[d1] synced {len(cidrs)} entries to D1 (changes={meta.get('changes', 0)})", flush=True)
-    except urllib.error.HTTPError as e:
-        print(f"[d1] HTTP error {e.code}: {e.read().decode()[:300]}", file=sys.stderr)
+        rows = _d1_query(
+            token,
+            account_id,
+            db_id,
+            "SELECT cidr, network, prefix, source, active FROM blocked_ips",
+        )
+    except urllib.error.HTTPError as exc:
+        print(f"[d1] HTTP error {exc.code}: {exc.read().decode()[:300]}", file=sys.stderr)
         return 1
-    except Exception as e:  # noqa: BLE001
-        print(f"[d1] error: {e}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[d1] error: {exc}", file=sys.stderr)
         return 1
+
+    desired = set(cidrs)
+    known = {str(row.get("cidr", "")) for row in rows if row.get("cidr")}
+    active_rows = {str(row["cidr"]): row for row in rows if row.get("cidr") and row.get("active", 1) == 1}
+    to_add = sorted(cidr for cidr in desired if cidr not in known)
+    to_delete = sorted(
+        cidr
+        for cidr, row in active_rows.items()
+        if cidr not in desired and row.get("source") in (None, "", "auto_block", "blocklist.txt")
+    )
+
+    if dry_run:
+        print(f"[d1] dry-run: +{len(to_add)} -{len(to_delete)}")
+        for cidr in to_add:
+            print(f"  + {cidr}")
+        for cidr in to_delete:
+            print(f"  - {cidr}")
+        return 0
+
+    try:
+        added = _upsert_blocklist(token, account_id, db_id, to_add) if to_add else 0
+        deleted = _delete_blocklist(token, account_id, db_id, to_delete) if to_delete else 0
+    except urllib.error.HTTPError as exc:
+        print(f"[d1] HTTP error {exc.code}: {exc.read().decode()[:300]}", file=sys.stderr)
+        return 1
+    except Exception as exc:  # noqa: BLE001
+        print(f"[d1] error: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"[d1] synced +{len(to_add)} -{len(to_delete)} (changes={added + deleted})", flush=True)
     return 0
 
 
@@ -363,6 +475,8 @@ def sync_d1() -> int:
 def run_scan() -> None:
     files = collect_logs()
     if not files:
+        print("[auto_block] Nginx access.log not found; still reconciling D1 snapshot", flush=True)
+        sync_d1()
         return
 
     print(f"[auto_block] Analyzing logs...", flush=True)
@@ -379,40 +493,40 @@ def run_scan() -> None:
     static_lines, existing_prefixes = read_blocklist_txt(BLOCKLIST_TXT)
 
     new_ones = sorted(prefixes - existing_prefixes)
-    if not new_ones:
-        print(f"  No new prefixes, {len(existing_prefixes)} existing /24", flush=True)
-        return
-
     all_prefixes = sorted(existing_prefixes | prefixes)
 
-    # Rewrite blocklist.txt
-    with open(BLOCKLIST_TXT, "w") as f:
-        for line in static_lines:
-            f.write(line + "\n")
-        if static_lines:
-            f.write("\n")
-        for p in all_prefixes:
-            f.write(f"{p}.0/24\n")
-
-    print(f"  blocklist.txt updated", flush=True)
+    # 只有新增时才重写文件，避免每次 cron 都无谓地触碰业务快照。
+    if new_ones:
+        with open(BLOCKLIST_TXT, "w") as f:
+            for line in static_lines:
+                f.write(line + "\n")
+            if static_lines:
+                f.write("\n")
+            for p in all_prefixes:
+                f.write(f"{p}.0/24\n")
+        print(f"  blocklist.txt updated", flush=True)
+    else:
+        print(f"  No new prefixes, {len(existing_prefixes)} existing /24", flush=True)
 
     sync_ipset()
-    print(f"  Added {len(new_ones)} new /24 (total {len(all_prefixes)}), synced to ipset", flush=True)
+    print(f"  Active source sync done: +{len(new_ones)} new /24 (total {len(all_prefixes)})", flush=True)
 
+    # 即使当天没有新增，也执行 D1 全量 diff，让手工删除的种子条目真正消失。
     sync_d1()
-    # TODO: sync-worker 部署上线后，删掉下面这行（CF IP List 改由 sync-worker 每天从 D1 同步）
-    sync_cloudflare()
-    print("  Synced new blocks to D1 + Cloudflare IP List", flush=True)
+    print("  Synced to D1; Cloudflare IP List is updated by sync-worker only", flush=True)
 
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+    dry_run = "--dry-run" in sys.argv[2:]
     if cmd == "ipset":
         sync_ipset()
-    elif cmd == "cf":
-        sys.exit(sync_cloudflare())
+    elif cmd == "d1":
+        sys.exit(sync_d1(dry_run=dry_run))
     elif cmd == "sync":
         sync_ipset()
+        sys.exit(sync_d1(dry_run=dry_run))
+    elif cmd == "cf":
         sys.exit(sync_cloudflare())
     else:
         run_scan()

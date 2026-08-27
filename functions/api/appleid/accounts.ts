@@ -1,11 +1,11 @@
-/** GET /api/appleid/accounts（列表，脱敏） / POST（新增，需 admin） */
+/** GET /api/appleid/accounts（列表，脱敏） / POST（新增，需 admin + CSRF） */
 
 import { queryAll, execute } from "../../_lib/d1";
-import { fernetDecrypt, fernetEncrypt } from "../../_lib/fernet";
-import { requireAuth } from "../../_lib/session";
+import { fernetEncrypt } from "../../_lib/fernet";
+import { authUnavailableResponse, requireAuth } from "../../_lib/session";
+import { verifyCsrf } from "../../_lib/csrf";
+import { maskPassword, validateCreatePayload } from "../../_lib/appleid";
 import type { Env } from "../../_lib/env";
-
-const APPLEID_DOMAIN = "@appleid.limooo.cn";
 
 interface Row {
   id: number;
@@ -15,64 +15,62 @@ interface Row {
   sort_order: number;
 }
 
-function normalizeEmail(raw: string): string {
-  return raw.trim().split("@", 1)[0] + APPLEID_DOMAIN;
-}
-
-function mask(password: string): string {
-  return "·".repeat(password.length || 0);
-}
-
-async function decryptOrRaw(env: Env, stored: string): Promise<string> {
-  try {
-    if (env.APPLEID_ENCRYPTION_KEY) return await fernetDecrypt(stored, env.APPLEID_ENCRYPTION_KEY);
-  } catch {
-    // 兼容旧明文数据
-  }
-  return stored;
-}
-
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  if (!(await requireAuth(context.env, context.request))) {
-    return Response.json({ error: "未登录" }, { status: 401 });
+  let session: Awaited<ReturnType<typeof requireAuth>>;
+  try {
+    session = await requireAuth(context.env, context.request);
+  } catch {
+    return authUnavailableResponse();
+  }
+  if (!session) {
+    return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
   const rows = await queryAll<Row>(
     context.env.DB,
     "SELECT id, email, password, notes, sort_order FROM apple_accounts ORDER BY sort_order, email",
   );
-  const result = [];
-  for (const r of rows) {
-    result.push({
+  return Response.json(
+    rows.map((r) => ({
       id: r.id,
       email: r.email,
-      password: mask(await decryptOrRaw(context.env, r.password)),
+      password: maskPassword(r.password),
       notes: r.notes,
       sort_order: r.sort_order,
-    });
-  }
-  return Response.json(result);
+    })),
+    { headers: { "Cache-Control": "no-store" } },
+  );
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  const session = await requireAuth(context.env, context.request);
-  if (!session) return Response.json({ error: "未登录" }, { status: 401 });
-  if (session.role !== "admin") return Response.json({ error: "只读账户，无写入权限" }, { status: 403 });
-  if (!context.env.APPLEID_ENCRYPTION_KEY) {
-    return Response.json({ error: "服务器未配置加密密钥" }, { status: 500 });
-  }
-
-  let data: { email?: string; password?: string; notes?: string };
+  let session: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    data = (await context.request.json()) as typeof data;
+    session = await requireAuth(context.env, context.request);
   } catch {
-    return Response.json({ error: "无效请求" }, { status: 400 });
+    return authUnavailableResponse();
   }
-  if (!data.email || !data.password) {
-    return Response.json({ error: "邮箱和密码不能为空" }, { status: 400 });
+  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  if (session.role !== "admin") {
+    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+  if (!(await verifyCsrf(context.env, context.request))) {
+    return Response.json({ error: "无权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+  if (!context.env.APPLEID_ENCRYPTION_KEY) {
+    return Response.json({ error: "服务器未配置加密密钥" }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 
-  const email = normalizeEmail(data.email);
-  const encrypted = await fernetEncrypt(data.password, context.env.APPLEID_ENCRYPTION_KEY);
+  let data: unknown;
+  try {
+    data = await context.request.json();
+  } catch {
+    return Response.json({ error: "无效请求" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+  const parsed = validateCreatePayload(data);
+  if (!parsed) {
+    return Response.json({ error: "无效请求" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const encrypted = await fernetEncrypt(parsed.password, context.env.APPLEID_ENCRYPTION_KEY);
   const max = await queryAll<{ n: number }>(
     context.env.DB,
     "SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM apple_accounts",
@@ -84,14 +82,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     ok = await execute(
       context.env.DB,
       "INSERT INTO apple_accounts (email, password, notes, sort_order) VALUES (?, ?, ?, ?)",
-      email,
+      parsed.email,
       encrypted,
-      data.notes ?? "",
+      parsed.notes,
       sortOrder,
     );
   } catch {
-    // D1 唯一约束冲突时 run() 会抛错，统一按"已存在"处理
+    return Response.json({ error: "该邮箱已存在" }, { status: 409, headers: { "Cache-Control": "no-store" } });
   }
-  if (!ok) return Response.json({ error: "该邮箱已存在" }, { status: 409 });
-  return Response.json({ status: "ok" });
+  if (!ok) {
+    return Response.json({ error: "写入失败" }, { status: 500, headers: { "Cache-Control": "no-store" } });
+  }
+  return Response.json({ status: "ok" }, { headers: { "Cache-Control": "no-store" } });
 };

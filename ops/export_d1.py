@@ -13,13 +13,15 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sqlite3
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 OUT_DIR = os.path.join(BASE_DIR, "ops", "out")
+sys.path.insert(0, os.path.join(BASE_DIR, "src"))
+
+from cidr import normalize_cidr, parse_cidr  # noqa: E402
 
 
 def sql_str(value: object) -> str:
@@ -61,16 +63,8 @@ def export_appleid(db_path: str) -> int:
 
 
 def normalize_blocklist(line: str) -> str | None:
-    line = re.sub(r"#.*$", "", line).strip()
-    if not line:
-        return None
-    if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}", line):
-        return f"{line}.0/24"
-    if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", line):
-        return line
-    if re.fullmatch(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}", line):
-        return line
-    return None
+    """统一委托给 src/cidr.py，输出 canonical CIDR。"""
+    return normalize_cidr(line)
 
 
 def export_blocklist(src: str) -> int:
@@ -86,9 +80,21 @@ def export_blocklist(src: str) -> int:
     os.makedirs(OUT_DIR, exist_ok=True)
     out = os.path.join(OUT_DIR, "blocklist.sql")
     with open(out, "w", encoding="utf-8") as f:
-        f.write("INSERT OR IGNORE INTO blocked_ips (cidr, note) VALUES\n")
-        f.write(",\n".join(f"('{c}', 'blocklist.txt')" for c in sorted(seen)))
-        f.write(";\n")
+        f.write(
+            "INSERT OR IGNORE INTO blocked_ips "
+            "(cidr, network, prefix, reason, source, created_at, updated_at, updated_by, active) VALUES\n"
+        )
+        values = []
+        for c in sorted(seen):
+            parsed = parse_cidr(c)
+            if not parsed:
+                continue
+            network, prefix = parsed
+            values.append(
+                f"({sql_str(c)}, {sql_str(network)}, {prefix}, 'blocklist.txt', "
+                "'auto_block', datetime('now'), datetime('now'), 'export_d1', 1)"
+            )
+        f.write(",\n".join(values) + ";\n" if values else "-- no rows\n")
     print(f"[export] {len(seen)} entries -> {out}", flush=True)
     return 0
 

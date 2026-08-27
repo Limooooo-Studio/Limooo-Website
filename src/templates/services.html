@@ -20,14 +20,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}Limooo - Services{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="https://limooo.cn/static/css/services.css?v=6">
+<link rel="stylesheet" href="/static/css/services.css?v=6">
 {% endblock %}
 
 
 
 {% block nav_dropdown %}
 <div class="theme-toggle nav-mobile-menu">
-    <button class="theme-btn" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+    <button class="theme-btn" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
         <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -35,9 +35,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         </svg>
     </button>
     <div id="navLinksDropdown" class="theme-menu">
-        <div class="theme-option" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
-        <div class="theme-option selected" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
-        <div class="theme-option" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
+        <div class="theme-option" data-i18n="nav_home" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
+        <div class="theme-option selected" data-i18n="nav_services" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
     </div>
 </div>
 {% endblock %}
@@ -53,7 +53,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <!-- 服务卡片网格 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
         <div class="reveal-item service-card group relative p-12 md:p-20 flex flex-col items-center justify-center text-center"
-            onclick="openServiceDetail('convention')" role="button" aria-haspopup="dialog">
+            data-action="openServiceDetail" data-arg="convention" role="button" aria-haspopup="dialog">
             <span class="absolute top-6 left-8 text-[10px] font-mono opacity-30 font-bold">01/</span>
             <h3 class="service-item text-xl md:text-3xl tracking-[calc(0.15em*var(--ls-scale))]" data-i18n="service_convention">{{ _('service_convention') }}</h3>
             <span class="detail-hint" data-i18n="detail_hint">{{ _('detail_hint') }}
@@ -61,7 +61,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             </span>
         </div>
         <div class="reveal-item service-card group relative p-12 md:p-20 flex flex-col items-center justify-center text-center"
-            onclick="openServiceDetail('outdoor')" role="button" aria-haspopup="dialog">
+            data-action="openServiceDetail" data-arg="outdoor" role="button" aria-haspopup="dialog">
             <span class="absolute top-6 left-8 text-[10px] font-mono opacity-30 font-bold">02/</span>
             <h3 class="service-item text-xl md:text-3xl tracking-[calc(0.15em*var(--ls-scale))]" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
             <span class="detail-hint" data-i18n="detail_hint">{{ _('detail_hint') }}
@@ -74,12 +74,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 <!-- ═══ 详情弹层 01 / 场照拍摄 ═══ -->
 <div class="service-modal" id="modal-convention" role="dialog" aria-modal="true" aria-label="{{ _('service_convention') }}" data-i18n-attr="aria-label:service_convention">
     <div class="modal-frost"></div>
-    <div class="modal-backdrop" onclick="closeServiceDetail()"></div>
+    <div class="modal-backdrop" data-action="closeServiceDetail"></div>
     <div class="modal-panel">
         <div class="modal-head">
             <div class="modal-head-top">
                 <span class="modal-index">01 / CONVENTION</span>
-                <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
+                <button class="modal-close" data-action="closeServiceDetail" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
             </div>
             <h3 class="modal-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
         </div>
@@ -121,12 +121,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 <!-- ═══ 详情弹层 02 / 正片拍摄 ═══ -->
 <div class="service-modal" id="modal-outdoor" role="dialog" aria-modal="true" aria-label="{{ _('service_outdoor') }}" data-i18n-attr="aria-label:service_outdoor">
     <div class="modal-frost"></div>
-    <div class="modal-backdrop" onclick="closeServiceDetail()"></div>
+    <div class="modal-backdrop" data-action="closeServiceDetail"></div>
     <div class="modal-panel">
         <div class="modal-head">
             <div class="modal-head-top">
                 <span class="modal-index">02 / OUTDOOR</span>
-                <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
+                <button class="modal-close" data-action="closeServiceDetail" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
             </div>
             <h3 class="modal-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
         </div>
@@ -177,5 +177,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block scripts %}
-<script src="https://limooo.cn/static/js/services.js?v=2" defer></script>
+    <script src="/static/js/services.js?v=2" defer></script>
 {% endblock %}

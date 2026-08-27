@@ -1,6 +1,6 @@
 (function () {
         document.documentElement.lang = document.body.getAttribute('data-lang') || 'en-us';
-        var target = document.body.getAttribute('data-to') || 'https://limooo.cn/';
+        var target = document.body.getAttribute('data-to') || '/';
         var rels = JSON.parse(document.body.getAttribute('data-preload') || '[]');
         function go() { location.replace(target); }
 
@@ -18,11 +18,12 @@
         }
         rels.forEach(function (rel) {
             var img = new Image();
+            img.referrerPolicy = 'origin';
             img.onload = img.onerror = function () {
                 pending -= 1;
                 if (pending <= 0) finish();
             };
-            img.src = rel.indexOf('http') === 0 ? rel : 'https://image.limooo.cn' + rel;
+            img.src = rel.indexOf('http') === 0 ? rel : rel;
         });
         setTimeout(finish, 800);
     })();

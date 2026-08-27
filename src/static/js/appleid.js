@@ -2,6 +2,7 @@ let accounts = [];
 let pwVisible = {};
 let pwAutoHideTimer = null;
 let currentRole = 'viewer'; // 'admin' 可写 / 'viewer' 只读
+let csrfToken = '';
 const PW_VISIBLE_MS = 30000; // 明文密码最多在内存保留 30 秒
 
 function clearAllPw() {
@@ -42,16 +43,35 @@ document.addEventListener('languagechange', function() {
 
 // 页面能加载说明后端已放行（已登录），直接初始化；API 401 时才跳登录
 function initDashboard() {
-    fetch('/api/auth/status').then(r => r.json()).then(data => {
+    fetch('/api/auth/status').then(r => r.ok ? r.json() : Promise.reject(new Error('auth_status_failed'))).then(data => {
+        csrfToken = data.csrf_token || '';
         currentRole = data.role || 'viewer';
         showDashboard();
     }).catch(() => showDashboard());
 }
 
+function csrfHeaders(extra) {
+    var headers = extra || {};
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+    return headers;
+}
+
+function handleApiFailure(resp, fallback) {
+    if (resp.status === 401) {
+        window.location.href = '/login?next=' + encodeURIComponent(location.href);
+        return true;
+    }
+    if (resp.status === 403) {
+        toast(t('toast_no_permission'));
+        return true;
+    }
+    if (fallback) toast(fallback);
+    return true;
+}
+
 function showDashboard() {
     var dash = document.getElementById('dashboard');
     dash.classList.remove('hidden');
-    document.getElementById('global-footer').style.display = 'none';
     if (currentRole !== 'admin') {
         // 只读账户:隐藏添加按钮(写操作按钮一并隐藏,无提示)
         var addBtn = document.querySelector('.search-actions .btn-primary');
@@ -146,11 +166,12 @@ function initDrag() {
 async function saveOrder() {
     var order = accounts.map(function(a) { return a.id; });
     try {
-        await fetch('/api/appleid/reorder', {
+        const resp = await fetch('/api/appleid/reorder', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ order: order })
         });
+        if (!resp.ok) handleApiFailure(resp, t('toast_op_failed'));
     } catch(e) {}
 }
 
@@ -186,29 +207,29 @@ function renderList() {
             <div class="account-body">
                 <div class="account-row">
                     <span class="account-email">${esc(a.email)}</span>
-                    <button class="row-btn" onclick="copyEmail(${a.id})" title="${t('copy_email')}">
+                    <button class="row-btn" data-action="copyEmail" data-arg="${a.id}" data-arg-type="number" title="${t('copy_email')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     </button>
                 </div>
                 <div class="account-row">
                     <span class="account-pw">${pwShown ? esc(pwVisible[a.id]) : esc(a.password)}</span>
-                    <button class="row-btn ${pwShown ? 'active' : ''}" onclick="togglePw(${a.id})" title="${pwShown ? t('hide_password') : t('show_password')}">
+                    <button class="row-btn ${pwShown ? 'active' : ''}" data-action="togglePw" data-arg="${a.id}" data-arg-type="number" title="${pwShown ? t('hide_password') : t('show_password')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${pwShown
                             ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
                             : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
                         </svg>
                     </button>
-                    <button class="row-btn" onclick="copyPw(${a.id})" title="${t('copy_pw')}">
+                    <button class="row-btn" data-action="copyPw" data-arg="${a.id}" data-arg-type="number" title="${t('copy_pw')}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                     </button>
                 </div>
                 ${a.notes ? '<div class="account-notes">' + esc(a.notes) + '</div>' : ''}
             </div>
             ${isAdmin ? `<div class="account-actions">
-                <button class="row-btn" onclick="openEditModal(${a.id})" title="${t('edit')}">
+                <button class="row-btn" data-action="openEditModal" data-arg="${a.id}" data-arg-type="number" title="${t('edit')}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button class="row-btn danger" onclick="deleteAccount(${a.id})" title="${t('delete')}">
+                <button class="row-btn danger" data-action="deleteAccount" data-arg="${a.id}" data-arg-type="number" title="${t('delete')}">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                 </button>
             </div>` : ''}
@@ -220,7 +241,9 @@ function renderList() {
 async function revealPw(id) {
     if (pwVisible[id] !== undefined) return pwVisible[id];
     try {
-        const resp = await fetch('/api/appleid/accounts/' + id + '/reveal', { method: 'POST' });
+        const resp = await fetch('/api/appleid/accounts/' + id + '/reveal', { method: 'POST', headers: csrfHeaders() });
+        if (resp.status === 403) { toast(t('toast_no_permission')); return null; }
+        if (resp.status === 401) { window.location.href = '/login?next=' + encodeURIComponent(location.href); return null; }
         if (!resp.ok) { toast(t('toast_pw_fetch_failed')); return null; }
         const data = await resp.json();
         return data.password;
@@ -303,9 +326,9 @@ function closeDeleteModal() {
 async function confirmDelete() {
     if (deleteTargetId === null) return;
     const id = deleteTargetId;
-    const resp = await fetch('/api/appleid/accounts/' + id, { method: 'DELETE' });
+    const resp = await fetch('/api/appleid/accounts/' + id, { method: 'DELETE', headers: csrfHeaders() });
     closeDeleteModal();
-    if (!resp.ok) { toast(t('toast_delete_failed')); return; }
+    if (!resp.ok) { handleApiFailure(resp, t('toast_delete_failed')); return; }
     accounts = accounts.filter(a => a.id !== id);
     delete pwVisible[id];
     renderList();
@@ -378,18 +401,18 @@ async function saveAccount() {
             const pwChanged = password !== origPw;
             const resp = await fetch('/api/appleid/accounts/' + editingId, {
                 method:'PUT',
-                headers:{'Content-Type':'application/json'},
+                headers: csrfHeaders({'Content-Type':'application/json'}),
                 body: JSON.stringify({email, password, notes, password_changed: pwChanged})
             });
-            if (!resp.ok) { toast(t('toast_update_failed')); btn.disabled = false; return; }
+            if (!resp.ok) { handleApiFailure(resp, t('toast_update_failed')); btn.disabled = false; return; }
         } else {
             if (!email) { toast(t('toast_enter_email')); btn.disabled = false; return; }
             const resp = await fetch('/api/appleid/accounts', {
                 method:'POST',
-                headers:{'Content-Type':'application/json'},
+                headers: csrfHeaders({'Content-Type':'application/json'}),
                 body: JSON.stringify({email, password, notes})
             });
-            if (!resp.ok) { toast(t('toast_add_failed')); btn.disabled = false; return; }
+            if (!resp.ok) { handleApiFailure(resp, t('toast_add_failed')); btn.disabled = false; return; }
         }
         closeModal();
         await loadAccounts();

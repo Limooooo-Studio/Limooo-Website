@@ -12,8 +12,9 @@
   "lang_cookie": "user_lang_preference",
   "lang_cookie_max_age": 31536000,
   "gate_cookie": "__gate",
-  "session_cookie": "limooo_session",
-  "pending_cookie": "limooo_pending",
+  "session_cookie": "limooo_session_v2",
+  "pending_cookie": "limooo_pending_v2",
+  "csrf_cookie": "limooo_csrf",
   "gate_ttl_seconds": 3600,
   "session_ttl_seconds": 604800,
   "pending_ttl_seconds": 600,
@@ -24,9 +25,82 @@
     "contact.limooo.cn",
     "identity.limooo.cn",
     "visitor.limooo.cn",
-    "appleid.limooo.cn"
+    "appleid.limooo.cn",
+    "auth.limooo.cn",
+    "redirect.limooo.cn",
+    "image.limooo.cn",
+    "images.limooo.cn"
   ],
-  "authentik_provider_slug": "limooo",
+  "managed_hosts": [
+    "limooo.cn",
+    "www.limooo.cn",
+    "services.limooo.cn",
+    "contact.limooo.cn",
+    "identity.limooo.cn",
+    "visitor.limooo.cn",
+    "appleid.limooo.cn",
+    "auth.limooo.cn",
+    "redirect.limooo.cn",
+    "images.limooo.cn",
+    "image.limooo.cn"
+  ],
+  "page_routes": {
+    "limooo.cn": {
+      "/": "index.html",
+      "/index.html": "index.html",
+      "/services": "services.html",
+      "/contact": "contact.html"
+    },
+    "www.limooo.cn": {
+      "/": "index.html",
+      "/index.html": "index.html",
+      "/services": "services.html",
+      "/contact": "contact.html"
+    },
+    "services.limooo.cn": {
+      "/": "services.html",
+      "/index.html": "services.html",
+      "/services": "services.html"
+    },
+    "contact.limooo.cn": {
+      "/": "contact.html",
+      "/index.html": "contact.html",
+      "/contact": "contact.html"
+    },
+    "visitor.limooo.cn": {
+      "/": "visitor.html",
+      "/index.html": "visitor.html",
+      "/visitor": "visitor.html"
+    },
+    "appleid.limooo.cn": {
+      "/": "appleid.html",
+      "/index.html": "appleid.html",
+      "/appleid": "appleid.html"
+    },
+    "auth.limooo.cn": {
+      "/__gate": "auth.html"
+    },
+    "redirect.limooo.cn": {
+      "/": "redirect.html",
+      "/r": "redirect.html"
+    },
+    "images.limooo.cn": {
+      "/": "images.html",
+      "/index.html": "images.html",
+      "/portfolio": "images.html",
+      "/qr-codes": "images.html",
+      "/icons": "images.html"
+    }
+  },
+  "image_asset_host": "images.limooo.cn",
+  "image_watermark_host": "image.limooo.cn",
+  "gate_trust": {
+    "verified_bot": true,
+    "ua_allowlist_enabled": false
+  },
+  "observability_hmac_env": "OBSERVABILITY_HMAC_KEY",
+  "whitelist_file": "data/whitelist.txt",
+  "authentik_provider_slug": "visitor",
   "authentik_admin_groups": [
     "authentik Admins"
   ]

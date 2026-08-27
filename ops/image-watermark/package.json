@@ -1,0 +1,10 @@
+{
+  "name": "limooo-image-watermark",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "image.limooo.cn 水印 Worker 与路由测试",
+  "scripts": {
+    "test": "node --test src/index.test.js"
+  }
+}

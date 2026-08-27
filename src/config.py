@@ -36,8 +36,8 @@ SOURCE_DIR = os.path.join(BASE_DIR, "src")
 STATIC_DIR = os.path.join(SOURCE_DIR, "static")
 TEMPLATES_DIR = os.path.join(SOURCE_DIR, "templates")
 LOCALES_DIR = os.path.join(BASE_DIR, "locales")
-PUBLIC_DIR = os.path.join(BASE_DIR, "public")
-PREVIEW_DIR = os.path.join(BASE_DIR, "preview")
+PUBLIC_DIR = os.environ.get("LIMOOO_PUBLIC_DIR") or os.path.join(BASE_DIR, "public")
+PREVIEW_DIR = os.environ.get("LIMOOO_PREVIEW_DIR") or os.path.join(BASE_DIR, "preview")
 
 # 跨端共享配置的唯一事实源：config.py 与 build.py 生成 functions/_lib/config.ts
 # 都从这里读取。修改域名 / 语言 / cookie / TTL / 公开主机时只改本文件。
@@ -80,15 +80,41 @@ def _contract_str_list(key: str) -> list[str]:
     return value
 
 
+def _contract_page_routes() -> dict[str, dict[str, str]]:
+    """读取 host → path → 预渲染页面文件 的路由映射并做基本校验。"""
+    value = CONTRACT.get("page_routes")
+    if not isinstance(value, dict):
+        raise RuntimeError("配置契约缺少 page_routes 字段（应为 JSON 对象）")
+    routes: dict[str, dict[str, str]] = {}
+    for host, paths in value.items():
+        if not isinstance(host, str) or not host or not isinstance(paths, dict):
+            raise RuntimeError(f"配置契约 page_routes 条目格式错误: {host!r}")
+        normalized: dict[str, str] = {}
+        for path, filename in paths.items():
+            if (
+                not isinstance(path, str)
+                or not path.startswith("/")
+                or not isinstance(filename, str)
+                or not filename.endswith(".html")
+            ):
+                raise RuntimeError(f"配置契约 page_routes 路由格式错误: {host!r} {path!r}")
+            normalized[path.rstrip("/") or "/"] = filename
+        routes[host] = normalized
+    return routes
+
+
 # 全新部署时 data/ 可能尚不存在，import 即确保目录就绪
-os.makedirs(DATA_DIR, exist_ok=True)
+# 构建模式（LIMOOO_BUILD=1）只做纯渲染，不创建运行数据库所在目录；真正的
+# Python 服务启动时仍会创建，避免 build.py 在干净机器上产生 data/ 副作用。
+BUILD_MODE = os.environ.get("LIMOOO_BUILD") == "1"
+if not BUILD_MODE:
+    os.makedirs(DATA_DIR, exist_ok=True)
 
 # 运行时数据库：与可丢的 geo_cache.db(IP 缓存)分开,避免部署清理误伤业务数据
 DATABASE = os.path.join(DATA_DIR, "geo_cache.db")
 APPLEID_DB = os.path.join(DATA_DIR, "appleid.db")
 AUTH_DB = os.path.join(DATA_DIR, "auth.db")
 BLOCKLIST_FILE = os.path.join(DATA_DIR, "blocklist.txt")
-WHITELIST_FILE = os.path.join(DATA_DIR, "whitelist.txt")
 
 # VPS 侧依赖的系统路径
 NGINX_LOG = "/var/log/nginx/access.log"
@@ -117,8 +143,18 @@ GATE_HOST = f"auth.{ROOT_DOMAIN}"
 IDENTITY_HOST = f"identity.{ROOT_DOMAIN}"
 IMAGES_HOST = f"images.{ROOT_DOMAIN}"
 IMAGE_BASE_URL = f"https://{IMAGES_HOST}"
+IMAGE_ASSET_HOST = _contract_str("image_asset_host")
+IMAGE_WATERMARK_HOST = _contract_str("image_watermark_host")
+IMAGE_WATERMARK_BASE_URL = f"https://{IMAGE_WATERMARK_HOST}"
+IMAGE_ASSET_BASE_URL = f"https://{IMAGE_ASSET_HOST}"
 REDIRECT_BASE_URL = REDIRECT_URL
 PUBLIC_HOSTS = tuple(_contract_str_list("public_hosts"))
+MANAGED_HOSTS = tuple(_contract_str_list("managed_hosts"))
+PAGE_ROUTES = _contract_page_routes()
+IMAGE_ASSET_HOSTNAME = IMAGE_ASSET_HOST
+IMAGE_WATERMARK_HOSTNAME = IMAGE_WATERMARK_HOST
+GATE_TRUST = CONTRACT.get("gate_trust", {})
+OBSERVABILITY_HMAC_ENV = _contract_str("observability_hmac_env")
 SESSION_COOKIE_DOMAIN = f".{ROOT_DOMAIN}"
 
 # ── 多语言 ────────────────────────────────────────────────
@@ -135,9 +171,11 @@ LANG_COOKIE_MAX_AGE = _contract_int("lang_cookie_max_age")
 GATE_COOKIE = _contract_str("gate_cookie")
 SESSION_COOKIE = _contract_str("session_cookie")
 PENDING_COOKIE = _contract_str("pending_cookie")
+CSRF_COOKIE = _contract_str("csrf_cookie")
 GATE_COOKIE_TTL = _contract_int("gate_ttl_seconds")
 SESSION_TTL = _contract_int("session_ttl_seconds")
 PENDING_TTL = _contract_int("pending_ttl_seconds")
+WHITELIST_FILE = _contract_str("whitelist_file")
 
 # ── Apple ID ──────────────────────────────────────────────
 APPLEID_DOMAIN = f"@{APPLEID_HOST}"
@@ -146,12 +184,12 @@ APPLEID_KEY_FILE = os.path.join(SECRET_DIR, "appleid_encryption.key")
 
 # ── 统一跳转页预热图片（与 Page 端 manifest 及 Pages 中间件保持一致） ──
 REDIRECT_PRELOAD_IMAGES = [
-    f"{IMAGE_BASE_URL}/portfolio/IMG_0203.webp",
-    f"{IMAGE_BASE_URL}/portfolio/IMG_0146.webp",
-    f"{IMAGE_BASE_URL}/portfolio/IMG_0130.webp",
-    f"{IMAGE_BASE_URL}/portfolio/IMG_0244.webp",
-    f"{IMAGE_BASE_URL}/portfolio/IMG_0115.webp",
-    f"{IMAGE_BASE_URL}/portfolio/IMG_0179.webp",
+    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0203-800.webp",
+    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0146-800.webp",
+    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0130-800.webp",
+    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0244-800.webp",
+    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0115-800.webp",
+    f"{IMAGE_WATERMARK_BASE_URL}/portfolio/thumbs/IMG_0179-800.webp",
 ]
 
 # ── 登录使用的 authentik 信息 ─────────────────────────────

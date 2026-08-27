@@ -145,5 +145,7 @@
   "toast_add_failed": "添加失败",
   "toast_updated": "已更新",
   "toast_added": "已添加",
-  "toast_op_failed": "操作失败"
+  "toast_op_failed": "操作失败",
+  "toast_no_permission": "无权限",
+  "no_permission": "无权限"
 }

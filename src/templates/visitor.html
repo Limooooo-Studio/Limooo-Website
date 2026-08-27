@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}Limooo - Visitor{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="https://limooo.cn/static/css/visitor.css?v=2">
+<link rel="stylesheet" href="/static/css/visitor.css?v=2">
 {% endblock %}
 
 {% block nav_links %}
@@ -53,7 +53,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 {% block nav_dropdown %}
 <div class="theme-toggle">
-    <button class="theme-btn nav-mobile-menu" onclick="toggleMobileMenu(event)" aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+    <button class="theme-btn nav-mobile-menu" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
         <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -61,11 +61,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         </svg>
     </button>
     <div id="navLinksDropdown" class="theme-menu">
-        <div class="theme-option" data-i18n="nav_home" onclick="navigateTo('https://limooo.cn')">{{ _('nav_home') }}</div>
-        <div class="theme-option" data-i18n="nav_services" onclick="navigateTo('https://services.limooo.cn')">{{ _('nav_services') }}</div>
-        <div class="theme-option" data-i18n="nav_contact" onclick="navigateTo('https://contact.limooo.cn')">{{ _('nav_contact') }}</div>
-        <div class="theme-option selected" data-i18n="nav_visitor" onclick="navigateTo('https://visitor.limooo.cn')">{{ _('nav_visitor') }}</div>
-        <div class="theme-option" data-i18n="nav_appleid" onclick="navigateTo('https://appleid.limooo.cn')">{{ _('nav_appleid') }}</div>
+        <div class="theme-option" data-i18n="nav_home" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-i18n="nav_services" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
+        <div class="theme-option selected" data-i18n="nav_visitor" data-action="navigateTo" data-arg="https://visitor.limooo.cn">{{ _('nav_visitor') }}</div>
+        <div class="theme-option" data-i18n="nav_appleid" data-action="navigateTo" data-arg="https://appleid.limooo.cn">{{ _('nav_appleid') }}</div>
     </div>
 </div>
 {% endblock %}
@@ -98,8 +98,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 <div class="list-header">
                     <div class="title"><span data-i18n="visitor_title">{{ _('visitor_title') }}</span><span class="sub" id="list-sub"></span></div>
                     <div class="list-actions">
-                        <button class="panel-btn" onclick="refresh()" data-i18n="refresh">{{ _('refresh') }}</button>
-                        <button class="panel-btn danger" onclick="handleLogout()" data-i18n="logout">{{ _('logout') }}</button>
+                        <button class="panel-btn" data-action="refresh" data-i18n="refresh">{{ _('refresh') }}</button>
+                        <button class="panel-btn danger" data-action="handleLogout" data-i18n="logout">{{ _('logout') }}</button>
                     </div>
                 </div>
 
@@ -118,5 +118,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block scripts %}
-<script src="https://limooo.cn/static/js/visitor.js?v=1" defer></script>
+<script type="module" src="/static/js/visitor.js?v=2"></script>
 {% endblock %}

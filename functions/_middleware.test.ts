@@ -1,0 +1,73 @@
+/** 强制主题挑战门禁编排测试：必须无视白名单 IP / cf_clearance，并固定跳 auth。 */
+
+import { describe, expect, it, vi } from "vitest";
+import { handleOnRequest } from "./_middleware";
+import type { Env } from "./_lib/env";
+import type { RequestContext } from "./_lib/routing";
+
+vi.mock("./_lib/tracking", () => ({
+  isTrustedCrawler: () => false,
+  recordRay: () => Promise.resolve(),
+  recordVisit: () => Promise.resolve(),
+  shouldTrackRay: () => false,
+  shouldTrackVisit: () => false,
+}));
+
+const keys = {
+  TURNSTILE_SECRET: "turnstile-secret",
+  GATE_HMAC_KEY: "a".repeat(64),
+  SESSION_HMAC_KEY: "b".repeat(64),
+};
+
+function context(request: Request, env: Partial<Env> = {}): RequestContext {
+  return {
+    request,
+    env: { ...keys, ...env } as Env,
+    next: async () => new Response("next", { status: 200 }),
+    waitUntil: async () => undefined,
+  };
+}
+
+describe("force theme challenge", () => {
+  it("redirects whitelisted/cf-cleared main-site requests to auth.limooo.cn", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/services?challenge=1", {
+          headers: {
+            "CF-Connecting-IP": "97.64.18.11",
+            Cookie: "cf_clearance=test",
+          },
+        }),
+      ),
+    );
+
+    expect(resp.status).toBe(302);
+    const location = resp.headers.get("Location") ?? "";
+    expect(location).toContain("https://auth.limooo.cn/__gate");
+    expect(location).toContain("challenge=1");
+    expect(decodeURIComponent(new URL(location).searchParams.get("next") ?? "")).not.toContain("challenge=1");
+  });
+
+  it("still renders the gate on auth.limooo.cn when a challenge is forced", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request(
+          "https://auth.limooo.cn/__gate?challenge=1&host=limooo.cn&next=%2Fservices",
+          { headers: { Cookie: "cf_clearance=test" } },
+        ),
+        {
+          ASSETS: {
+            fetch: async () =>
+              new Response(
+                "<html><body>{{host}} {{next}} {{lang}} {{error}}</body></html>",
+                { headers: { "Content-Type": "text/html" } },
+              ),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(403);
+    expect(resp.headers.get("Location")).toBeNull();
+  });
+});

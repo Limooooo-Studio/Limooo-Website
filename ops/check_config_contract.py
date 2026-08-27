@@ -30,10 +30,18 @@ PYTHON_FIELD_MAP = {
     "gate_cookie": "GATE_COOKIE",
     "session_cookie": "SESSION_COOKIE",
     "pending_cookie": "PENDING_COOKIE",
+    "csrf_cookie": "CSRF_COOKIE",
     "gate_ttl_seconds": "GATE_COOKIE_TTL",
     "session_ttl_seconds": "SESSION_TTL",
     "pending_ttl_seconds": "PENDING_TTL",
     "public_hosts": "PUBLIC_HOSTS",
+    "managed_hosts": "MANAGED_HOSTS",
+    "page_routes": "PAGE_ROUTES",
+    "image_asset_host": "IMAGE_ASSET_HOST",
+    "image_watermark_host": "IMAGE_WATERMARK_HOST",
+    "gate_trust": "GATE_TRUST",
+    "observability_hmac_env": "OBSERVABILITY_HMAC_ENV",
+    "whitelist_file": "WHITELIST_FILE",
     "authentik_provider_slug": "AUTHENTIK_PROVIDER_SLUG",
     "authentik_admin_groups": "AUTHENTIK_ADMIN_GROUPS",
 }
@@ -77,12 +85,16 @@ def load_ts_contract() -> dict | None:
     except OSError as exc:
         fail(f"无法读取 {CONFIG_TS_PATH}: {exc}")
         raise SystemExit(1) from exc
-    match = re.search(r"export const CONTRACT = (\{.*?\}) as const;", text, re.S)
-    if not match:
+    marker = "export const CONTRACT = {"
+    start = text.find(marker)
+    outer_start = text.find("{", start + len("export const CONTRACT = ") if start >= 0 else 0)
+    if start < 0 or outer_start < 0:
         fail(f"{CONFIG_TS_PATH} 缺少生成的 CONTRACT 常量，疑似被人手改")
         raise SystemExit(1)
     try:
-        return json.loads(match.group(1))
+        decoder = json.JSONDecoder()
+        object_data, _ = decoder.raw_decode(text[outer_start:])
+        return object_data
     except json.JSONDecodeError as exc:
         fail(f"{CONFIG_TS_PATH} 的 CONTRACT 不是合法 JSON: {exc}")
         raise SystemExit(1) from exc
@@ -110,7 +122,41 @@ def python_values(module) -> dict:
     return result
 
 
+def check_constants_consumed() -> None:
+    """契约中的 TTL 必须被实际消费，避免生成常量后仍用 3600 / 7*86400。"""
+    required = {
+        "GATE_TTL_SECONDS": "gate.ts",
+        "SESSION_TTL_SECONDS": "session.ts",
+    }
+    source_text = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in (ROOT / "functions").rglob("*.ts")
+        if path.name != "config.ts" and not path.name.endswith(".test.ts")
+    }
+    for constant, expected_file in required.items():
+        if not any(constant in text for text in source_text.values()):
+            fail(f"配置常量 {constant} 未被 functions/ 源码消费（应在 {expected_file}）")
+            raise SystemExit(1)
+
+
+def check_managed_hosts(contract: dict) -> None:
+    """managed_hosts 必须包含 auth/redirect/images/image 等托管子域。"""
+    root = contract.get("root_domain", "")
+    expected = [
+        f"auth.{root}",
+        f"redirect.{root}",
+        f"images.{root}",
+        f"image.{root}",
+    ]
+    managed = set(contract.get("managed_hosts", []))
+    missing = [host for host in expected if host not in managed]
+    if missing:
+        fail(f"managed_hosts 缺少托管子域: {', '.join(missing)}")
+        raise SystemExit(1)
+
+
 def main() -> int:
+    skip_ts = "--skip-ts" in sys.argv[1:]
     contract = load_contract()
     if contract.get("schema_version") != 1:
         fail("当前仅支持 schema_version = 1")
@@ -118,8 +164,10 @@ def main() -> int:
 
     module = load_python_config()
     py_ok = compare("src/config.py", contract, python_values(module))
+    check_managed_hosts(contract)
+    check_constants_consumed()
 
-    ts_contract = load_ts_contract()
+    ts_contract = None if skip_ts else load_ts_contract()
     ts_ok = True
     if ts_contract is not None:
         # 生成文件里的 CONTRACT 会包含 schema_version；比较时跳过即可。
@@ -129,10 +177,12 @@ def main() -> int:
 
     if not (py_ok and ts_ok):
         return 1
-    if ts_contract is None:
+    if ts_contract is None and not skip_ts:
         print("[config-contract] OK: contract / Python 一致（TS 尚未生成，跳过）")
-    else:
+    elif ts_contract is not None:
         print("[config-contract] OK: contract / Python / TypeScript 三者一致")
+    else:
+        print("[config-contract] OK: contract / Python 一致（--skip-ts，构建前校验）")
     return 0
 
 

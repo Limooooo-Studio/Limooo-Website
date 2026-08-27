@@ -32,13 +32,13 @@ const WM_VERSION = "3";
  * 只给 /portfolio/ 下的 png/jpg/jpeg/webp 加水印；
  * 其他路径（icons、qr-codes 等）一律返回原图。
  */
-function shouldWatermark(pathname) {
+export function shouldWatermark(pathname) {
   if (!pathname.startsWith("/portfolio/")) return false;
   return /\.(png|jpe?g|webp)$/i.test(pathname);
 }
 
 /** Referer 是否来自 limooo.cn 家族（主机名精确匹配，防 limooo.cn.evil.com 绕过） */
-function refererAllowed(referer) {
+export function refererAllowed(referer) {
   if (!referer) return false;
   try {
     const host = new URL(referer).hostname.toLowerCase();
@@ -53,10 +53,15 @@ function refererAllowed(referer) {
  * 返回 { target, originalUrl?, watermarked, image }；watermarked 时若 target 404，
  * 由调用方回退 originalUrl。
  */
-function routeFor(url, request, origin) {
+export function routeFor(url, request, origin) {
   if (!IMAGE_PATH_RE.test(url.pathname)) {
-    // 非图片：直接透传 limooo.cn 同路径
-    return { target: origin + url.pathname + url.search, watermarked: false, image: false };
+    // 非图片：只允许已知资源目录，且绝不放行 /api/*
+    const allowed = /^\/(?:portfolio|qr-codes|icons)(?:\/|$)/.test(url.pathname);
+    return {
+      target: allowed ? origin + url.pathname + url.search : "",
+      watermarked: false,
+      image: false,
+    };
   }
   const originalUrl = origin + "/static" + url.pathname + url.search;
   if (refererAllowed(request.headers.get("Referer")) || !shouldWatermark(url.pathname)) {
@@ -71,7 +76,7 @@ function routeFor(url, request, origin) {
 }
 
 /** 构造水印变体回源 URL（带版本参数，缓存破坏用） */
-function wmTarget(origin, url) {
+export function wmTarget(origin, url) {
   const u = new URL(origin + "/static/wm" + url.pathname + url.search);
   u.searchParams.set("__wmver", WM_VERSION);
   return u.toString();
@@ -157,6 +162,7 @@ export default {
     // 非图片请求直接放行：原样透传 limooo.cn 响应
     const route = routeFor(url, request, origin);
     if (!route.image) {
+      if (!route.target) return new Response("Not Found", { status: 404 });
       return fetch(route.target);
     }
     if (!route.watermarked) {

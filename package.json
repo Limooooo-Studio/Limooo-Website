@@ -5,10 +5,15 @@
   "type": "module",
   "description": "Limooo Cloudflare Pages Functions unit tests",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run && node --test ops/image-watermark/src/index.test.js",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "build": "bash ops/build.sh"
   },
   "devDependencies": {
-    "vitest": "^3.0.0"
+    "@types/node": "26.4.0",
+    "typescript": "7.0.2",
+    "vitest": "3.2.7",
+    "wrangler": "4.127.0"
   }
 }
