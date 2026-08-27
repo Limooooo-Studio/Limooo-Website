@@ -14,7 +14,6 @@ import os
 import smtplib
 import sys
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 from email.message import EmailMessage
@@ -401,7 +400,7 @@ def notify_kuma(env: dict[str, str], status: str, message: str) -> str:
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
             return "ok" if 200 <= response.status < 300 else "failed"
-    except (OSError, urllib.error.URLError):
+    except Exception:
         return "failed"
 
 
