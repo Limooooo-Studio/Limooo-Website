@@ -46,7 +46,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <link rel="stylesheet" href="https://limooo.cn/static/fonts.css?v=2">
 
 <!-- 站点基础样式（由模板内联样式轻量化后抽出的统一 CSS） -->
-    <link rel="stylesheet" href="https://limooo.cn/static/css/base.css?v=9">
+    <link rel="stylesheet" href="https://limooo.cn/static/css/base.css?v=11">
 
     {% block head_links %}{% endblock %}
 </head>
@@ -65,7 +65,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <nav class="site-nav fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl z-[100] flex items-center px-5 md:px-8 h-[70px] md:h-[100px]">
         {% block nav_logo %}
         <a href="{{ home_url }}" class="flex items-center gap-2 md:gap-2.5 shrink-0" id="nav-logo">
-            <span class="text-lg md:text-2xl font-semibold uppercase tracking-[0.05em]">LIMOOO</span>
+            <span class="nav-brand text-lg md:text-2xl font-semibold uppercase tracking-[0.05em]">LIMOOO</span>
         </a>
         {% endblock %}
 

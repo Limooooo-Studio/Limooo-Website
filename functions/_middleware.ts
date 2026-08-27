@@ -707,12 +707,14 @@ function renderGatePage(context: EventContext, opts: GateRenderOptions): Respons
   }
   .footer-text {
     font-size: 10px; font-weight: 600;
-    font-size-adjust: 0.546;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
   }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700; letter-spacing: 0.02em;
+    /* 只让品牌字按 x-height 动态计算大小，其他版权文字固定 10px */
+    font-size: 10px;
+    font-size-adjust: 0.546;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
@@ -1020,12 +1022,14 @@ function renderRedirectPage(context: EventContext): Response {
   }
   .footer-text {
     font-size: 10px; font-weight: 600;
-    font-size-adjust: 0.546;
     letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
   }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700; letter-spacing: 0.02em;
+    /* 只让品牌字按 x-height 动态计算大小，其他版权文字固定 10px */
+    font-size: 10px;
+    font-size-adjust: 0.546;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
