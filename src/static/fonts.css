@@ -75,7 +75,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 600;
-  src: url(fonts/baloo2/limooo-brackets-600-subset-baloo2.ttf) format('truetype');
+  src: url(fonts/baloo2/limooo-brackets-600-subset-baloo2.ttf?v=2) format('truetype');
   unicode-range: U+0049,U+004C,U+004D,U+004F,U+300C-300D;
 }
 
