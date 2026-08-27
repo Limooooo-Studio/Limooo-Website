@@ -172,9 +172,9 @@
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700; letter-spacing: 0.02em;
-    /* 品牌字比正文大 1.5 倍：0.546 × 1.5 = 0.819，按 x-height 动态计算 */
+    /* 品牌字比正文大 1.2 倍：0.546 × 1.2 = 0.6552，按 x-height 动态计算 */
     font-size: 10px;
-    font-size-adjust: 0.819;
+    font-size-adjust: 0.6552;
   }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }

@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="/static/icons/favicon.png">
 <title>{{ title }}</title>
 <link rel="stylesheet" href="/static/fonts.css?v=3">
-<script src="/static/js/theme-preload.js"></script>
+<script src="/static/js/theme-preload.js?v=2"></script>
 <link rel="stylesheet" href="/static/css/auth.css?v=5">
 </head>
 <body data-lang="{{ lang }}" data-gate-error="{{ error_html }}">
@@ -62,6 +62,7 @@
     <div class="footer-text">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
   </div>
 </footer>
+    <script id="gate-i18n" type="application/json">{{ gate_i18n_json | safe }}</script>
     <script src="/static/js/actions.js?v=1" defer></script>
     <script src="/static/js/auth.js?v=2" defer></script>
 </body>

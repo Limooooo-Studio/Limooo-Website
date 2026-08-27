@@ -1,13 +1,20 @@
 :root {
         --bg: #1b1b1f;
+        --text: #e5e9ef;
         --footer-border: #2e2e32;
         --ls-scale: 0.65;
+    }
+    .light-mode {
+        color-scheme: light;
+        --bg: #ffffff;
+        --text: #1f2328;
+        --footer-border: #e2e2e3;
     }
     html[lang^="en"] { --ls-scale: 0.3; }
     html, body { height: 100%; margin: 0; }
     body {
         display: flex; align-items: center; justify-content: center;
-        background: #1b1b1f; color: #e5e9ef;
+        background: var(--bg); color: var(--text);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         font-size: 14px;
         font-weight: 500;
@@ -44,9 +51,9 @@
     .footer-brand {
         font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
         font-weight: 700; letter-spacing: 0.02em;
-        /* 品牌字比正文大 1.5 倍：0.546 × 1.5 = 0.819，按 x-height 动态计算 */
+        /* 品牌字比正文大 1.2 倍：0.546 × 1.2 = 0.6552，按 x-height 动态计算 */
         font-size: 10px;
-        font-size-adjust: 0.819;
+        font-size-adjust: 0.6552;
     }
     @media (hover: none) and (pointer: coarse) {
         .global-footer { display: none !important; }

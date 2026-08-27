@@ -175,6 +175,7 @@ def render_gate(appmod, lang: str) -> str:
     t = GATE_I18N[lang]
     # sitekey 与完整 i18n 由 /__gate/config 运行时下发；构建产物不写密钥相关值。
     turnstile_html = '<div id="turnstile-wrap" class="turnstile-wrap"></div>'
+    gate_i18n_json = json.dumps(GATE_I18N, ensure_ascii=False).replace("</", "<\\/")
     with app.test_request_context("/__gate", headers={"Host": GATE_HOST}):
         g.lang = lang
         html = render_template(
@@ -193,6 +194,7 @@ def render_gate(appmod, lang: str) -> str:
             turnstile_src="",
             sitekey="",
             gate_i18n=GATE_I18N,
+            gate_i18n_json=gate_i18n_json,
             host="{{host}}",
             next="{{next}}",
         )
@@ -262,6 +264,8 @@ def write_config_functions() -> None:
         "export const KEY_FALLBACK_LANG = CONTRACT.key_fallback_lang;",
         "export const LANG_COOKIE = CONTRACT.lang_cookie;",
         "export const LANG_COOKIE_MAX_AGE = CONTRACT.lang_cookie_max_age;",
+        "export const THEME_COOKIE = CONTRACT.theme_cookie;",
+        "export const THEME_COOKIE_MAX_AGE = CONTRACT.theme_cookie_max_age;",
         "export const GATE_COOKIE = CONTRACT.gate_cookie;",
         "export const SESSION_COOKIE = CONTRACT.session_cookie;",
         "export const PENDING_COOKIE = CONTRACT.pending_cookie;",
@@ -579,6 +583,7 @@ def main() -> int:
 
     # 清空并重建输出目录（public/ 为纯生成产物）
     if os.path.isdir(PUBLIC_DIR):
+        _remove_bad_artifacts(PUBLIC_DIR)
         shutil.rmtree(PUBLIC_DIR)
     os.makedirs(PUBLIC_DIR)
 

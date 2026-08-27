@@ -40,7 +40,17 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
     /* 当前生效主题：localStorage 有缓存则用缓存，否则跟随系统（VitePress appearance 行为） */
     function effectiveTheme() {
         var saved = localStorage.getItem('theme');
-        return (saved === 'light' || saved === 'dark') ? saved : getSystemTheme();
+        if (saved === 'light' || saved === 'dark') return saved;
+        var match = document.cookie.match(/(?:^|;\s*)limooo_theme=(light|dark)/);
+        return match ? match[1] : getSystemTheme();
+    }
+
+    /* 同步写入跨子域共享 cookie，保证主站/auth/redirect 的深浅模式一致 */
+    function saveTheme(theme) {
+        localStorage.setItem('theme', theme);
+        var domain = location.hostname.endsWith('limooo.cn') ? '; domain=.limooo.cn' : '';
+        var secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = 'limooo_theme=' + theme + '; path=/; max-age=31536000; SameSite=Lax' + secure + domain;
     }
 
     /* 快速切换检测：1 秒内超过 3 次时强制跳 auth.limooo.cn 验证页（验证页自身不参与触发） */
@@ -78,7 +88,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
     function toggleTheme() {
         var now = Date.now();
         var next = effectiveTheme() === 'light' ? 'dark' : 'light';
-        localStorage.setItem('theme', next);
+        saveTheme(next);
         applyTheme(next);
         rememberThemeToggle(now);
         if (themeToggleTimes.length > THEME_TOGGLE_MAX_COUNT) {

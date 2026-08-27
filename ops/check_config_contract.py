@@ -27,6 +27,8 @@ PYTHON_FIELD_MAP = {
     "key_fallback_lang": "KEY_FALLBACK_LANG",
     "lang_cookie": "LANG_COOKIE",
     "lang_cookie_max_age": "LANG_COOKIE_MAX_AGE",
+    "theme_cookie": "THEME_COOKIE",
+    "theme_cookie_max_age": "THEME_COOKIE_MAX_AGE",
     "gate_cookie": "GATE_COOKIE",
     "session_cookie": "SESSION_COOKIE",
     "pending_cookie": "PENDING_COOKIE",

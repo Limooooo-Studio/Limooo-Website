@@ -166,6 +166,8 @@ if DEFAULT_LANG not in SUPPORTED_LANGS or KEY_FALLBACK_LANG not in SUPPORTED_LAN
     raise RuntimeError("配置契约中的 default_lang / key_fallback_lang 必须属于 supported_langs")
 LANG_COOKIE = _contract_str("lang_cookie")
 LANG_COOKIE_MAX_AGE = _contract_int("lang_cookie_max_age")
+THEME_COOKIE = _contract_str("theme_cookie")
+THEME_COOKIE_MAX_AGE = _contract_int("theme_cookie_max_age")
 
 # ── 人机验证门禁与登录（与 Pages 侧 functions/_lib/config.ts 保持一致） ──
 GATE_COOKIE = _contract_str("gate_cookie")

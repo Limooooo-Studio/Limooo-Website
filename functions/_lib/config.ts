@@ -12,6 +12,8 @@ export const CONTRACT = {
   "key_fallback_lang": "zh-cn",
   "lang_cookie": "user_lang_preference",
   "lang_cookie_max_age": 31536000,
+  "theme_cookie": "limooo_theme",
+  "theme_cookie_max_age": 31536000,
   "gate_cookie": "__gate",
   "session_cookie": "limooo_session_v2",
   "pending_cookie": "limooo_pending_v2",
@@ -138,6 +140,8 @@ export const DEFAULT_LANG = CONTRACT.default_lang;
 export const KEY_FALLBACK_LANG = CONTRACT.key_fallback_lang;
 export const LANG_COOKIE = CONTRACT.lang_cookie;
 export const LANG_COOKIE_MAX_AGE = CONTRACT.lang_cookie_max_age;
+export const THEME_COOKIE = CONTRACT.theme_cookie;
+export const THEME_COOKIE_MAX_AGE = CONTRACT.theme_cookie_max_age;
 export const GATE_COOKIE = CONTRACT.gate_cookie;
 export const SESSION_COOKIE = CONTRACT.session_cookie;
 export const PENDING_COOKIE = CONTRACT.pending_cookie;
