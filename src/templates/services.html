@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}Limooo - Services{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="https://limooo.cn/static/css/services.css?v=3">
+<link rel="stylesheet" href="https://limooo.cn/static/css/services.css?v=4">
 {% endblock %}
 
 
@@ -78,11 +78,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <div class="modal-panel">
         <div class="modal-head">
             <span class="modal-index">01 / CONVENTION</span>
+            <h3 class="modal-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
             <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
         </div>
         <div class="modal-body">
-        <h3 class="modal-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
-
         <div class="plan-grid plan-grid-quad">
             <div class="plan">
                 <p class="plan-price"><span class="price-num">CNY 20<span class="plan-unit" data-i18n="unit_per_shot">{{ _('unit_per_shot') }}</span></span></p>
@@ -124,11 +123,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <div class="modal-panel">
         <div class="modal-head">
             <span class="modal-index">02 / OUTDOOR</span>
+            <h3 class="modal-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
             <button class="modal-close" onclick="closeServiceDetail()" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
         </div>
         <div class="modal-body">
-        <h3 class="modal-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
-
         <div class="plan-grid plan-grid-quad">
             <div class="plan">
                 <p class="plan-tag" data-i18n="plan_studio_solo">{{ _('plan_studio_solo') }}</p>

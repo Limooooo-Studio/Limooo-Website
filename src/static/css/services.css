@@ -76,13 +76,14 @@
 }
 .service-modal.open .modal-panel { transform: translateY(0) scale(1); }
 
-/* 弹层标题区：固定在面板顶部，不参与滚动，标题/关闭按钮永不被截断 */
+/* 弹层标题区：序号 + 标题 + 关闭按钮同一行固定，不参与滚动 */
 .modal-head {
-    display: flex; align-items: center; justify-content: space-between;
-    margin: 0; padding: 16px 24px 8px;
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px;
+    margin: 0; padding: 14px 20px;
     position: relative; z-index: 10;
     background: var(--panel-bg);
 }
+.modal-head .modal-title { margin: 0; }
 /* 弹层内容区：独立滚动，顶部标题栏固定 */
 .modal-body {
     max-height: calc(min(85vh, 680px) - 64px);
@@ -101,7 +102,7 @@
 @media (hover: hover) and (pointer: fine) {
     .modal-close:hover { background: var(--highlight); }
 }
-.modal-title { font-size: 22px; font-weight: 600; letter-spacing: calc(0.25em*var(--ls-scale)); margin: 0 0 26px; }
+.modal-title { font-size: 18px; font-weight: 600; letter-spacing: calc(0.18em*var(--ls-scale)); }
 
 /* ── 套餐 ── */
 .plan-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
