@@ -47,7 +47,7 @@ FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
 CONTRACT_PATH = os.path.join(BASE_DIR, "config-contract.json")
 
 # 作品集卡片缩略图：只保留足够卡片显示的分辨率，避免首屏直接下载 1080×1440 原图
-PORTFOLIO_THUMB_WIDTHS = (640, 800)
+PORTFOLIO_THUMB_WIDTHS = (480, 640, 800)
 
 # 并行/备份过程可能产生 “visitor 2.js”“visitors 3.ts” 等带空格的副本，
 # 它们不是站点资源；构建时统一跳过，避免误部署到 public/。
@@ -113,7 +113,7 @@ def write_pages_edge_config(out_dir: str) -> None:
         )
 
 
-PORTFOLIO_THUMB_QUALITY = 80
+PORTFOLIO_THUMB_QUALITY = 75
 
 
 def _app_instance(appmod) -> Flask:

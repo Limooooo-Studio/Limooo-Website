@@ -5,7 +5,6 @@
    ═══════════════════════════════════════════════════════════════ */
 function loadWorkImages() {
     document.querySelectorAll('.work-img[data-src]').forEach(function (img) {
-        img.removeAttribute('loading');
         if (img.dataset.srcset) img.srcset = img.dataset.srcset;
         img.src = img.dataset.src;
     });

@@ -1,6 +1,7 @@
 """构建脚本纯函数测试（不写 public/ 产物）。"""
 
 import json
+import re
 from pathlib import Path
 
 import build
@@ -44,14 +45,19 @@ def test_home_image_urls_use_edge_cached_asset_host():
 
 def test_contact_prerenders_all_qr_images():
     html = build.render_page(app, "contact.html", "/contact", "zh-cn")
-    preloads = html.split('rel="preload" as="image" type="image/webp"')[1:]
+    preloads = re.findall(
+        r'<link rel="preload" as="image" type="image/webp"[^>]*href="([^"]+)"',
+        html,
+    )
 
     assert len(preloads) == 4
-    assert all('(hover: hover) and (pointer: fine)' in link for link in preloads)
-    assert "/qr-codes/bilibili.webp" in preloads[0]
-    assert "/qr-codes/qq.webp" in preloads[1]
-    assert "/qr-codes/wechat.webp" in preloads[2]
-    assert "/qr-codes/mail-services-zh-cn.webp" in preloads[3]
+    assert set(preloads) == {
+        "https://image.limooo.cn/qr-codes/bilibili.webp",
+        "https://image.limooo.cn/qr-codes/qq.webp",
+        "https://image.limooo.cn/qr-codes/wechat.webp",
+        "https://image.limooo.cn/qr-codes/mail-services-zh-cn.webp",
+    }
+    assert html.count('(hover: hover) and (pointer: fine)') == 4
 
 
 def test_theme_challenge_uses_gate_url_and_skips_gate_page():
