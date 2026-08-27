@@ -14,6 +14,7 @@ token、secret 与可复现的 ID **不写在这里**，统一从以下来源读
 | WAF IP List | `limooo_blocklist` | `ops/sync-worker` | Cloudflare List，供 WAF 规则引用；`auto_block.py cf` 仅维护用 |
 | DNS 区域 | `limooo.cn` | Cloudflare 控制台 | CNAME 到 `limooo.pages.dev`，详见 AGENTS.md |
 | WAF 规则 | 自定义规则 | Cloudflare 控制台 | `ip.src in $limooo_blocklist`、低风险 `js_challenge` |
+| Cache Rules | `Limooo public cache` | Cloudflare API / 控制台 | 公开 HTML 缓存 300 秒；`/static` 及 favicon 缓存 1 年 |
 
 ## Pages 环境变量（只列键名，不列值）
 
@@ -52,6 +53,22 @@ bash ops/workers_deploy.sh --dry-run
 bash ops/pages_deploy.sh
 bash ops/workers_deploy.sh
 ```
+
+## Cache Rules
+
+已在 `limooo.cn` 区域创建 `Limooo public cache`，规则包括：
+
+- 公开 HTML：仅匹配 `limooo.cn`、`services.limooo.cn`、`contact.limooo.cn`
+  的 `/`、`/services`、`/contact` 页面，且请求带 `user_lang_preference`
+  cookie；Edge/Browser TTL 300 秒。避免缓存首次访问的 `Set-Cookie`。
+- 静态资源：匹配上述主域及 `images.limooo.cn`、`identity.limooo.cn` 的
+  `/static/*`，以及主站 favicon 与 `Limooo-xtext.webp`；Edge/Browser TTL
+  1 年。
+
+规则通过 Cloudflare Rulesets API 的 `http_request_cache_settings` phase
+管理，token 权限需求见 Cloudflare Cache Rules 文档。修改或删除请到
+Cloudflare 控制台 `Rules → Cache Rules` 操作，避免与当前 Pages 代码
+冲突。
 
 ## D1 保留与清理
 
