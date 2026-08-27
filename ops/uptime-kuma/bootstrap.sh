@@ -18,7 +18,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     install -d -m 0700 \$(dirname '$REMOTE_SECRET')
     if [ ! -f '$REMOTE_SECRET' ]; then
         umask 077
-        printf 'KUMA_ADMIN_USERNAME=admin\n' > '$REMOTE_SECRET'
+        printf 'KUMA_ADMIN_USERNAME=Lime\n' > '$REMOTE_SECRET'
         printf 'KUMA_ADMIN_PASSWORD=%s\n' \"\$(openssl rand -base64 24 | tr -d '\\n')\" >> '$REMOTE_SECRET'
         chmod 600 '$REMOTE_SECRET'
     fi

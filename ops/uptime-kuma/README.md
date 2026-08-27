@@ -17,7 +17,8 @@ bash ops/uptime-kuma/deploy.sh
 ```
 
 第一次打开 `https://admin.limooo.cn` 时创建管理员账号。账号数据保存在本机
-`/opt/uptime-kuma/data/`，不进入 git 仓库。
+`/opt/uptime-kuma/data/`，不进入 git 仓库。自动初始化默认用户名为 `Lime`，
+密码由 `bootstrap.sh` 生成并写入服务器 `secrets/uptime-kuma.env`。
 
 ## 日常运维
 
