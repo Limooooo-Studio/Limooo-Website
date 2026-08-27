@@ -75,7 +75,7 @@ h1 { font-weight: 600 !important; }
 /* ── 首页主标题 ── */
 .hero-title {
     color: var(--text);
-    font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+    font-family: 'Baloo 2 Brackets', 'Baloo 2', ui-rounded, system-ui, sans-serif;
 }
 
 /* ── 导航 logo 按页面状态显示/隐藏（瞬间切换，不用 transition） ── */
