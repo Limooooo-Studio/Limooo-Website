@@ -121,6 +121,10 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   const { hostname, pathname } = url;
   const forceChallenge = url.searchParams.get("challenge") === "1";
 
+  // 公开静态资源与 API 必须先放行：跳转子域也共享 /static 资源，
+  // 不能把 redirect.limooo.cn/static/css/... 也渲染成 Redirecting HTML。
+  if (isPublicAssetPath(pathname) || isApiPath(pathname)) return next();
+
   // 跳转子域：纯中转页，豁免人机验证。
   if (isRedirectHost(hostname)) return renderRedirectPage(context);
 
@@ -130,7 +134,6 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   if (pathname === "/__gate/diag") return handleGateDiag(context);
   // authentik backchannel logout 是服务端回调用，不能被人机门禁重定向。
   if (pathname === "/logout/backchannel") return next();
-  if (isPublicAssetPath(pathname) || isApiPath(pathname)) return next();
 
   // 图片子域的门面页同样走主站主题切换逻辑；强制挑战直接去 auth。<root_domain>。
   if (forceChallenge && hostname === IMAGES_HOSTNAME) {

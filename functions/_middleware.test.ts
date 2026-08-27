@@ -70,4 +70,14 @@ describe("force theme challenge", () => {
     expect(resp.status).toBe(403);
     expect(resp.headers.get("Location")).toBeNull();
   });
+
+  it("serves redirect static assets directly instead of rendering the redirect page", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://redirect.limooo.cn/static/css/redirect.css"),
+      ),
+    );
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe("next");
+  });
 });
