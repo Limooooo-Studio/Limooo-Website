@@ -8,6 +8,9 @@ function loadWorkImages() {
         if (img.dataset.srcset) img.srcset = img.dataset.srcset;
         img.src = img.dataset.src;
     });
+    document.querySelectorAll('.work-img:not([data-src])').forEach(function (img) {
+        img.loading = 'eager'; /* 进入作品区后确保浏览器立即开始取图 */
+    });
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -48,6 +48,7 @@ CONTRACT_PATH = os.path.join(BASE_DIR, "config-contract.json")
 
 # 作品集卡片缩略图：只保留足够卡片显示的分辨率，避免首屏直接下载 1080×1440 原图
 PORTFOLIO_THUMB_WIDTHS = (480, 640, 800)
+PORTFOLIO_THUMB_AVIF_QUALITY = 55
 
 # 并行/备份过程可能产生 “visitor 2.js”“visitors 3.ts” 等带空格的副本，
 # 它们不是站点资源；构建时统一跳过，避免误部署到 public/。
@@ -109,6 +110,20 @@ def write_pages_edge_config(out_dir: str) -> None:
             "/static/*.js\n"
             "  Cache-Control: public, max-age=31536000, immutable\n"
             "/static/*.woff2\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.webp\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.avif\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.png\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.jpg\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.jpeg\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.gif\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.ico\n"
             "  Cache-Control: public, max-age=31536000, immutable\n"
         )
 
@@ -487,6 +502,14 @@ def generate_portfolio_thumbs(source_dir=None, output_dir=None) -> int:
                 "WEBP",
                 quality=PORTFOLIO_THUMB_QUALITY,
                 method=6,
+            )
+            avif_path = os.path.join(output_dir, f"{base}-{width}.avif")
+            thumb.save(
+                avif_path,
+                "AVIF",
+                quality=PORTFOLIO_THUMB_AVIF_QUALITY,
+                method=6,
+                speed=6,
             )
             count += 1
 

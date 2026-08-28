@@ -234,12 +234,12 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
        ═══════════════════════════════════════════════════════════════ */
     var PAGE_MANIFEST = {
         '/':        { host: 'limooo.cn',          path: '/',        images: [
-                        '/static/portfolio/thumbs/IMG_0203-800.webp',
-                        '/static/portfolio/thumbs/IMG_0146-800.webp',
-                        '/static/portfolio/thumbs/IMG_0130-800.webp',
-                        '/static/portfolio/thumbs/IMG_0244-800.webp',
-                        '/static/portfolio/thumbs/IMG_0115-800.webp',
-                        '/static/portfolio/thumbs/IMG_0179-800.webp' ], assetBase: true },
+                        '/static/portfolio/thumbs/IMG_0203-640.avif',
+                        '/static/portfolio/thumbs/IMG_0146-640.avif',
+                        '/static/portfolio/thumbs/IMG_0130-640.avif',
+                        '/static/portfolio/thumbs/IMG_0244-640.avif',
+                        '/static/portfolio/thumbs/IMG_0115-640.avif',
+                        '/static/portfolio/thumbs/IMG_0179-640.avif' ], assetBase: true },
         '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
         '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
                         '/qr-codes/bilibili.webp',
@@ -284,7 +284,20 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         var desktop = window.matchMedia('(hover: hover)').matches;
         Object.keys(PAGE_MANIFEST).forEach(function(key) {
             var origin = pageOrigin(key);
-            if (key === cur) return;                     /* 当前页已加载 */
+            if (key === cur) {
+                /* 当前页已在浏览器里；空闲时低优先级预热作品图，
+                   用户滚到 #portfolio 时图片尽量已经缓存 */
+                if (desktop) {
+                    PAGE_MANIFEST[key].images.forEach(function(rel) {
+                        var img = new Image();
+                        img.referrerPolicy = 'origin';
+                        img.fetchPriority = 'low';
+                        img.onerror = function() {};
+                        img.src = rel.indexOf('http') === 0 ? rel : origin + rel;
+                    });
+                }
+                return;
+            }
             var l = document.createElement('link');
             l.rel = 'prefetch'; l.href = siblingHref(key);
             document.head.appendChild(l);
@@ -292,6 +305,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
                 if (PAGE_MANIFEST[key].qr && !desktop) return;   /* 移动端跳过二维码 */
                 var img = new Image();
                 img.referrerPolicy = 'origin';
+                img.fetchPriority = 'low';
                 img.onerror = function() {};             /* 404 静默,不报控制台错误 */
                 img.src = rel.indexOf('http') === 0 ? rel : origin + rel;
             });

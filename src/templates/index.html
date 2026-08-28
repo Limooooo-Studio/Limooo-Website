@@ -23,25 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 <link rel="stylesheet" href="/static/css/index.css?v=7">
 {% endblock %}
 
-
-
-{% block nav_dropdown %}
-<div class="theme-toggle nav-mobile-menu">
-    <button class="theme-btn" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
-        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"></line>
-            <line x1="4" y1="12" x2="20" y2="12"></line>
-            <line x1="4" y1="18" x2="20" y2="18"></line>
-        </svg>
-    </button>
-    <div id="navLinksDropdown" class="theme-menu">
-        <div class="theme-option selected" data-i18n="nav_home" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
-        <div class="theme-option" data-i18n="nav_services" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
-        <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
-    </div>
-</div>
-{% endblock %}
-
 {% block footer %}{% endblock %}
 
 {% block flash %}{% endblock %}
@@ -66,55 +47,85 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-6xl px-4">
             <div class="work-box" data-action="openNewWindow" data-arg="https://services.limooo.cn#outdoor" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" data-src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-800.webp"
-                        data-srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-800.webp 800w"
-                        sizes="(min-width: 640px) calc((100vw - 8rem) / 3), 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="high" referrerpolicy="origin"
-                        alt="{{ _('alt_outdoor_shot', num='01') }}" data-i18n-attr="alt:alt_outdoor_shot;num=01">
+                    <picture>
+                        <source type="image/avif"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-480.avif 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-640.avif 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-800.avif 800w">
+                        <img class="work-img"
+                            src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-640.webp"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0203-800.webp 800w"
+                            sizes="(min-width: 640px) 640px, 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="high" referrerpolicy="origin"
+                            alt="{{ _('alt_outdoor_shot', num='01') }}" data-i18n-attr="alt:alt_outdoor_shot;num=01">
+                    </picture>
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" data-action="openNewWindow" data-arg="https://services.limooo.cn#outdoor" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" data-src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-800.webp"
-                        data-srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-800.webp 800w"
-                        sizes="(min-width: 640px) calc((100vw - 8rem) / 3), 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="high" referrerpolicy="origin"
-                        alt="{{ _('alt_outdoor_shot', num='02') }}" data-i18n-attr="alt:alt_outdoor_shot;num=02">
+                    <picture>
+                        <source type="image/avif"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-480.avif 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-640.avif 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-800.avif 800w">
+                        <img class="work-img"
+                            src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-640.webp"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0146-800.webp 800w"
+                            sizes="(min-width: 640px) 640px, 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="high" referrerpolicy="origin"
+                            alt="{{ _('alt_outdoor_shot', num='02') }}" data-i18n-attr="alt:alt_outdoor_shot;num=02">
+                    </picture>
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" data-action="openNewWindow" data-arg="https://services.limooo.cn#outdoor" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" data-src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-800.webp"
-                        data-srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-800.webp 800w"
-                        sizes="(min-width: 640px) calc((100vw - 8rem) / 3), 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="high" referrerpolicy="origin"
-                        alt="{{ _('alt_outdoor_shot', num='03') }}" data-i18n-attr="alt:alt_outdoor_shot;num=03">
+                    <picture>
+                        <source type="image/avif"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-480.avif 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-640.avif 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-800.avif 800w">
+                        <img class="work-img"
+                            src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-640.webp"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0130-800.webp 800w"
+                            sizes="(min-width: 640px) 640px, 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="high" referrerpolicy="origin"
+                            alt="{{ _('alt_outdoor_shot', num='03') }}" data-i18n-attr="alt:alt_outdoor_shot;num=03">
+                    </picture>
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" data-action="openNewWindow" data-arg="https://services.limooo.cn#outdoor" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" data-src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-800.webp"
-                        data-srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-800.webp 800w"
-                        sizes="(min-width: 640px) calc((100vw - 8rem) / 3), 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="origin"
-                        alt="{{ _('alt_outdoor_shot', num='04') }}" data-i18n-attr="alt:alt_outdoor_shot;num=04">
+                    <picture>
+                        <source type="image/avif"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-480.avif 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-640.avif 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-800.avif 800w">
+                        <img class="work-img"
+                            src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-640.webp"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0244-800.webp 800w"
+                            sizes="(min-width: 640px) 640px, 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="origin"
+                            alt="{{ _('alt_outdoor_shot', num='04') }}" data-i18n-attr="alt:alt_outdoor_shot;num=04">
+                    </picture>
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" data-action="openNewWindow" data-arg="https://services.limooo.cn#outdoor" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" data-src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-800.webp"
-                        data-srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-800.webp 800w"
-                        sizes="(min-width: 640px) calc((100vw - 8rem) / 3), 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="origin"
-                        alt="{{ _('alt_outdoor_shot', num='05') }}" data-i18n-attr="alt:alt_outdoor_shot;num=05">
+                    <picture>
+                        <source type="image/avif"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-480.avif 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-640.avif 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-800.avif 800w">
+                        <img class="work-img"
+                            src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-640.webp"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0115-800.webp 800w"
+                            sizes="(min-width: 640px) 640px, 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="origin"
+                            alt="{{ _('alt_outdoor_shot', num='05') }}" data-i18n-attr="alt:alt_outdoor_shot;num=05">
+                    </picture>
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>
             <div class="work-box" data-action="openNewWindow" data-arg="https://services.limooo.cn#outdoor" role="link" aria-label="{{ _('view_service_detail') }}" title="{{ _('view_service_detail') }}" data-i18n-attr="aria-label,title:view_service_detail">
                 <div class="work-frame">
-                    <img class="work-img" data-src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-800.webp"
-                        data-srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-800.webp 800w"
-                        sizes="(min-width: 640px) calc((100vw - 8rem) / 3), 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="origin"
-                        alt="{{ _('alt_outdoor_shot', num='06') }}" data-i18n-attr="alt:alt_outdoor_shot;num=06">
+                    <picture>
+                        <source type="image/avif"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-480.avif 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-640.avif 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-800.avif 800w">
+                        <img class="work-img"
+                            src="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-640.webp"
+                            srcset="{{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-480.webp 480w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-640.webp 640w, {{ image_asset_base }}/static/portfolio/thumbs/IMG_0179-800.webp 800w"
+                            sizes="(min-width: 640px) 640px, 100vw" width="800" height="1067" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="origin"
+                            alt="{{ _('alt_outdoor_shot', num='06') }}" data-i18n-attr="alt:alt_outdoor_shot;num=06">
+                    </picture>
                 </div>
                 <span class="work-box-hint" data-i18n="view_service_detail">{{ _('view_service_detail') }}</span>
             </div>

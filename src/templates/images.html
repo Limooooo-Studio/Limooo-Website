@@ -1,32 +1,13 @@
 {# Limooo - images.limooo.cn 门面页
    继承 base.html：导航（首页/服务/联系 + 语言悬停展开 + 深浅主题 + 社交图标 +
-   移动端菜单）与底部页脚全部复用主站同一套实现，这里只提供路径选择界面。 #}
+   移动端菜单）与底部页脚全部复用 base.html 的 site_header() 与主站同一套实现，
+   这里只提供路径选择界面。 #}
 {% extends "base.html" %}
 
 {% block title %}Limooo{% endblock %}
 
 {% block head_links %}
 <link rel="stylesheet" href="/static/css/images.css?v=1">
-{% endblock %}
-
-
-
-{# 移动端汉堡菜单（与 index/services/contact 一致，桌面端由 base.html 提供） #}
-{% block nav_dropdown %}
-<div class="theme-toggle nav-mobile-menu">
-    <button class="theme-btn" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
-        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"></line>
-            <line x1="4" y1="12" x2="20" y2="12"></line>
-            <line x1="4" y1="18" x2="20" y2="18"></line>
-        </svg>
-    </button>
-    <div id="navLinksDropdown" class="theme-menu">
-        <div class="theme-option" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
-        <div class="theme-option" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
-        <div class="theme-option" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
-    </div>
-</div>
 {% endblock %}
 
 {% block content %}
@@ -53,51 +34,51 @@
 
     <section class="path-panel active" id="panel-portfolio">
         <ul class="file-list">
-            <li><a href="/portfolio/IMG_0064.webp" target="_blank" rel="noopener">IMG_0064.webp</a></li>
-            <li><a href="/portfolio/IMG_0076.webp" target="_blank" rel="noopener">IMG_0076.webp</a></li>
-            <li><a href="/portfolio/IMG_0079.webp" target="_blank" rel="noopener">IMG_0079.webp</a></li>
-            <li><a href="/portfolio/IMG_0084.webp" target="_blank" rel="noopener">IMG_0084.webp</a></li>
-            <li><a href="/portfolio/IMG_0097.webp" target="_blank" rel="noopener">IMG_0097.webp</a></li>
-            <li><a href="/portfolio/IMG_0102.webp" target="_blank" rel="noopener">IMG_0102.webp</a></li>
-            <li><a href="/portfolio/IMG_0107.webp" target="_blank" rel="noopener">IMG_0107.webp</a></li>
-            <li><a href="/portfolio/IMG_0115.webp" target="_blank" rel="noopener">IMG_0115.webp</a></li>
-            <li><a href="/portfolio/IMG_0122.webp" target="_blank" rel="noopener">IMG_0122.webp</a></li>
-            <li><a href="/portfolio/IMG_0130.webp" target="_blank" rel="noopener">IMG_0130.webp</a></li>
-            <li><a href="/portfolio/IMG_0146.webp" target="_blank" rel="noopener">IMG_0146.webp</a></li>
-            <li><a href="/portfolio/IMG_0163.webp" target="_blank" rel="noopener">IMG_0163.webp</a></li>
-            <li><a href="/portfolio/IMG_0179.webp" target="_blank" rel="noopener">IMG_0179.webp</a></li>
-            <li><a href="/portfolio/IMG_0186.webp" target="_blank" rel="noopener">IMG_0186.webp</a></li>
-            <li><a href="/portfolio/IMG_0203.webp" target="_blank" rel="noopener">IMG_0203.webp</a></li>
-            <li><a href="/portfolio/IMG_0210.webp" target="_blank" rel="noopener">IMG_0210.webp</a></li>
-            <li><a href="/portfolio/IMG_0217.webp" target="_blank" rel="noopener">IMG_0217.webp</a></li>
-            <li><a href="/portfolio/IMG_0230.webp" target="_blank" rel="noopener">IMG_0230.webp</a></li>
-            <li><a href="/portfolio/IMG_0237.webp" target="_blank" rel="noopener">IMG_0237.webp</a></li>
-            <li><a href="/portfolio/IMG_0244.webp" target="_blank" rel="noopener">IMG_0244.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0064.webp" target="_blank" rel="noopener">IMG_0064.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0076.webp" target="_blank" rel="noopener">IMG_0076.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0079.webp" target="_blank" rel="noopener">IMG_0079.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0084.webp" target="_blank" rel="noopener">IMG_0084.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0097.webp" target="_blank" rel="noopener">IMG_0097.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0102.webp" target="_blank" rel="noopener">IMG_0102.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0107.webp" target="_blank" rel="noopener">IMG_0107.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0115.webp" target="_blank" rel="noopener">IMG_0115.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0122.webp" target="_blank" rel="noopener">IMG_0122.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0130.webp" target="_blank" rel="noopener">IMG_0130.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0146.webp" target="_blank" rel="noopener">IMG_0146.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0163.webp" target="_blank" rel="noopener">IMG_0163.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0179.webp" target="_blank" rel="noopener">IMG_0179.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0186.webp" target="_blank" rel="noopener">IMG_0186.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0203.webp" target="_blank" rel="noopener">IMG_0203.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0210.webp" target="_blank" rel="noopener">IMG_0210.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0217.webp" target="_blank" rel="noopener">IMG_0217.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0230.webp" target="_blank" rel="noopener">IMG_0230.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0237.webp" target="_blank" rel="noopener">IMG_0237.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/portfolio/IMG_0244.webp" target="_blank" rel="noopener">IMG_0244.webp</a></li>
         </ul>
     </section>
 
     <section class="path-panel" id="panel-qr-codes">
         <ul class="file-list">
-            <li><a href="/qr-codes/wechat.webp" target="_blank" rel="noopener">wechat.webp</a></li>
-            <li><a href="/qr-codes/qq.webp" target="_blank" rel="noopener">qq.webp</a></li>
-            <li><a href="/qr-codes/bilibili.webp" target="_blank" rel="noopener">bilibili.webp</a></li>
-            <li><a href="/qr-codes/mail-services-zh-cn.webp" target="_blank" rel="noopener">mail-services-zh-cn.webp</a></li>
-            <li><a href="/qr-codes/mail-services-en-us.webp" target="_blank" rel="noopener">mail-services-en-us.webp</a></li>
-            <li><a href="/qr-codes/mail-services-ja-jp.webp" target="_blank" rel="noopener">mail-services-ja-jp.webp</a></li>
-            <li><a href="/qr-codes/mail-services-ko-kr.webp" target="_blank" rel="noopener">mail-services-ko-kr.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/wechat.webp" target="_blank" rel="noopener">wechat.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/qq.webp" target="_blank" rel="noopener">qq.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/bilibili.webp" target="_blank" rel="noopener">bilibili.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/mail-services-zh-cn.webp" target="_blank" rel="noopener">mail-services-zh-cn.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/mail-services-en-us.webp" target="_blank" rel="noopener">mail-services-en-us.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/mail-services-ja-jp.webp" target="_blank" rel="noopener">mail-services-ja-jp.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/qr-codes/mail-services-ko-kr.webp" target="_blank" rel="noopener">mail-services-ko-kr.webp</a></li>
         </ul>
     </section>
 
     <section class="path-panel" id="panel-icons">
         <ul class="file-list">
-            <li><a href="/static/icons/favicon.png" target="_blank" rel="noopener">favicon.png</a></li>
-            <li><a href="/icons/logo.webp" target="_blank" rel="noopener">logo.webp</a></li>
-            <li><a href="/icons/logo-lineart.webp" target="_blank" rel="noopener">logo-lineart.webp</a></li>
-            <li><a href="/icons/logo-lineart-white.webp" target="_blank" rel="noopener">logo-lineart-white.webp</a></li>
-            <li><a href="/icons/Limooo-xtext.webp" target="_blank" rel="noopener">Limooo-xtext.webp</a></li>
-            <li><a href="/icons/Limooo-xtext-down.webp" target="_blank" rel="noopener">Limooo-xtext-down.webp</a></li>
-            <li><a href="/icons/azure.webp" target="_blank" rel="noopener">azure.webp</a></li>
-            <li><a href="/icons/social-preview.png" target="_blank" rel="noopener">social-preview.png</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/favicon.png" target="_blank" rel="noopener">favicon.png</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/logo.webp" target="_blank" rel="noopener">logo.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/logo-lineart.webp" target="_blank" rel="noopener">logo-lineart.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/logo-lineart-white.webp" target="_blank" rel="noopener">logo-lineart-white.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/Limooo-xtext.webp" target="_blank" rel="noopener">Limooo-xtext.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/Limooo-xtext-down.webp" target="_blank" rel="noopener">Limooo-xtext-down.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/azure.webp" target="_blank" rel="noopener">azure.webp</a></li>
+            <li><a href="{{ image_asset_base }}/static/icons/social-preview.png" target="_blank" rel="noopener">social-preview.png</a></li>
         </ul>
     </section>
 </div>
