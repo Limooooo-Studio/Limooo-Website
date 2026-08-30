@@ -25,7 +25,6 @@
     "www.limooo.cn",
     "services.limooo.cn",
     "contact.limooo.cn",
-    "identity.limooo.cn",
     "visitor.limooo.cn",
     "appleid.limooo.cn",
     "auth.limooo.cn",
@@ -38,7 +37,6 @@
     "www.limooo.cn",
     "services.limooo.cn",
     "contact.limooo.cn",
-    "identity.limooo.cn",
     "visitor.limooo.cn",
     "appleid.limooo.cn",
     "auth.limooo.cn",
@@ -102,6 +100,7 @@
   },
   "observability_hmac_env": "OBSERVABILITY_HMAC_KEY",
   "whitelist_file": "data/whitelist.txt",
+  "authentik_host": "admin.limooo.cn",
   "authentik_provider_slug": "visitor",
   "authentik_admin_groups": [
     "authentik Admins"

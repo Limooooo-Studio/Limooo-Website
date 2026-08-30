@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     environment:
       TZ: Asia/Shanghai
+      UPTIME_KUMA_WS_ORIGIN_CHECK: bypass
+      UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN: "1"
     volumes:
       - ./data:/app/data
     ports:

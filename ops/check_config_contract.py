@@ -44,6 +44,7 @@ PYTHON_FIELD_MAP = {
     "gate_trust": "GATE_TRUST",
     "observability_hmac_env": "OBSERVABILITY_HMAC_ENV",
     "whitelist_file": "WHITELIST_FILE",
+    "authentik_host": "AUTHENTIK_HOST",
     "authentik_provider_slug": "AUTHENTIK_PROVIDER_SLUG",
     "authentik_admin_groups": "AUTHENTIK_ADMIN_GROUPS",
 }

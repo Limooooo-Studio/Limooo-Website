@@ -140,7 +140,8 @@ APPLEID_HOST = f"appleid.{ROOT_DOMAIN}"
 REDIRECT_HOST = f"redirect.{ROOT_DOMAIN}"
 REDIRECT_URL = f"https://{REDIRECT_HOST}/"
 GATE_HOST = f"auth.{ROOT_DOMAIN}"
-IDENTITY_HOST = f"identity.{ROOT_DOMAIN}"
+AUTHENTIK_HOST = _contract_str("authentik_host")
+IDENTITY_HOST = AUTHENTIK_HOST
 IMAGES_HOST = f"images.{ROOT_DOMAIN}"
 IMAGE_BASE_URL = f"https://{IMAGES_HOST}"
 IMAGE_ASSET_HOST = _contract_str("image_asset_host")
@@ -195,7 +196,7 @@ REDIRECT_PRELOAD_IMAGES = [
 ]
 
 # ── 登录使用的 authentik 信息 ─────────────────────────────
-AUTHENTIK_URL = f"https://{IDENTITY_HOST}"
+AUTHENTIK_URL = f"https://{AUTHENTIK_HOST}"
 AUTHENTIK_INTERNAL_URL = "http://127.0.0.1:9000"
 AUTHENTIK_PROVIDER_SLUG = _contract_str("authentik_provider_slug")
 AUTHENTIK_ADMIN_GROUPS = tuple(_contract_str_list("authentik_admin_groups"))

@@ -20,6 +20,8 @@ LOCAL_COMPOSE="$LOCAL_OPS_DIR/uptime-kuma/compose.yaml"
 LOCAL_SKIN="$LOCAL_OPS_DIR/uptime-kuma/kuma-admin-skin.css"
 LOCAL_DIST="$LOCAL_OPS_DIR/uptime-kuma/kuma-dist"
 LOCAL_NGINX="$LOCAL_OPS_DIR/limooo.conf"
+LOCAL_ADMIN_TEMPLATE="$LOCAL_OPS_DIR/authentik/if/admin.html"
+REMOTE_AUTHENTIK_TEMPLATE_DIR="/opt/authentik/custom-templates/if"
 DRY_RUN=0
 
 for arg in "$@"; do
@@ -43,6 +45,7 @@ if [ "$DRY_RUN" = 1 ]; then
     echo "[uptime-kuma] will-run: docker pull $IMAGE"
     echo "[uptime-kuma] will-run: docker run -d --name $CONTAINER ... -p 127.0.0.1:3001:3001 -v $REMOTE_ROOT/data:/app/data $IMAGE"
     echo "[uptime-kuma] will-run: scp $LOCAL_NGINX -> /etc/nginx/conf.d/limooo.conf"
+    echo "[uptime-kuma] will-run: scp admin.html -> $REMOTE_HOST:$REMOTE_AUTHENTIK_TEMPLATE_DIR/admin.html"
     echo "[uptime-kuma] will-run: nginx -t && systemctl reload nginx"
     exit 0
 fi
@@ -63,13 +66,19 @@ if [ ! -f "$LOCAL_NGINX" ]; then
     echo "FATAL: 找不到 nginx 配置: $LOCAL_NGINX" >&2
     exit 2
 fi
+if [ ! -f "$LOCAL_ADMIN_TEMPLATE" ]; then
+    echo "FATAL: 找不到 Authentik 管理模板: $LOCAL_ADMIN_TEMPLATE" >&2
+    exit 2
+fi
 
 echo "[uptime-kuma] 1/6 创建远端数据目录"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/data'"
+ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_AUTHENTIK_TEMPLATE_DIR'"
 
 echo "[uptime-kuma] 2/6 同步 compose.yaml、品牌皮肤与 fork dist"
 scp "${SSH_OPTS[@]}" "$LOCAL_COMPOSE" "$REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
 scp "${SSH_OPTS[@]}" "$LOCAL_SKIN" "$REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
+scp "${SSH_OPTS[@]}" "$LOCAL_ADMIN_TEMPLATE" "$REMOTE_HOST:$REMOTE_AUTHENTIK_TEMPLATE_DIR/admin.html"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "chmod 0644 '$REMOTE_ROOT/kuma-admin-skin.css'"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/dist'"
 rsync -a --delete "$LOCAL_DIST/" "$REMOTE_HOST:$REMOTE_ROOT/dist/"
@@ -90,6 +99,8 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         --memory=512m \
         --memory-swap=512m \
         -e TZ=Asia/Shanghai \
+        -e UPTIME_KUMA_WS_ORIGIN_CHECK=bypass \
+        -e UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN=1 \
         -p 127.0.0.1:3001:3001 \
         --network authentik_default \
         -v '$REMOTE_ROOT/data:/app/data' \
@@ -127,4 +138,19 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         echo \"public https: unexpected \$PUBLIC_HEALTH\" >&2
         exit 1
     fi
+"
+
+echo "[uptime-kuma] 7/7 刷新 Authentik 管理模板"
+ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
+    set -e
+    docker restart authentik_server_1 >/dev/null
+    for i in \$(seq 1 30); do
+        if curl -fsS --max-time 2 http://127.0.0.1:9000/-/health/live/ >/dev/null 2>&1; then
+            echo 'authentik template reload: OK'
+            exit 0
+        fi
+        sleep 1
+    done
+    echo 'authentik template reload: timeout' >&2
+    exit 1
 "

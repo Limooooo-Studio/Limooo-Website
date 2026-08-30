@@ -188,7 +188,7 @@ function defaultMonitors(pushToken) {
     monitorBase({
       type: "http",
       name: "Authentik SSO",
-      url: "https://identity.limooo.cn/_health",
+      url: "https://admin.limooo.cn/_health",
       method: "GET",
     }),
     monitorBase({

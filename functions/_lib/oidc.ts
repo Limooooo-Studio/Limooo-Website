@@ -4,9 +4,9 @@ import type { Env } from "./env";
 import {
   APPLEID_HOSTNAME,
   AUTHENTIK_ADMIN_GROUPS_DEFAULT,
+  AUTHENTIK_URL,
   AUTHENTIK_PROVIDER_SLUG,
   BASE_URL,
-  IDENTITY_URL,
   VISITOR_HOSTNAME,
 } from "./config";
 
@@ -119,7 +119,7 @@ function normalizeGroups(value: unknown): string[] | undefined {
 }
 
 function oidcBase(env: Env): string {
-  return stripTrailingSlash(env.AUTHENTIK_URL || IDENTITY_URL);
+  return stripTrailingSlash(env.AUTHENTIK_URL || AUTHENTIK_URL);
 }
 
 function oidcIssuer(env: Env): string {

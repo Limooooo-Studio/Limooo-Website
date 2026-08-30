@@ -1,0 +1,148 @@
+{% extends "base/skeleton.html" %}
+
+{% load authentik_core %}
+
+{% block head %}
+<script src="{% versioned_script 'dist/admin/AdminInterface-%v.js' %}" type="module"></script>
+{% include "base/header_js.html" %}
+{% endblock %}
+
+{% block body %}
+<ak-skip-to-content></ak-skip-to-content>
+<ak-message-container alignment="bottom"></ak-message-container>
+<ak-interface-admin>
+    {% include "base/placeholder.html" %}
+</ak-interface-admin>
+
+<div id="limooo-admin-shell" aria-label="Limooo monitoring console">
+    <iframe
+        id="limooo-kuma-frame"
+        src="/dashboard"
+        title="Uptime Kuma"
+        loading="eager"
+        referrerpolicy="same-origin"
+    ></iframe>
+    <button id="limooo-admin-toggle" type="button" aria-label="Open Authentik admin">
+        <span class="limooo-toggle-dot"></span>
+        Admin
+    </button>
+</div>
+
+<button id="limooo-kuma-toggle" type="button" aria-label="Open Uptime Kuma">
+    <span class="limooo-toggle-dot"></span>
+    Monitor
+</button>
+
+<style data-id="limooo-admin-shell">
+    :root {
+        --limooo-accent: #05A5A6;
+        --limooo-bg: #1b1b1f;
+        --limooo-text: #e2e2e3;
+        --limooo-panel: #202127;
+        --limooo-line: #2e2e32;
+    }
+    html[data-theme="light"] {
+        --limooo-bg: #ffffff;
+        --limooo-text: #1f2328;
+        --limooo-panel: #f6f6f7;
+        --limooo-line: #e2e2e3;
+    }
+    #limooo-admin-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: flex;
+        background: var(--limooo-bg);
+    }
+    #limooo-admin-shell.is-hidden {
+        display: none;
+    }
+    #limooo-kuma-frame {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: var(--limooo-bg);
+    }
+    #limooo-admin-toggle,
+    #limooo-kuma-toggle {
+        position: fixed;
+        bottom: 18px;
+        right: 18px;
+        z-index: 2147483001;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        padding: 0 16px;
+        border: 1px solid var(--limooo-line);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--limooo-panel) 92%, transparent);
+        color: var(--limooo-text);
+        font: 600 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0.02em;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+        cursor: pointer;
+        transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    #limooo-admin-toggle:hover,
+    #limooo-kuma-toggle:hover {
+        border-color: var(--limooo-accent);
+        color: var(--limooo-accent);
+    }
+    #limooo-admin-toggle:active,
+    #limooo-kuma-toggle:active {
+        transform: scale(0.96);
+    }
+    .limooo-toggle-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--limooo-accent);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--limooo-accent) 18%, transparent);
+    }
+</style>
+
+<script data-id="limooo-admin-shell">
+    (function () {
+        "use strict";
+
+        var shell = document.getElementById("limooo-admin-shell");
+        var adminToggle = document.getElementById("limooo-admin-toggle");
+        var kumaToggle = document.getElementById("limooo-kuma-toggle");
+        var storageKey = "limooo-admin-view";
+
+        function setView(showKuma) {
+            shell.classList.toggle("is-hidden", !showKuma);
+            try {
+                localStorage.setItem(storageKey, showKuma ? "kuma" : "authentik");
+            } catch (error) {
+                /* localStorage 不可用时仍可切换，只是不记忆 */
+            }
+        }
+
+        var saved = null;
+        try {
+            saved = localStorage.getItem(storageKey);
+        } catch (error) {
+            /* ignore */
+        }
+        setView(saved !== "authentik");
+
+        adminToggle.addEventListener("click", function () {
+            setView(false);
+        });
+        kumaToggle.addEventListener("click", function () {
+            setView(true);
+        });
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && shell.classList.contains("is-hidden")) {
+                setView(true);
+            }
+        });
+    })();
+</script>
+{% endblock %}

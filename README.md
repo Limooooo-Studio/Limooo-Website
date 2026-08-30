@@ -9,9 +9,9 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 - After the first load, visitor status chips filter locally with no new `/api/visitors` request; the API still accepts `?status=<3-digit>` for deep links.
 - **Apple ID manager** (`/appleid`): Pages Function + D1 CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
 - **Auth & roles**: self-hosted [authentik](https://goauthentik.io) OIDC single sign-on, with admin (read-write) / viewer (read-only) roles split by group
-- **Uptime Kuma monitoring** (`admin.limooo.cn`): MIT-licensed, free self-hosted monitoring dashboard with multi-language i18n and dark mode; it probes `/_health` for public pages/authentik and receives hourly D1 health status via Push heartbeat
+- **Uptime Kuma monitoring**: embedded in the Authentik admin interface at the single entry `admin.limooo.cn`; MIT-licensed, free, multi-language i18n and dark mode; it probes `/_health` and receives hourly D1 health status via Push heartbeat
 - **Health alert email**: `check_health.py` sends branded HTML email (logo, alert list, key metrics, CTA to `admin.limooo.cn`) with plain-text fallback; template is shared via `ops/email-templates/`
-- **Kuma brand skin**: `admin.limooo.cn` is reskinned with the main-site design tokens (`#1b1b1f`/white, `#05A5A6`, Inter + Baloo 2) via Nginx-injected CSS, without forking upstream
+- **Kuma brand skin**: the embedded Kuma frontend uses the main-site design tokens (`#1b1b1f`/white, `#05A5A6`, Inter + Baloo 2) via the `Kuma-Fork` build; no separate admin subdomain is published
 - **Kuma fork frontend**: the deployed admin UI is built from a 2.5.3 front-end fork (`Kuma-Fork/`, branch `limooo-ui`) and mounted into the existing container; monitor names and push alerts are translated based on the current user language without storing a default
 - **Automatic IP blocking**:
   - Scans Nginx logs for malicious scan signatures (`/.env`, `/wp-admin`, `/actuator/`, etc.) and zero-tolerance bans the offending /24 subnet
@@ -147,7 +147,7 @@ Injected via `secrets/webauthn.env` (systemd `EnvironmentFile`), not committed t
 
 | Variable | Description |
 | --- | --- |
-| `AUTHENTIK_URL` | Public URL of the authentik instance (default `https://identity.limooo.cn`) |
+| `AUTHENTIK_URL` | Public URL of the authentik instance (default `https://admin.limooo.cn`) |
 | `AUTHENTIK_INTERNAL_URL` | Internal access URL (default `http://127.0.0.1:9000`; token requests go over the internal loopback) |
 | `AUTHENTIK_PROVIDER_SLUG` | OIDC provider slug (default `visitor`) |
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | authentik OIDC client credentials |
@@ -247,7 +247,7 @@ Configured under **Pages project settings → Environment variables → Encrypt 
 | `TURNSTILE_SITEKEY` | Public sitekey of the Turnstile widget on the gate page |
 | `TURNSTILE_SECRET` | Server-side siteverify secret |
 | `GATE_HMAC_KEY` | HMAC-SHA256 signing key for the `__gate` cookie (`openssl rand -hex 32`) |
-| `AUTHENTIK_URL` | Public authentik URL (default `https://identity.limooo.cn`); ID Token issuer is validated as `${AUTHENTIK_URL}/application/o/visitor/` |
+| `AUTHENTIK_URL` | Public authentik URL (default `https://admin.limooo.cn`); ID Token issuer is validated as `${AUTHENTIK_URL}/application/o/visitor/` |
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | authentik OIDC client (reuses the existing one) |
 | `AUTHENTIK_ADMIN_GROUPS` | Admin group (default `authentik Admins`) |
 | `SESSION_HMAC_KEY` | Pages session-cookie signing key (separate from `GATE_HMAC_KEY`) |

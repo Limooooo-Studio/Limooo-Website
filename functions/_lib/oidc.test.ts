@@ -11,7 +11,7 @@ import {
 } from "./oidc";
 
 const env: Env = {
-  AUTHENTIK_URL: "https://identity.limooo.cn",
+  AUTHENTIK_URL: "https://admin.limooo.cn",
   AUTHENTIK_CLIENT_ID: "client-id",
   AUTHENTIK_CLIENT_SECRET: "client-secret",
   AUTHENTIK_ADMIN_GROUPS: "authentik Admins",

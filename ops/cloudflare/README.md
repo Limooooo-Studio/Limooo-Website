@@ -61,7 +61,7 @@ bash ops/workers_deploy.sh
 - 公开 HTML：仅匹配 `limooo.cn`、`services.limooo.cn`、`contact.limooo.cn`
   的 `/`、`/services`、`/contact` 页面，且请求带 `user_lang_preference`
   cookie；Edge/Browser TTL 300 秒。避免缓存首次访问的 `Set-Cookie`。
-- 静态资源：匹配上述主域及 `images.limooo.cn`、`identity.limooo.cn` 的
+- 静态资源：匹配上述主域及 `images.limooo.cn` 的
   `/static/*`，以及主站 favicon 与 `Limooo-xtext.webp`；Edge/Browser TTL
   1 年。
 

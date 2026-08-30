@@ -26,7 +26,6 @@ export const CONTRACT = {
     "www.limooo.cn",
     "services.limooo.cn",
     "contact.limooo.cn",
-    "identity.limooo.cn",
     "visitor.limooo.cn",
     "appleid.limooo.cn",
     "auth.limooo.cn",
@@ -39,7 +38,6 @@ export const CONTRACT = {
     "www.limooo.cn",
     "services.limooo.cn",
     "contact.limooo.cn",
-    "identity.limooo.cn",
     "visitor.limooo.cn",
     "appleid.limooo.cn",
     "auth.limooo.cn",
@@ -103,6 +101,7 @@ export const CONTRACT = {
   },
   "observability_hmac_env": "OBSERVABILITY_HMAC_KEY",
   "whitelist_file": "data/whitelist.txt",
+  "authentik_host": "admin.limooo.cn",
   "authentik_provider_slug": "visitor",
   "authentik_admin_groups": [
     "authentik Admins"
@@ -118,11 +117,13 @@ export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;
 export const APPLEID_HOSTNAME = `appleid.${ROOT_DOMAIN}`;
 export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;
 export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;
-export const IDENTITY_HOSTNAME = `identity.${ROOT_DOMAIN}`;
+export const AUTHENTIK_HOSTNAME = "admin.limooo.cn";
+export const IDENTITY_HOSTNAME = AUTHENTIK_HOSTNAME;
 export const IMAGES_HOSTNAME = `images.${ROOT_DOMAIN}`;
 export const GATE_HOST = GATE_HOSTNAME;
 export const REDIRECT_HOST = `https://${REDIRECT_HOSTNAME}/`;
 export const IDENTITY_URL = `https://${IDENTITY_HOSTNAME}`;
+export const AUTHENTIK_URL = `https://${AUTHENTIK_HOSTNAME}`;
 export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;
 export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;
 export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);
