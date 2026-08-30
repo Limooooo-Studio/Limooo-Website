@@ -14,3 +14,9 @@ services:
     labels:
       - "com.limooo.service=uptime-kuma"
       - "com.limooo.domain=admin.limooo.cn"
+    networks:
+      - authentik_default
+
+networks:
+  authentik_default:
+    external: true

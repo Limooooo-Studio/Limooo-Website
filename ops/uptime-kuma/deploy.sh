@@ -80,6 +80,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "docker pull '$IMAGE'"
 echo "[uptime-kuma] 4/6 重新创建容器（不重建镜像，数据目录保持不变）"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
+    docker network inspect authentik_default >/dev/null 2>&1 || docker network create authentik_default
     if docker inspect '$CONTAINER' >/dev/null 2>&1; then
         docker rm -f '$CONTAINER' >/dev/null
     fi
@@ -90,6 +91,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         --memory-swap=512m \
         -e TZ=Asia/Shanghai \
         -p 127.0.0.1:3001:3001 \
+        --network authentik_default \
         -v '$REMOTE_ROOT/data:/app/data' \
         -v '$REMOTE_ROOT/dist:/app/dist' \
         --label com.limooo.service=uptime-kuma \
@@ -118,5 +120,11 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     done
     docker ps --filter name='^$CONTAINER$' --format 'status={{.Status}} ports={{.Ports}}'
     curl -fsSL -A \"\$UA\" --max-time 15 http://127.0.0.1:3001/api/entry-page >/dev/null && echo 'local http: OK'
-    curl -fsSL -A \"\$UA\" --max-time 15 https://admin.limooo.cn/dashboard >/dev/null && echo 'public https: OK'
+    PUBLIC_HEALTH=\"\$(curl -sSL -A \"\$UA\" --max-time 15 -o /dev/null -w '%{http_code}' https://admin.limooo.cn/_health 2>/dev/null || true)\"
+    if [ \"\$PUBLIC_HEALTH\" = \"200\" ]; then
+        echo 'public https: OK'
+    else
+        echo \"public https: unexpected \$PUBLIC_HEALTH\" >&2
+        exit 1
+    fi
 "
