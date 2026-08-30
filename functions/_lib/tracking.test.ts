@@ -36,7 +36,7 @@ describe("tracking", () => {
     expect(uaFamily("Mozilla/5.0 (Macintosh; Safari)")).toBe("safari");
   });
 
-  it("skips static, API, gate, image and redirect requests", () => {
+  it("skips static, API, image and redirect requests", () => {
     const page = request("https://limooo.cn/", { "CF-Connecting-IP": "1.1.1.1" });
     expect(shouldTrackVisit(page, new URL("https://limooo.cn/"))).toBe(true);
     expect(shouldTrackVisit(page, new URL("https://limooo.cn/static/a.css"))).toBe(false);
@@ -45,6 +45,14 @@ describe("tracking", () => {
     expect(shouldTrackRay(page, new URL("https://limooo.cn/static/a.css"))).toBe(false);
     expect(shouldTrackRay(page, new URL("https://limooo.cn/api/x"))).toBe(false);
     expect(shouldTrackRay(page, new URL("https://limooo.cn/"))).toBe(true);
+  });
+
+  it("records gate diagnostic requests so displayed Ray IDs are traceable", () => {
+    const page = request("https://auth.limooo.cn/__gate", { "CF-Connecting-IP": "1.1.1.1" });
+    expect(shouldTrackRay(page, new URL("https://auth.limooo.cn/__gate"))).toBe(true);
+    expect(shouldTrackRay(page, new URL("https://auth.limooo.cn/__gate/diag"))).toBe(true);
+    expect(shouldTrackRay(page, new URL("https://auth.limooo.cn/__gate/config"))).toBe(true);
+    expect(shouldTrackRay(page, new URL("https://auth.limooo.cn/__gate/verify"))).toBe(true);
   });
 
   it("records visitors without full IP/UA/query", async () => {

@@ -111,7 +111,8 @@ export function shouldTrackVisit(request: Request, url: URL): boolean {
   return !/\.(png|webp|jpg|jpeg|gif|ico|svg|css|js|json|webmanifest|txt|xml)$/i.test(p);
 }
 
-/** Ray 记录只保留页面和少量入口；静态、全部 API、门禁与图片/跳转子域不记。 */
+/** Ray 记录只保留页面和少量入口；静态、全部 API、图片/跳转子域不记。
+ *  门禁诊断路径例外：auth 页显示的 Ray ID 来自 /__gate/diag，必须可反查。 */
 export function shouldTrackRay(request: Request, url: URL): boolean {
   if (request.method !== "GET" && request.method !== "POST" && request.method !== "PUT" && request.method !== "DELETE") return false;
   if (url.hostname === IMAGES_HOSTNAME || url.hostname === REDIRECT_HOSTNAME) return false;
@@ -119,8 +120,7 @@ export function shouldTrackRay(request: Request, url: URL): boolean {
   if (
     p.startsWith("/api/") ||
     p === "/_health" ||
-    p.startsWith("/static/") ||
-    p.startsWith("/__gate")
+    p.startsWith("/static/")
   ) {
     return false;
   }
