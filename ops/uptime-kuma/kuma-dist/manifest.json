@@ -3,7 +3,7 @@
     "short_name": "Limooo",
     "description": "Limooo self-hosted health checks and monitoring dashboard.",
     "theme_color": "#1b1b1f",
-    "start_url": "/",
+    "start_url": "/kuma/",
     "background_color": "#1b1b1f",
     "display": "standalone",
     "icons": [
@@ -23,7 +23,7 @@
             "name": "Dashboard",
             "short_name": "Dashboard",
             "description": "View monitoring dashboard",
-            "url": "/dashboard",
+            "url": "/kuma/dashboard",
             "icons": [
                 {
                     "src": "limooo-favicon.png",
@@ -36,7 +36,7 @@
             "name": "Add Monitor",
             "short_name": "Add Monitor",
             "description": "Add a new monitor",
-            "url": "/add",
+            "url": "/kuma/add",
             "icons": [
                 {
                     "src": "limooo-favicon.png",
@@ -49,7 +49,7 @@
             "name": "Monitor List",
             "short_name": "List",
             "description": "View all monitors",
-            "url": "/list",
+            "url": "/kuma/list",
             "icons": [
                 {
                     "src": "limooo-favicon.png",
@@ -62,7 +62,7 @@
             "name": "Settings",
             "short_name": "Settings",
             "description": "Open settings",
-            "url": "/settings",
+            "url": "/kuma/settings",
             "icons": [
                 {
                     "src": "limooo-favicon.png",
@@ -75,7 +75,7 @@
             "name": "Maintenance",
             "short_name": "Maintenance",
             "description": "Manage maintenance windows",
-            "url": "/maintenance",
+            "url": "/kuma/maintenance",
             "icons": [
                 {
                     "src": "limooo-favicon.png",

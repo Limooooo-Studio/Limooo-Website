@@ -78,7 +78,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         -H \"Authorization: Bearer \$TOKEN\" \
         -H 'Content-Type: application/json' \
         -H 'Accept: application/json' \
-        -d '{\"mode\":\"forward_single\",\"internal_host\":\"\"}' \
+        -d '{\"mode\":\"forward_single\",\"internal_host\":\"\",\"skip_path_regex\":\"^/kuma/status(/.*)?\$\n^/kuma/status-page\$\n^/kuma/assets/.*\n^/kuma/api/push/.*\n^/kuma/api/badge/.*\n^/kuma/api/status-page/.*\n^/kuma/icon.svg\$\n^/kuma/upload/.*\n^/kuma/manifest.json\$\n^/kuma/_health\$\"}' \
         http://127.0.0.1:9000/api/v3/providers/proxy/2/ >/dev/null
     OUTPOST_PK=\$(curl -fsS \
         -H \"Authorization: Bearer \$TOKEN\" \
