@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# limooo.cn 上传/部署脚本（独立完整版）
+# limooo.cn 部署脚本（输出精简版）
 # 功能与 ops/deploy.sh 对齐（--dry-run/--commit/--push、nginx conf.d、密钥/生成物排除），
 # 但输出刻意精简：成功时只打印一行行程式状态，build/pages 的冗长日志被吞掉。
 #
