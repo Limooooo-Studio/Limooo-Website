@@ -10,8 +10,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "lang_aria": "切换语言",
     "theme_aria": "切换主题",
     "footer_rights": "保留所有权利",
-    "footer_source": "根据 AGPL-3.0 许可证发布，源代码可在",
-    "footer_source_link": "此处",
+    "footer_source": "根据 AGPL-3.0 许可证发布，源码在",
+    "footer_source_link": "这里",
     "error_sitekey": "服务配置错误：未设置 TURNSTILE_SITEKEY。",
     "error_invalid": "请求无效，请重试。",
     "error_unavailable": "验证服务暂时不可用，请稍后重试。",
@@ -74,8 +74,8 @@ export const REDIRECT_I18N: Record<string, { title: string; text: string; footer
     "title": "正在跳转",
     "text": "正在跳转... (・ω・)",
     "footer_rights": "保留所有权利",
-    "footer_source": "根据 AGPL-3.0 许可证发布，源代码可在",
-    "footer_source_link": "此处"
+    "footer_source": "根据 AGPL-3.0 许可证发布，源码在",
+    "footer_source_link": "这里"
   },
   "en-us": {
     "title": "Redirecting",
