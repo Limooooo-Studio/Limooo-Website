@@ -44,13 +44,13 @@ while [ $# -gt 0 ]; do
         --remote) REMOTE=1 ;;
         --check-schema) CHECK_SCHEMA=1 ;;
         --help|-h) usage; exit 0 ;;
-        *) echo "FATAL: 未知参数 $1" >&2; usage >&2; exit 2 ;;
+        *) echo "FATAL: unknown argument $1" >&2; usage >&2; exit 2 ;;
     esac
     shift
 done
 
 if [ ! -d "$MIGRATIONS_DIR" ]; then
-    echo "FATAL: 迁移目录不存在 $MIGRATIONS_DIR" >&2
+    echo "FATAL: migrations directory not found: $MIGRATIONS_DIR" >&2
     exit 1
 fi
 
@@ -69,7 +69,7 @@ done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort)
 for file in "${MIGRATIONS[@]}"; do
     name="$(basename "$file")"
     if ! [[ "$name" =~ ^[0-9]{3}_[A-Za-z0-9_-]+\.sql$ ]]; then
-        echo "FATAL: 迁移文件名不符合 001_name.sql 约定: $name" >&2
+        echo "FATAL: migration filename does not match 001_name.sql convention: $name" >&2
         exit 1
     fi
 done
@@ -92,7 +92,7 @@ if [ "$CHECK_SCHEMA" = 1 ]; then
     fi
     echo "[d1] schema check: expected ${expected[*]}"
     if [ "$DRY_RUN" = 1 ]; then
-        echo "[d1] dry-run：未连接 D1；实际模式将读取 sqlite_master 并校验以上表。"
+        echo "[d1] dry-run: not connected to D1; actual mode will read sqlite_master and validate the tables above."
         exit 0
     fi
     D1_ARGS=(--remote)
@@ -107,7 +107,7 @@ if [ "$CHECK_SCHEMA" = 1 ]; then
         fi
     done
     if [ "${#missing[@]}" -gt 0 ]; then
-        echo "FATAL: D1 缺少预期表: ${missing[*]}" >&2
+        echo "FATAL: D1 missing expected tables: ${missing[*]}" >&2
         exit 1
     fi
     echo "[d1] schema check: OK"
@@ -115,7 +115,7 @@ if [ "$CHECK_SCHEMA" = 1 ]; then
 fi
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[d1] dry-run：以下迁移将按顺序执行（未连接 D1）"
+    echo "[d1] dry-run: the following migrations will run in order (not connected to D1)"
     for file in "${MIGRATIONS[@]}"; do
         name="$(basename "$file")"
         if is_applied "$name"; then
@@ -128,7 +128,7 @@ if [ "$DRY_RUN" = 1 ]; then
     exit 0
 fi
 
-echo "[d1] 按序执行 ${#MIGRATIONS[@]} 个迁移（${D1_DATABASE_NAME}）"
+echo "[d1] Running ${#MIGRATIONS[@]} migrations in order (${D1_DATABASE_NAME})"
 D1_ARGS=(--remote)
 [ "$REMOTE" = 0 ] && D1_ARGS=()
 

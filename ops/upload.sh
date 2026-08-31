@@ -35,7 +35,7 @@ for arg in "$@"; do
         --commit) DO_COMMIT=1 ;;
         --push) DO_PUSH=1 ;;
         *)
-            echo "FATAL: 未知参数 $arg（支持 --dry-run / --commit / --push）" >&2
+            echo "FATAL: unknown argument $arg (supported: --dry-run / --commit / --push)" >&2
             exit 2
             ;;
     esac
@@ -49,12 +49,12 @@ SSH_OPTS="-o LogLevel=ERROR"
 
 echo "Deploy start"
 
-cd "$LOCAL_DIR" || { echo "FATAL: 本地目录不存在 $LOCAL_DIR"; exit 1; }
+cd "$LOCAL_DIR" || { echo "FATAL: local directory not found: $LOCAL_DIR"; exit 1; }
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[deploy] DRY-RUN: 不 commit、不 push、不 SSH、不 rsync。"
+    echo "[deploy] DRY-RUN: no commit, no push, no SSH, no rsync."
     echo "[deploy] would-run: rsync -aqz --delete ... $REMOTE_HOST:$REMOTE_DIR"
-    echo "[deploy] would-run: ssh $REMOTE_HOST (安装依赖 / systemd / nginx / cron)"
+    echo "[deploy] would-run: ssh $REMOTE_HOST (install deps / systemd / nginx / cron)"
     echo "[deploy] would-run: bash ops/pages_deploy.sh --dry-run"
     bash ops/pages_deploy.sh --dry-run
     exit 0
@@ -236,7 +236,7 @@ WEOF
         echo "nginx: ok"
     else
         sudo nginx -t
-        echo "FATAL: nginx 配置检查失败,中止部署"
+        echo "FATAL: nginx config check failed, aborting deploy"
         exit 1
     fi
 
@@ -253,7 +253,7 @@ PAGES_LOG="$(mktemp "${TMPDIR:-/tmp}/limooo-pages.XXXXXX")"
 if bash "$LOCAL_DIR/ops/pages_deploy.sh" >"$PAGES_LOG" 2>&1; then
     echo "Pages: done"
 else
-    echo "FATAL: Pages 部署失败，完整日志如下" >&2
+    echo "FATAL: Pages deploy failed, full log below" >&2
     cat "$PAGES_LOG" >&2
     rm -f "$PAGES_LOG"
     exit 1

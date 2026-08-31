@@ -27,7 +27,7 @@ while [ $# -gt 0 ]; do
         --dry-run) DRY_RUN=1 ;;
         --build-only|--no-deploy) BUILD_ONLY=1 ;;
         *)
-            echo "FATAL: 未知参数 $1（支持 --verbose / --dry-run / --build-only）" >&2
+            echo "FATAL: unknown argument $1 (supported: --verbose / --dry-run / --build-only)" >&2
             exit 2
             ;;
     esac
@@ -37,61 +37,61 @@ done
 cd "$LOCAL_DIR"
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[pages] DRY-RUN 模式：不写入 Cloudflare，不执行构建/部署。"
-    echo "[pages] 将执行：npm ci（root + ops）→ ops/build.sh → ops/check_config_contract.py →"
+    echo "[pages] DRY-RUN: not writing to Cloudflare, no build/deploy."
+    echo "[pages] will run: npm ci (root + ops) -> ops/build.sh -> ops/check_config_contract.py ->"
     echo "[pages]           ops/migrate_d1.sh --dry-run → npx wrangler pages deploy"
     echo "[pages] will-run: npm ci"
     echo "[pages] will-run: bash ops/build.sh"
     echo "[pages] will-run: bash ops/migrate_d1.sh --dry-run"
     echo "[pages] will-run: npx wrangler pages deploy public --project-name $PAGES_PROJECT --branch $PAGES_BRANCH"
-    echo "[pages] dry-run 完成（未读取服务器凭据、未连接 Cloudflare）。"
+    echo "[pages] dry-run complete (no server credentials read, no Cloudflare connection)."
     exit 0
 fi
 
 if ! command -v npm >/dev/null 2>&1; then
-    echo "FATAL: 本地找不到 npm，无法安装锁定的前端/CLI 依赖" >&2
+    echo "FATAL: npm not found locally; cannot install locked frontend/CLI dependencies" >&2
     exit 1
 fi
 if ! command -v npx >/dev/null 2>&1; then
-    echo "FATAL: 本地找不到 npx" >&2
+    echo "FATAL: npx not found locally" >&2
     exit 1
 fi
 
-echo "[pages] 安装锁定的 Node 依赖（root + ops）"
+echo "[pages] Installing locked Node dependencies (root + ops)"
 (cd "$LOCAL_DIR" && npm ci)
 (cd "$LOCAL_DIR/ops" && npm ci)
 
 if [ ! -x "$LOCAL_DIR/node_modules/.bin/wrangler" ]; then
-    echo "FATAL: 未找到本地 wrangler，请先执行 npm ci" >&2
+    echo "FATAL: local wrangler not found; run npm ci first" >&2
     exit 1
 fi
 
-echo "[pages] 执行可复现构建（build.sh）"
+echo "[pages] Running reproducible build (build.sh)"
 bash ops/build.sh
 
 if [ ! -f "$LOCAL_DIR/public/manifest.json" ]; then
-    echo "FATAL: 构建完成后未生成 public/manifest.json" >&2
+    echo "FATAL: public/manifest.json not generated after build" >&2
     exit 1
 fi
 echo "[pages] manifest: $(wc -c < "$LOCAL_DIR/public/manifest.json" | tr -d ' ') bytes"
 
 if [ "$BUILD_ONLY" = 1 ]; then
-    echo "[pages] 构建完成（--build-only），跳过 Pages 部署与 D1 预检。"
+    echo "[pages] Build complete (--build-only), skipping Pages deploy and D1 precheck."
     exit 0
 fi
 
 if ! ssh $SSH_OPTS "$REMOTE_HOST" "test -f $REMOTE_DIR/secrets/webauthn.env"; then
-    echo "FATAL: 服务器缺少 $REMOTE_DIR/secrets/webauthn.env，无法获取 Cloudflare token" >&2
+    echo "FATAL: server missing $REMOTE_DIR/secrets/webauthn.env; cannot get Cloudflare token" >&2
     exit 1
 fi
 eval "$(ssh $SSH_OPTS "$REMOTE_HOST" "cat $REMOTE_DIR/secrets/webauthn.env")"
 export CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
-    echo "FATAL: webauthn.env 里没有 CLOUDFLARE_API_TOKEN" >&2
+    echo "FATAL: webauthn.env has no CLOUDFLARE_API_TOKEN" >&2
     exit 1
 fi
 
-echo "[pages] D1 schema 预检（只读）"
+echo "[pages] D1 schema precheck (read-only)"
 bash ops/migrate_d1.sh --check-schema --remote
 
 echo "[pages] npx wrangler pages deploy ..."

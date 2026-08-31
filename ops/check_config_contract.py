@@ -81,7 +81,7 @@ def load_ts_contract() -> dict | None:
     if not CONFIG_TS_PATH.exists():
         # 生成物采用“生成不提交”策略：build.py 之前只校验 Python 侧，
         # 构建完成后 pages_deploy.sh 会再次校验 TS 侧。
-        print(f"[config-contract] WARNING: 尚未生成 {CONFIG_TS_PATH}，跳过 TS 侧校验")
+        print(f"[config-contract] WARNING: {CONFIG_TS_PATH} not generated yet; skipping TS-side check")
         return None
     try:
         text = CONFIG_TS_PATH.read_text(encoding="utf-8")
@@ -181,11 +181,11 @@ def main() -> int:
     if not (py_ok and ts_ok):
         return 1
     if ts_contract is None and not skip_ts:
-        print("[config-contract] OK: contract / Python 一致（TS 尚未生成，跳过）")
+        print("[config-contract] OK: contract / Python consistent (TS not generated yet, skipped)")
     elif ts_contract is not None:
-        print("[config-contract] OK: contract / Python / TypeScript 三者一致")
+        print("[config-contract] OK: contract / Python / TypeScript consistent")
     else:
-        print("[config-contract] OK: contract / Python 一致（--skip-ts，构建前校验）")
+        print("[config-contract] OK: contract / Python consistent (--skip-ts, pre-build check)")
     return 0
 
 

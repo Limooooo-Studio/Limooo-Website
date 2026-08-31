@@ -36,7 +36,7 @@ for arg in "$@"; do
         --commit) DO_COMMIT=1 ;;
         --push) DO_PUSH=1 ;;
         *)
-            echo "FATAL: 未知参数 $arg（支持 --dry-run / --commit / --push）" >&2
+            echo "FATAL: unknown argument $arg (supported: --dry-run / --commit / --push)" >&2
             exit 2
             ;;
     esac
@@ -49,15 +49,15 @@ LOCAL_DIR="/Users/lime/Documents/Project/Limooo/Flask/"
 SSH_OPTS="-o LogLevel=ERROR"
 
 echo "cd $LOCAL_DIR"
-cd "$LOCAL_DIR" || { echo "FATAL: 本地目录不存在 $LOCAL_DIR"; exit 1; }
+cd "$LOCAL_DIR" || { echo "FATAL: local directory not found: $LOCAL_DIR"; exit 1; }
 
 echo "git status --short"
 git status --short || true
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[deploy] DRY-RUN: 不 commit、不 push、不 SSH、不 rsync。"
+    echo "[deploy] DRY-RUN: no commit, no push, no SSH, no rsync."
     echo "[deploy] would-run: rsync -avz --delete ... $REMOTE_HOST:$REMOTE_DIR"
-    echo "[deploy] would-run: ssh $REMOTE_HOST (安装依赖 / systemd / nginx / cron)"
+    echo "[deploy] would-run: ssh $REMOTE_HOST (install deps / systemd / nginx / cron)"
     echo "[deploy] would-run: bash ops/pages_deploy.sh"
     bash ops/pages_deploy.sh --dry-run
     exit 0
@@ -85,7 +85,7 @@ if ssh $SSH_OPTS $REMOTE_HOST "test -e $REMOTE_DIR/data/appleid.db"; then
     echo "rsync -avz -e \"ssh $SSH_OPTS\" $REMOTE_HOST:$REMOTE_DIR/data/appleid.db* data/"
     rsync -avz -e "ssh $SSH_OPTS" "$REMOTE_HOST:$REMOTE_DIR/data/appleid.db*" data/
 else
-    echo "(appleid.db 尚不存在,跳过拉取——首次部署时由服务启动创建)"
+    echo "(appleid.db does not exist yet, skipping pull - created by service on first deploy)"
 fi
 
 echo "rsync -avz --delete -e \"ssh $SSH_OPTS\" --exclude 'venv' --exclude '__pycache__' --exclude '.DS_Store' --exclude '.git' --exclude 'deploy.sh' --exclude 'upload.sh' --exclude 'node_modules' --exclude 'GeoLite2-City.mmdb' --exclude 'GeoLite2-ASN.mmdb' --exclude '.gitignore' --exclude '.claude' --exclude 'command.txt' --exclude 'flask_secret.key' --exclude 'appleid_encryption.key' --exclude 'secrets/smtp-relay.env' --exclude 'secrets/authentik-email.env' --exclude 'secrets/uptime-kuma.env' --exclude 'geo_cache.db' --exclude 'appleid.db' --exclude 'auth.db' --exclude 'Logs' --exclude 'limooo.cn.png' --exclude 'limooo.pem' --exclude '各种密钥.txt' \"$LOCAL_DIR\" $REMOTE_HOST:$REMOTE_DIR"
@@ -140,7 +140,7 @@ ssh $SSH_OPTS $REMOTE_HOST << 'EOF'
     fi
     # nginx 需带 http_v3 模块(HTTP/3/QUIC);Debian 官方源 1.25+ 自带,缺失则视为未装好
     if ! nginx -V 2>&1 | grep -q http_v3_module; then
-        echo "FATAL: nginx 缺少 http_v3_module — 请检查系统/nginx 版本"
+        echo "FATAL: nginx missing http_v3_module - please check OS/nginx version"
         exit 1
     fi
     # docker 仅服务 authentik(/opt/authentik 单独部署),缺失则自动安装
@@ -276,7 +276,7 @@ WEOF
         echo "sudo systemctl restart nginx"
         sudo systemctl restart nginx
     else
-        echo "FATAL: nginx 配置检查失败,中止部署"
+        echo "FATAL: nginx config check failed, aborting deploy"
         exit 1
     fi
 
