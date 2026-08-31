@@ -148,7 +148,7 @@ function fetchI18n(lang, cb) {
           title: 'gate_title', heading: 'gate_heading', location: 'gate_location',
           ip: 'gate_ip', ray: 'gate_ray', foot: 'gate_foot',
           lang_aria: 'gate_lang_aria', theme_aria: 'gate_theme_aria',
-          footer_rights: 'footer_rights', footer_source: 'footer_source',
+          footer_rights: 'footer_rights', footer_source: 'footer_source', footer_source_link: 'footer_source_link',
           error_sitekey: 'gate_error_sitekey', error_invalid: 'gate_error_invalid',
           error_unavailable: 'gate_error_unavailable', error_failed: 'gate_error_failed'
         };

@@ -19,6 +19,7 @@ from config import (
     IMAGE_WATERMARK_BASE_URL,
     KEY_FALLBACK_LANG,
     LOCALES_DIR,
+    SOURCE_REPO_URL,
     STATIC_DIR,
     SUPPORTED_LANGS,
     TEMPLATES_DIR,
@@ -72,6 +73,7 @@ def create_render_app() -> Flask:
             "gate_url": f"https://{GATE_HOST}/__gate",
             "image_asset_base": IMAGE_ASSET_BASE_URL,
             "image_watermark_base": IMAGE_WATERMARK_BASE_URL,
+            "source_url": SOURCE_REPO_URL,
         }
 
     return app

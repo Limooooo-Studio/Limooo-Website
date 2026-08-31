@@ -176,6 +176,8 @@
     font-size: 10px;
     font-size-adjust: 0.6552;
   }
+  .footer-source-link { color: inherit; text-decoration: none; white-space: nowrap; }
+  .footer-source-link:hover { text-decoration: underline; }
   @media (hover: none) and (pointer: coarse) {
     .global-footer { display: none !important; }
   }

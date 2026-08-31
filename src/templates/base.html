@@ -139,12 +139,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <!-- ═══ 主体内容（各页面各自填充） ═══ -->
     {% block content %}{% endblock %}
 
-    <!-- ═══ 底部版权（整条可点击直达源码仓库） ═══ -->
+    <!-- ═══ 底部版权（页脚“源码在此”可点击直达源码仓库） ═══ -->
     {% block footer %}
     {% block footer_markup %}
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
-            <div class="footer-text">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span></div>
+            <div class="footer-text">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
         </div>
     </footer>
     {% endblock %}

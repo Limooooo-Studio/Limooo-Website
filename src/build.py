@@ -162,6 +162,7 @@ GATE_I18N_KEYS = (
     ("theme_aria", "gate_theme_aria"),
     ("footer_rights", "footer_rights"),
     ("footer_source", "footer_source"),
+    ("footer_source_link", "footer_source_link"),
     ("error_sitekey", "gate_error_sitekey"),
     ("error_invalid", "gate_error_invalid"),
     ("error_unavailable", "gate_error_unavailable"),
@@ -386,13 +387,14 @@ def write_runtime_functions() -> None:
             "text": d.get("redirect_text", "正在跳转..."),
             "footer_rights": d.get("footer_rights", "保留所有权利"),
             "footer_source": d.get("footer_source", "根据 AGPL-3.0 许可证发布"),
+            "footer_source_link": d.get("footer_source_link", "here"),
         }
     output = [
         "// 由 build.py 自动生成，勿手改。",
         "export const GATE_I18N: Record<string, Record<string, string>> = "
         + json.dumps(GATE_I18N, ensure_ascii=False, indent=2)
         + ";",
-        "export const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string }> = "
+        "export const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string; footer_source_link: string }> = "
         + json.dumps(redirect_i18n, ensure_ascii=False, indent=2)
         + ";",
         "export const REDIRECT_PRELOAD_IMAGES = "

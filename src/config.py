@@ -158,6 +158,10 @@ GATE_TRUST = CONTRACT.get("gate_trust", {})
 OBSERVABILITY_HMAC_ENV = _contract_str("observability_hmac_env")
 SESSION_COOKIE_DOMAIN = f".{ROOT_DOMAIN}"
 
+# ── 开源仓库 ────────────────────────────────────────────
+# AGPL-3.0 顶栏/页脚“源码在此”链接指向的仓库地址。
+SOURCE_REPO_URL = "https://github.com/Limooooo-Studio/Limooo-Website"
+
 # ── 多语言 ────────────────────────────────────────────────
 # 语言代码统一小写（与 Cloudflare Turnstile 的 language 参数格式一致）
 SUPPORTED_LANGS = tuple(_contract_str_list("supported_langs"))
