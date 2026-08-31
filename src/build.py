@@ -94,7 +94,7 @@ def write_pages_edge_config(out_dir: str) -> None:
                 "exclude": [
                     "/static/*",
                     "/favicon.ico",
-                    "/Limooo-xtext.webp",
+                    "/Limooo-xtext.svg",
                 ],
             },
             f,
@@ -112,6 +112,8 @@ def write_pages_edge_config(out_dir: str) -> None:
             "/static/*.woff2\n"
             "  Cache-Control: public, max-age=31536000, immutable\n"
             "/static/*.webp\n"
+            "  Cache-Control: public, max-age=31536000, immutable\n"
+            "/static/*.svg\n"
             "  Cache-Control: public, max-age=31536000, immutable\n"
             "/static/*.avif\n"
             "  Cache-Control: public, max-age=31536000, immutable\n"
@@ -680,8 +682,8 @@ def main() -> int:
     generate_watermarks(os.path.join(PUBLIC_DIR, "static"))
     # 门禁验证页引用的根路径 logo（放行路径之一）
     shutil.copy2(
-        os.path.join(STATIC_DIR, "icons", "Limooo-xtext.webp"),
-        os.path.join(PUBLIC_DIR, "Limooo-xtext.webp"),
+        os.path.join(STATIC_DIR, "icons", "Limooo-xtext.svg"),
+        os.path.join(PUBLIC_DIR, "Limooo-xtext.svg"),
     )
 
     # 4) i18n Functions（前端语言切换接口）
@@ -723,8 +725,8 @@ def main() -> int:
             # 内联 CSS 里的根路径资源（门禁页 @font-face 的 url(/static/...)）同步本地化
             html = html.replace("url(/static/", "url(../static/")
             html = html.replace(
-                'src="/Limooo-xtext.webp"',
-                'src="../static/icons/Limooo-xtext.webp"',
+                'src="/Limooo-xtext.svg"',
+                'src="../static/icons/Limooo-xtext.svg"',
             )
             # 站内导航本地化：https://<子域>.limooo.cn → 同目录本地文件
             for sub, page in (
