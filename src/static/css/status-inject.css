@@ -1,7 +1,8 @@
 /* Limooo header/footer shell 注入 Kuma Mieru；隐藏其原生 nav/footer，卡片不动 */
-nav[class*="z-40"] { display: none !important; }
-footer { display: none !important; }
-body { padding-top: 96px !important; }
+/* 仅当注入的页头存在时才隐藏 Kuma 原生 nav/footer，避免“两头都空” */
+body:has(#limooo-header) nav[class*="z-40"] { display: none !important; }
+body:has(#limooo-header) footer { display: none !important; }
+body:has(#limooo-header) { padding-top: 96px !important; }
 
 :root {
   --lim-bg: #1b1b1f;
