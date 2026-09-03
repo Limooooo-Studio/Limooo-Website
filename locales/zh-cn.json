@@ -149,5 +149,17 @@
   "toast_added": "已添加",
   "toast_op_failed": "操作失败",
   "toast_no_permission": "无权限",
-  "no_permission": "无权限"
+  "no_permission": "无权限",
+  "status_meta_title": "Limooo 状态",
+  "status_title": "系统状态",
+  "status_subtitle": "Limooo 各项服务的实时可用性。",
+  "status_updated": "最后更新",
+  "state_up": "运行正常",
+  "state_down": "服务中断",
+  "state_pending": "检测中",
+  "uptime_label": "7 天在线率",
+  "all_checks": "全部检查",
+  "status_note": "数据来源：Uptime Kuma · status.claude.com",
+  "card_website": "Limooo 网站",
+  "card_d1": "Limooo D1 健康检查"
 }

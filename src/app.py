@@ -34,11 +34,12 @@ import os
 import secrets
 import sqlite3
 import time
+from datetime import datetime, timezone
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 import requests
-from flask import Flask, Response, g, request
+from flask import Flask, Response, g, render_template, request
 
 from config import (
     AUTHENTIK_INTERNAL_URL,
@@ -53,6 +54,7 @@ from config import (
     IMAGE_ASSET_BASE_URL,
     IMAGE_WATERMARK_BASE_URL,
     KEY_FALLBACK_LANG,
+    LANG_COOKIE,
     LOCALES_DIR,
     SESSION_COOKIE_DOMAIN,
     SOURCE_REPO_URL,
@@ -390,6 +392,129 @@ def inject_i18n():
         "image_watermark_base": IMAGE_WATERMARK_BASE_URL,
         "source_url": SOURCE_REPO_URL,
     }
+
+
+# ── 状态页：读取 Uptime Kuma 数据并渲染 status.html ─────────────
+KUMA_DB = "/opt/uptime-kuma/data/kuma.db"
+
+
+def _kuma_status() -> list[dict[str, object]]:
+    """读取 Kuma SQLite 中每个 monitor 的最新心跳与 7 天在线率。"""
+    monitors: list[dict[str, object]] = []
+    try:
+        conn = sqlite3.connect(f"file:{KUMA_DB}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT id, name, type, url, active FROM monitor ORDER BY id"
+        ).fetchall()
+        for m in rows:
+            hb = conn.execute(
+                "SELECT status, time, ping FROM heartbeat "
+                "WHERE monitor_id=? ORDER BY time DESC LIMIT 1",
+                (m["id"],),
+            ).fetchone()
+            total = conn.execute(
+                "SELECT COUNT(*) FROM heartbeat "
+                "WHERE monitor_id=? AND time>=datetime('now','-7 days')",
+                (m["id"],),
+            ).fetchone()[0]
+            up = conn.execute(
+                "SELECT COUNT(*) FROM heartbeat "
+                "WHERE monitor_id=? AND status=1 "
+                "AND time>=datetime('now','-7 days')",
+                (m["id"],),
+            ).fetchone()[0]
+            uptime = (up / total * 100) if total else 0.0
+            monitors.append(
+                {
+                    "id": m["id"],
+                    "name": m["name"],
+                    "type": m["type"],
+                    "active": m["active"],
+                    "status": hb["status"] if hb else 2,
+                    "ping": hb["ping"] if hb else None,
+                    "uptime": uptime,
+                }
+            )
+        conn.close()
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("[kuma] read status failed: %s", exc)
+    return monitors
+
+
+def _status_key(st: int | None) -> str:
+    st = int(st or 2)
+    return "up" if st == 1 else ("down" if st == 0 else "pending")
+
+
+@app.route("/")
+@app.route("/status")
+def status_page():
+    """status.limooo.cn 主体：Limooo Website / Limooo D1 Health Check。"""
+    monitors = _kuma_status()
+    for c in monitors:
+        c["status_key"] = _status_key(c["status"])
+
+    def group(ids, key):
+        checks = [m for m in monitors if m["id"] in ids]
+        if not checks:
+            return None
+        worst = (
+            0
+            if any(c["status"] == 0 for c in checks)
+            else (2 if any(c["status"] == 2 for c in checks) else 1)
+        )
+        return {
+            "key": key,
+            "status_key": _status_key(worst),
+            "uptime": min(c["uptime"] for c in checks) if checks else None,
+            "checks": checks,
+        }
+
+    website_ids = {1, 2, 3}  # 主站 / Services / Contact -> Limooo Website
+    website = group(website_ids, "card_website")
+    d1_ids = {m["id"] for m in monitors if "D1" in str(m["name"]) or m["type"] == "push"}
+    d1 = group(d1_ids, "card_d1")
+    groups = [g for g in (website, d1) if g]
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return render_template("status.html", groups=groups, all_checks=monitors, now=now)
+
+
+@app.route("/api/i18n/<path:lang>")
+def api_i18n(lang: str):
+    """前端无刷新语言切换用：返回当前语言翻译字典。"""
+    if lang not in SUPPORTED_LANGS:
+        return Response(
+            json.dumps({"error": "unsupported language"}),
+            status=404,
+            mimetype="application/json",
+        )
+    return Response(
+        json.dumps(_translations.get(lang, {})),
+        status=200,
+        mimetype="application/json",
+    )
+
+
+@app.before_request
+def _detect_lang():
+    """根据 user_lang_preference cookie / Accept-Language / CF 地区 设置当前语言。"""
+    cookie = request.cookies.get(LANG_COOKIE)
+    if cookie and cookie in SUPPORTED_LANGS:
+        g.lang = cookie
+        return
+    al = request.headers.get("Accept-Language", "")
+    for part in al.split(","):
+        code = part.split(";")[0].strip().lower()
+        if code in SUPPORTED_LANGS:
+            g.lang = code
+            return
+    country = (request.headers.get("CF-IPCountry", "") or "").upper()
+    mapped = {"CN": "zh-cn", "JP": "ja-jp", "KR": "ko-kr"}
+    if country in mapped:
+        g.lang = mapped[country]
+        return
+    g.lang = DEFAULT_LANG
 
 
 if not BUILD_MODE:

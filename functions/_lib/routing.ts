@@ -69,11 +69,21 @@ export function safeNextUrl(raw: string | null): string {
   if (raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) return raw;
   try {
     const value = new URL(raw);
-    if (value.protocol === "https:" && PUBLIC_HOSTS.has(value.hostname)) return raw;
+    if (value.protocol === "https:" && isPublicHost(value.hostname)) return raw;
   } catch {
     // 非 URL 一律回主站。
   }
   return fallback;
+}
+
+/** 门禁/登录回跳白名单：精确主机名，或配置里 *.limooo.cn 形式的通配子域。 */
+export function isPublicHost(host: string): boolean {
+  if (!host) return false;
+  if (PUBLIC_HOSTS.has(host)) return true;
+  for (const entry of PUBLIC_HOSTS) {
+    if (entry.startsWith("*.") && host.endsWith(entry.slice(1))) return true;
+  }
+  return false;
 }
 
 /** 把站内路径包装成经 redirect.<root_domain> 的中转跳转。 */
@@ -83,7 +93,7 @@ export function viaRedirect(host: string, path: string): string {
 
 /** 门禁回跳目标主机只允许公开白名单，其余一律回主站。 */
 export function sanitizeHost(raw: string | null | undefined): string {
-  return raw && PUBLIC_HOSTS.has(raw) ? raw : ROOT_DOMAIN;
+  return raw && isPublicHost(raw) ? raw : ROOT_DOMAIN;
 }
 
 /** 语言检测：cookie > Accept-Language(zh/en/ja/ko) > CF 地区(CN/JP/KR) > default。 */

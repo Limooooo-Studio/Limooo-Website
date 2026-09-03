@@ -151,7 +151,19 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "已添加",
     "toast_op_failed": "操作失败",
     "toast_no_permission": "无权限",
-    "no_permission": "无权限"
+    "no_permission": "无权限",
+    "status_meta_title": "Limooo 状态",
+    "status_title": "系统状态",
+    "status_subtitle": "Limooo 各项服务的实时可用性。",
+    "status_updated": "最后更新",
+    "state_up": "运行正常",
+    "state_down": "服务中断",
+    "state_pending": "检测中",
+    "uptime_label": "7 天在线率",
+    "all_checks": "全部检查",
+    "status_note": "数据来源：Uptime Kuma · status.claude.com",
+    "card_website": "Limooo 网站",
+    "card_d1": "Limooo D1 健康检查"
   },
   "en-us": {
     "redirect_title": "Redirecting",
@@ -304,7 +316,19 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "Added",
     "toast_op_failed": "Operation failed",
     "toast_no_permission": "No permission",
-    "no_permission": "No permission"
+    "no_permission": "No permission",
+    "status_meta_title": "Limooo Status",
+    "status_title": "System Status",
+    "status_subtitle": "Live availability for Limooo services.",
+    "status_updated": "Last updated",
+    "state_up": "Operational",
+    "state_down": "Downtime",
+    "state_pending": "Pending",
+    "uptime_label": "7-day uptime",
+    "all_checks": "All checks",
+    "status_note": "Data source: Uptime Kuma · status.claude.com",
+    "card_website": "Limooo Website",
+    "card_d1": "Limooo D1 Health Check"
   },
   "ja-jp": {
     "redirect_title": "リダイレクト中",
@@ -457,7 +481,19 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "追加しました",
     "toast_op_failed": "操作に失敗",
     "toast_no_permission": "権限がありません",
-    "no_permission": "権限がありません"
+    "no_permission": "権限がありません",
+    "status_meta_title": "Limooo ステータス",
+    "status_title": "システムステータス",
+    "status_subtitle": "Limooo 各サービスのリアルタイム稼働状況。",
+    "status_updated": "最終更新",
+    "state_up": "稼働中",
+    "state_down": "停止中",
+    "state_pending": "確認中",
+    "uptime_label": "7 日間の稼働率",
+    "all_checks": "全チェック",
+    "status_note": "データソース：Uptime Kuma · status.claude.com",
+    "card_website": "Limooo ウェブサイト",
+    "card_d1": "Limooo D1 ヘルスチェック"
   },
   "ko-kr": {
     "redirect_title": "리다이렉트 중",
@@ -610,6 +646,18 @@ export const translations: Record<string, Record<string, string>> = {
     "toast_added": "추가됨",
     "toast_op_failed": "작업 실패",
     "toast_no_permission": "권한이 없습니다",
-    "no_permission": "권한이 없습니다"
+    "no_permission": "권한이 없습니다",
+    "status_meta_title": "Limooo 상태",
+    "status_title": "시스템 상태",
+    "status_subtitle": "Limooo 서비스의 실시간 가용성.",
+    "status_updated": "마지막 업데이트",
+    "state_up": "정상 운영",
+    "state_down": "중단",
+    "state_pending": "확인 중",
+    "uptime_label": "7일 가동률",
+    "all_checks": "전체 점검",
+    "status_note": "데이터 출처: Uptime Kuma · status.claude.com",
+    "card_website": "Limooo 웹사이트",
+    "card_d1": "Limooo D1 상태 확인"
   }
 };

@@ -149,5 +149,17 @@
   "toast_added": "Added",
   "toast_op_failed": "Operation failed",
   "toast_no_permission": "No permission",
-  "no_permission": "No permission"
+  "no_permission": "No permission",
+  "status_meta_title": "Limooo Status",
+  "status_title": "System Status",
+  "status_subtitle": "Live availability for Limooo services.",
+  "status_updated": "Last updated",
+  "state_up": "Operational",
+  "state_down": "Downtime",
+  "state_pending": "Pending",
+  "uptime_label": "7-day uptime",
+  "all_checks": "All checks",
+  "status_note": "Data source: Uptime Kuma · status.claude.com",
+  "card_website": "Limooo Website",
+  "card_d1": "Limooo D1 Health Check"
 }

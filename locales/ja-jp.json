@@ -149,5 +149,17 @@
   "toast_added": "追加しました",
   "toast_op_failed": "操作に失敗",
   "toast_no_permission": "権限がありません",
-  "no_permission": "権限がありません"
+  "no_permission": "権限がありません",
+  "status_meta_title": "Limooo ステータス",
+  "status_title": "システムステータス",
+  "status_subtitle": "Limooo 各サービスのリアルタイム稼働状況。",
+  "status_updated": "最終更新",
+  "state_up": "稼働中",
+  "state_down": "停止中",
+  "state_pending": "確認中",
+  "uptime_label": "7 日間の稼働率",
+  "all_checks": "全チェック",
+  "status_note": "データソース：Uptime Kuma · status.claude.com",
+  "card_website": "Limooo ウェブサイト",
+  "card_d1": "Limooo D1 ヘルスチェック"
 }

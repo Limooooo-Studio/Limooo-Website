@@ -31,7 +31,9 @@ export const CONTRACT = {
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "image.limooo.cn",
-    "images.limooo.cn"
+    "images.limooo.cn",
+    "status.limooo.cn",
+    "*.limooo.cn"
   ],
   "managed_hosts": [
     "limooo.cn",

@@ -149,5 +149,17 @@
   "toast_added": "추가됨",
   "toast_op_failed": "작업 실패",
   "toast_no_permission": "권한이 없습니다",
-  "no_permission": "권한이 없습니다"
+  "no_permission": "권한이 없습니다",
+  "status_meta_title": "Limooo 상태",
+  "status_title": "시스템 상태",
+  "status_subtitle": "Limooo 서비스의 실시간 가용성.",
+  "status_updated": "마지막 업데이트",
+  "state_up": "정상 운영",
+  "state_down": "중단",
+  "state_pending": "확인 중",
+  "uptime_label": "7일 가동률",
+  "all_checks": "전체 점검",
+  "status_note": "데이터 출처: Uptime Kuma · status.claude.com",
+  "card_website": "Limooo 웹사이트",
+  "card_d1": "Limooo D1 상태 확인"
 }
