@@ -1,0 +1,71 @@
+/* Limooo header/footer shell 注入 Kuma Mieru；隐藏其原生 nav/footer，卡片不动 */
+nav[class*="z-40"] { display: none !important; }
+footer { display: none !important; }
+body { padding-top: 96px !important; }
+
+:root {
+  --lim-bg: #1b1b1f;
+  --lim-text: #e2e2e3;
+  --lim-line: #2e2e32;
+  --lim-accent: #05A5A6;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --lim-bg: #ffffff;
+    --lim-text: #1f2328;
+    --lim-line: #e2e2e3;
+  }
+}
+
+#limooo-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  background: var(--lim-bg);
+  color: var(--lim-text);
+  border-bottom: 1px solid var(--lim-line);
+}
+#limooo-header .brand {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--lim-text);
+  text-decoration: none;
+}
+#limooo-header .links { display: flex; gap: 22px; }
+#limooo-header .links a {
+  color: var(--lim-text);
+  opacity: 0.72;
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 200ms ease, color 200ms ease;
+}
+#limooo-header .links a:hover { color: var(--lim-accent); opacity: 1; }
+
+#limooo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  font-size: 13px;
+  color: var(--lim-text);
+  opacity: 0.72;
+  background: var(--lim-bg);
+  border-top: 1px solid var(--lim-line);
+}
+#limooo-footer .footer-brand { font-weight: 700; color: var(--lim-text); margin: 0 6px; }
+
+@media (max-width: 640px) {
+  #limooo-header { height: 72px; padding: 0 16px; }
+  body { padding-top: 72px !important; }
+  #limooo-header .brand { font-size: 18px; }
+  #limooo-header .links { gap: 14px; }
+}
