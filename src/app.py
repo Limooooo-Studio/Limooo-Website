@@ -443,7 +443,7 @@ def _kuma_status() -> list[dict[str, object]]:
 
 
 def _status_key(st: int | None) -> str:
-    st = int(st or 2)
+    st = 2 if st is None else int(st)
     return "up" if st == 1 else ("down" if st == 0 else "pending")
 
 
