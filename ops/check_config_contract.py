@@ -38,6 +38,7 @@ PYTHON_FIELD_MAP = {
     "pending_ttl_seconds": "PENDING_TTL",
     "public_hosts": "PUBLIC_HOSTS",
     "managed_hosts": "MANAGED_HOSTS",
+    "shared_lang_hosts": "SHARED_LANG_HOSTS",
     "page_routes": "PAGE_ROUTES",
     "image_asset_host": "IMAGE_ASSET_HOST",
     "image_watermark_host": "IMAGE_WATERMARK_HOST",
