@@ -10,6 +10,14 @@ export const CONTRACT = {
   ],
   "default_lang": "en-us",
   "key_fallback_lang": "zh-cn",
+  "shared_lang_hosts": [
+    "limooo.cn",
+    "www.limooo.cn",
+    "contact.limooo.cn",
+    "services.limooo.cn",
+    "auth.limooo.cn",
+    "redirect.limooo.cn"
+  ],
   "lang_cookie": "user_lang_preference",
   "lang_cookie_max_age": 31536000,
   "theme_cookie": "limooo_theme",
@@ -130,6 +138,7 @@ export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;
 export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;
 export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);
 export const MANAGED_HOSTS: Set<string> = new Set(CONTRACT.managed_hosts);
+export const SHARED_LANG_HOSTS: Set<string> = new Set(CONTRACT.shared_lang_hosts);
 export const PAGE_ROUTES: Record<string, Record<string, string>> = CONTRACT.page_routes;
 export const IMAGE_ASSET_HOSTNAME = CONTRACT.image_asset_host;
 export const IMAGE_WATERMARK_HOSTNAME = CONTRACT.image_watermark_host;

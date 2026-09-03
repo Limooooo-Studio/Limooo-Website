@@ -161,5 +161,13 @@
   "all_checks": "全部检查",
   "status_note": "数据来源：Uptime Kuma · status.claude.com",
   "card_website": "Limooo 网站",
-  "card_d1": "Limooo D1 健康检查"
+  "card_d1": "Limooo D1 健康检查",
+  "overall_all": "全部系统运行正常",
+  "overall_partial": "部分系统异常",
+  "overall_down": "系统中断",
+  "card_authentik": "Authentik 单点登录",
+  "card_kuma": "Uptime Kuma 管理面板",
+  "status_refresh": "自动刷新",
+  "group_public": "公开服务",
+  "group_internal": "内部服务"
 }

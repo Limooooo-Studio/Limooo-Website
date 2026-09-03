@@ -9,6 +9,14 @@
   ],
   "default_lang": "en-us",
   "key_fallback_lang": "zh-cn",
+  "shared_lang_hosts": [
+    "limooo.cn",
+    "www.limooo.cn",
+    "contact.limooo.cn",
+    "services.limooo.cn",
+    "auth.limooo.cn",
+    "redirect.limooo.cn"
+  ],
   "lang_cookie": "user_lang_preference",
   "lang_cookie_max_age": 31536000,
   "theme_cookie": "limooo_theme",

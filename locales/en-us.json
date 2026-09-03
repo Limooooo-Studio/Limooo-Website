@@ -161,5 +161,13 @@
   "all_checks": "All checks",
   "status_note": "Data source: Uptime Kuma · status.claude.com",
   "card_website": "Limooo Website",
-  "card_d1": "Limooo D1 Health Check"
+  "card_d1": "Limooo D1 Health Check",
+  "overall_all": "All Systems Operational",
+  "overall_partial": "Partially Operational",
+  "overall_down": "Systems Down",
+  "card_authentik": "Authentik SSO",
+  "card_kuma": "Uptime Kuma Admin",
+  "status_refresh": "Auto refresh in",
+  "group_public": "Public Services",
+  "group_internal": "Internal Services"
 }

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Status 页样式：卡片参考 services，页头/页脚/背景沿用 base(appleid)
+   Status 页样式：Kuma Mieru 卡片布局（配色沿用 Limooo / base）
    ═══════════════════════════════════════════════════════════════ */
 .status-main {
     width: 100%;
@@ -8,97 +8,104 @@
     padding: 120px 20px 80px;
     min-height: 100vh;
 }
-.status-head { text-align: center; margin-bottom: 48px; }
-.status-head .service-title { font-weight: 600; }
-.status-sub {
-    margin-top: 14px;
-    font-size: 14px;
-    opacity: 0.5;
-    letter-spacing: calc(0.05em * var(--ls-scale));
-}
-.status-updated {
-    margin-top: 10px;
-    font-size: 12px;
-    opacity: 0.3;
-}
 
-/* ── 卡片（services 风格） ── */
-.status-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-@media (min-width: 768px) { .status-grid { grid-template-columns: 1fr 1fr; } }
-.status-card {
-    position: relative;
+/* ── 整体状态横幅 ── */
+.status-overall {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+    padding: 22px 26px;
     border: 1px solid var(--line);
     background: var(--panel-bg);
     border-radius: var(--radius-lg);
-    padding: 28px 26px;
-    overflow: hidden;
-    transition: border-color 250ms var(--ease-out), transform 250ms var(--ease-out);
 }
-.status-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+.status-overall-text { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.status-overall-title { margin: 0; font-size: 24px; font-weight: 700; }
+.status-overall-count { font-size: 14px; opacity: 0.5; font-family: monospace; }
+.status-overall-dot {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    position: relative;
+}
+.status-overall-dot::after {
+    content: ''; position: absolute; inset: -6px; border-radius: 50%;
+    background: inherit; opacity: 0.35; animation: status-ping 2.4s cubic-bezier(0,0,0.2,1) infinite;
+}
+@keyframes status-ping {
+    75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+.status-overall.all    .status-overall-dot { background: #22c55e; }
+.status-overall.partial .status-overall-dot { background: #f59e0b; }
+.status-overall.down   .status-overall-dot { background: #ef4444; }
+
+/* ── 分组标题 ── */
+.status-section { margin-bottom: 36px; }
+.status-section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: calc(0.18em * var(--ls-scale)); opacity: 0.55;
+    margin: 0 0 14px;
+}
+
+/* ── 卡片网格（Kuma Mieru 布局） ── */
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+@media (min-width: 720px) { .status-grid { grid-template-columns: repeat(2, 1fr); } }
+.status-card {
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    background: var(--panel-bg);
+    border-radius: var(--radius-lg);
+    transition: border-color 250ms var(--ease-out), transform 250ms var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
     .status-card:hover { border-color: var(--highlight); transform: translateY(-2px); }
 }
-.status-index {
-    position: absolute;
-    top: 18px; left: 24px;
-    font-size: 10px; font-family: monospace; font-weight: bold; opacity: 0.3;
+.status-card-top { display: flex; align-items: center; gap: 10px; }
+.status-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    box-shadow: 0 0 8px currentColor;
 }
-.status-card-head {
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    margin: 0 0 12px; padding-top: 6px;
+.status-name { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: calc(0.04em * var(--ls-scale)); }
+.status-card-bottom {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding-top: 12px; border-top: 1px dashed var(--line);
 }
-.status-name {
-    font-size: 20px; font-weight: 600;
-    letter-spacing: calc(0.08em * var(--ls-scale));
-}
-.status-badge {
-    flex-shrink: 0;
-    font-size: 11px; font-weight: 600;
-    padding: 3px 10px; border-radius: 999px;
-}
-.status-badge.up      { background: rgba(34,197,94,0.12);  color: #22c55e; }
-.status-badge.down    { background: rgba(239,68,68,0.12);  color: #ef4444; }
-.status-badge.pending { background: rgba(245,158,11,0.14); color: #f59e0b; }
-.status-uptime { font-size: 12px; opacity: 0.5; margin: 0 0 14px; }
+.status-state { font-size: 13px; font-weight: 600; }
+.status-uptime { font-size: 12px; opacity: 0.55; }
+.status-uptime-label { opacity: 0.55; margin-left: 4px; }
 
-/* ── 单项检查 ── */
-.status-checks { list-style: none; margin: 0; padding: 0; }
-.status-check {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 0; border-top: 1px dashed var(--line); font-size: 13px;
-}
-.status-check:first-child { border-top: none; }
-.check-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.check-dot.up      { background: #22c55e; }
-.check-dot.down    { background: #ef4444; }
-.check-dot.pending { background: #f59e0b; }
-.check-name { flex: 1; min-width: 0; word-break: break-word; }
-.check-state { flex-shrink: 0; font-weight: 600; opacity: 0.8; font-size: 12px; }
+/* ── 状态颜色（Limooo 品牌语义色） ── */
+.up      { color: #22c55e; }
+.down    { color: #ef4444; }
+.pending { color: #f59e0b; }
+.status-dot.up      { background: #22c55e; }
+.status-dot.down    { background: #ef4444; }
+.status-dot.pending { background: #f59e0b; }
+.status-state.up   { color: #22c55e; }
+.status-state.down { color: #ef4444; }
+.status-state.pending { color: #f59e0b; }
 
-/* ── 全部检查 / 页脚注释 ── */
-.status-all { margin-top: 40px; }
-.status-all h2 {
-    font-size: 14px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: calc(0.15em * var(--ls-scale)); opacity: 0.5; margin: 0 0 12px;
+/* ── 页脚：更新时区 / 自动刷新倒计时 ── */
+.status-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 40px; padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 12px; opacity: 0.6;
 }
-.status-all .status-check { padding: 8px 0; }
-.status-note { margin-top: 40px; text-align: center; font-size: 11px; opacity: 0.3; }
+.status-foot .status-updated { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.status-refresh { display: inline-flex; gap: 4px; }
+#status-updated-at { font-variant-numeric: tabular-nums; }
 
 /* ── 页头（appleid 同款） ── */
-.nav-title {
-    font-size: 24px; font-weight: 700;
-    letter-spacing: calc(-0.02em * var(--ls-scale)); white-space: nowrap;
-}
+.nav-title { font-size: 24px; font-weight: 700; letter-spacing: calc(-0.02em * var(--ls-scale)); white-space: nowrap; }
+.nav-title span { opacity: 0.3; font-weight: 400; }
 @media (max-width: 640px) {
     .status-main { padding: 90px 14px 60px; }
     .nav-title { font-size: 18px; }
-    .status-grid { grid-template-columns: 1fr; }
+    .status-overall { padding: 18px 18px; }
+    .status-overall-title { font-size: 20px; }
 }

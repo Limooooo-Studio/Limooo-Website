@@ -304,6 +304,7 @@ def write_config_functions() -> None:
         "export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;",
         "export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);",
         "export const MANAGED_HOSTS: Set<string> = new Set(CONTRACT.managed_hosts);",
+        "export const SHARED_LANG_HOSTS: Set<string> = new Set(CONTRACT.shared_lang_hosts);",
         "export const PAGE_ROUTES: Record<string, Record<string, string>> = CONTRACT.page_routes;",
         "export const IMAGE_ASSET_HOSTNAME = CONTRACT.image_asset_host;",
         "export const IMAGE_WATERMARK_HOSTNAME = CONTRACT.image_watermark_host;",
@@ -470,8 +471,10 @@ def generate_portfolio_thumbs(source_dir=None, output_dir=None) -> int:
     """为作品集生成 640/800px WebP 缩略图到构建输出目录。
 
     缩略图只给首页卡片预览用；完整原图仍保留在 public/static/portfolio/，
-    后续如果增加大图查看功能可以直接使用。
+    仅用于构建期（生成缩略图与水印变体），不会作为干净原图对外发布。
     """
+    # 缩略图始终从源原图（src/static/portfolio）生成，避免依赖构建输出目录
+    # 里可能已被清除的原图副本。
     source_dir = source_dir or os.path.join(STATIC_DIR, "portfolio")
     output_dir = output_dir or os.path.join(
         PUBLIC_DIR, "static", "portfolio", "thumbs"
@@ -525,7 +528,7 @@ def generate_portfolio_thumbs(source_dir=None, output_dir=None) -> int:
 
 
 def generate_watermarks(source_root=None, out_root=None) -> int:
-    """为 image.limooo.cn Worker 生成左下角水印变体到 public/static/wm/。
+    """从源原图生成左下角水印变体到 public/static/wm/。
 
     规则（与 Worker 里的 shouldWatermark 保持一致）：
       - 只处理 portfolio/ 下的 png / jpg / jpeg / webp
@@ -541,6 +544,8 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
     BACKDROP_ALPHA = 105         # 深色底衬不透明度（0-255，0 = 不要底衬）
     PAD_RATIO = 0.08             # 底衬相对水印宽度的内边距
 
+    # A2：水印变体由源原图（src/static/portfolio）生成，公开 bundle 只发布
+    # /static/wm/portfolio/*，原图不再对外。
     source_root = source_root or STATIC_DIR
     out_root = out_root or os.path.join(PUBLIC_DIR, "static", "wm")
 
@@ -628,6 +633,28 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
     return count
 
 
+def remove_public_portfolio_originals(portfolio_dir: str) -> int:
+    """删除 public/static/portfolio 顶层原图，只保留 thumbs/ 子目录。
+
+    A2：作品集完整原图不再对外发布，只公开水印变体（/static/wm/portfolio/*）与
+    首页缩略图（/static/portfolio/thumbs/*）。该函数同时清掉构建期间可能混入的
+    并行副本（如 “IMG_0064 2.webp”）。
+    """
+    removed = 0
+    for name in sorted(os.listdir(portfolio_dir)):
+        full = os.path.join(portfolio_dir, name)
+        if os.path.isfile(full) and re.search(
+            r"\.(png|jpe?g|webp|avif|gif|bmp|ico)$", name, re.I
+        ):
+            try:
+                os.remove(full)
+                removed += 1
+            except OSError as exc:
+                print(f"[build] remove public original skip {name}: {exc}", flush=True)
+    print(f"[build] removed public portfolio originals: {removed}", flush=True)
+    return removed
+
+
 def main() -> int:
     # 从 data/whitelist.txt 生成门禁信任配置，与中间件共用同一事实源。
     subprocess.run(
@@ -675,11 +702,15 @@ def main() -> int:
     )
     # 3.1) 作品集卡片缩略图（首页只加载这些，不再直接下载 1080×1440 原图）
     generate_portfolio_thumbs(
-        os.path.join(PUBLIC_DIR, "static", "portfolio"),
+        os.path.join(STATIC_DIR, "portfolio"),
         os.path.join(PUBLIC_DIR, "static", "portfolio", "thumbs"),
     )
-    # 3.2) 水印变体（image.limooo.cn Worker 按 Referer 选择原图 / 水印图）
-    generate_watermarks(os.path.join(PUBLIC_DIR, "static"))
+    # 3.2) 水印变体（A2：公开 bundle 只发布水印全图 /static/wm/portfolio/*）
+    generate_watermarks(STATIC_DIR, os.path.join(PUBLIC_DIR, "static", "wm"))
+    # 3.3) 移除公开 bundle 里的作品集原图，杜绝 /static/portfolio/<图> 裸链干净原图
+    remove_public_portfolio_originals(
+        os.path.join(PUBLIC_DIR, "static", "portfolio")
+    )
     # 门禁验证页引用的根路径 logo（放行路径之一）
     shutil.copy2(
         os.path.join(STATIC_DIR, "icons", "Limooo-xtext.svg"),

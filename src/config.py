@@ -151,6 +151,7 @@ IMAGE_ASSET_BASE_URL = f"https://{IMAGE_ASSET_HOST}"
 REDIRECT_BASE_URL = REDIRECT_URL
 PUBLIC_HOSTS = tuple(_contract_str_list("public_hosts"))
 MANAGED_HOSTS = tuple(_contract_str_list("managed_hosts"))
+SHARED_LANG_HOSTS = tuple(_contract_str_list("shared_lang_hosts"))
 PAGE_ROUTES = _contract_page_routes()
 IMAGE_ASSET_HOSTNAME = IMAGE_ASSET_HOST
 IMAGE_WATERMARK_HOSTNAME = IMAGE_WATERMARK_HOST

@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}{{ _('status_meta_title') }}{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="/static/css/status.css?v=1">
+<link rel="stylesheet" href="/static/css/status.css?v=2">
 {% endblock %}
 
 {% block nav_logo %}
@@ -64,51 +64,43 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 {% block content %}
 <main class="status-main">
-    <header class="status-head">
-        <h1 class="service-title text-4xl md:text-6xl tracking-[calc(0.15em*var(--ls-scale))] uppercase" data-i18n="status_title">{{ _('status_title') }}</h1>
-        <p class="status-sub" data-i18n="status_subtitle">{{ _('status_subtitle') }}</p>
-        <p class="status-updated" data-i18n-attr="title:status_updated" title="{{ _('status_updated') }}">{{ _('status_updated') }} {{ now }}</p>
-    </header>
 
-    <div class="status-grid">
-        {% for g in groups %}
-        <div class="status-card">
-            <span class="status-index">{{ "%02d/"|format(loop.index) }}</span>
-            <div class="status-card-head">
-                <h3 class="status-name" data-i18n="{{ g.key }}">{{ _(g.key) }}</h3>
-                <span class="status-badge {{ g.status_key }}" data-i18n="state_{{ g.status_key }}">{{ _('state_' ~ g.status_key) }}</span>
-            </div>
-            <p class="status-uptime">{% if g.uptime is not none %}<span data-i18n="uptime_label">{{ _('uptime_label') }}</span> {{ "%.2f"|format(g.uptime) }}%{% endif %}</p>
-            {% if g.checks %}
-            <ul class="status-checks">
-                {% for c in g.checks %}
-                <li class="status-check">
-                    <span class="check-dot {{ c.status_key }}"></span>
-                    <span class="check-name">{{ c.name }}</span>
-                    <span class="check-state" data-i18n="state_{{ c.status_key }}">{{ _('state_' ~ c.status_key) }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+    <!-- 整体状态横幅（Kuma Mieru 样式） -->
+    <div class="status-overall {{ overall_key }}">
+        <div class="status-overall-dot {{ overall_key }}"></div>
+        <div class="status-overall-text">
+            <h1 class="status-overall-title" data-i18n="overall_{{ overall_key }}">{{ _('overall_' ~ overall_key) }}</h1>
+            <span class="status-overall-count">({{ down }}/{{ total }})</span>
         </div>
-        {% endfor %}
     </div>
 
-    {% if all_checks %}
-    <section class="status-all">
-        <h2 data-i18n="all_checks">{{ _('all_checks') }}</h2>
-        <ul class="status-checks">
-            {% for c in all_checks %}
-            <li class="status-check">
-                <span class="check-dot {{ c.status_key }}"></span>
-                <span class="check-name">{{ c.name }}</span>
-                <span class="check-state" data-i18n="state_{{ c.status_key }}">{{ _('state_' ~ c.status_key) }}</span>
-            </li>
+    {% for sec in sections %}
+    <section class="status-section">
+        <h2 class="status-section-title" data-i18n="{{ sec.title_key }}">{{ _(sec.title_key) }}</h2>
+        <div class="status-grid">
+            {% for g in sec.cards %}
+            <div class="status-card {{ g.status_key }}" data-card="{{ g.key }}" data-status="{{ g.status }}">
+                <div class="status-card-top">
+                    <span class="status-dot {{ g.status_key }}"></span>
+                    <h3 class="status-name" data-i18n="{{ g.key }}">{{ _(g.key) }}</h3>
+                </div>
+                <div class="status-card-bottom">
+                    <span class="status-state {{ g.status_key }}" data-i18n="state_{{ g.status_key }}">{{ _('state_' ~ g.status_key) }}</span>
+                    <span class="status-uptime">{{ "%.2f"|format(g.uptime) }}% <span class="status-uptime-label" data-i18n="uptime_label">{{ _('uptime_label') }}</span></span>
+                </div>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
     </section>
-    {% endif %}
+    {% endfor %}
 
-    <p class="status-note" data-i18n="status_note">{{ _('status_note') }}</p>
+    <div class="status-foot">
+        <span class="status-updated"><span data-i18n="status_updated">{{ _('status_updated') }}</span> <time id="status-updated-at" data-epoch="{{ updated_at }}"></time></span>
+        <span class="status-refresh"><span data-i18n="status_refresh">{{ _('status_refresh') }}</span> <span id="status-refresh-count">60</span>s</span>
+    </div>
 </main>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/js/status.js?v=1" defer></script>
 {% endblock %}

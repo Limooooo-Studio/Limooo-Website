@@ -161,5 +161,13 @@
   "all_checks": "전체 점검",
   "status_note": "데이터 출처: Uptime Kuma · status.claude.com",
   "card_website": "Limooo 웹사이트",
-  "card_d1": "Limooo D1 상태 확인"
+  "card_d1": "Limooo D1 상태 확인",
+  "overall_all": "모든 시스템 정상 작동",
+  "overall_partial": "일부 시스템 문제",
+  "overall_down": "시스템 중단",
+  "card_authentik": "Authentik SSO",
+  "card_kuma": "Uptime Kuma 관리",
+  "status_refresh": "자동 새로고침",
+  "group_public": "공개 서비스",
+  "group_internal": "내부 서비스"
 }

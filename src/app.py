@@ -54,7 +54,6 @@ from config import (
     IMAGE_ASSET_BASE_URL,
     IMAGE_WATERMARK_BASE_URL,
     KEY_FALLBACK_LANG,
-    LANG_COOKIE,
     LOCALES_DIR,
     SESSION_COOKIE_DOMAIN,
     SOURCE_REPO_URL,
@@ -450,13 +449,13 @@ def _status_key(st: int | None) -> str:
 @app.route("/")
 @app.route("/status")
 def status_page():
-    """status.limooo.cn 主体：Limooo Website / Limooo D1 Health Check。"""
+    """status.limooo.cn：Kuma Mieru 风格卡片 + 汇总横幅 + 自动刷新。"""
     monitors = _kuma_status()
     for c in monitors:
         c["status_key"] = _status_key(c["status"])
 
-    def group(ids, key):
-        checks = [m for m in monitors if m["id"] in ids]
+    def group(pred, key):
+        checks = [m for m in monitors if pred(m)]
         if not checks:
             return None
         worst = (
@@ -466,18 +465,36 @@ def status_page():
         )
         return {
             "key": key,
+            "status": worst,
             "status_key": _status_key(worst),
             "uptime": min(c["uptime"] for c in checks) if checks else None,
-            "checks": checks,
+            "count": len(checks),
         }
 
-    website_ids = {1, 2, 3}  # 主站 / Services / Contact -> Limooo Website
-    website = group(website_ids, "card_website")
-    d1_ids = {m["id"] for m in monitors if "D1" in str(m["name"]) or m["type"] == "push"}
-    d1 = group(d1_ids, "card_d1")
-    groups = [g for g in (website, d1) if g]
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    return render_template("status.html", groups=groups, all_checks=monitors, now=now)
+    website = group(lambda m: m["id"] in (1, 2, 3), "card_website")
+    d1 = group(lambda m: "D1" in str(m["name"]) or m["type"] == "push", "card_d1")
+    authentik = group(lambda m: "Authentik" in str(m["name"]), "card_authentik")
+    kuma = group(lambda m: "Kuma" in str(m["name"]), "card_kuma")
+
+    public_cards = [website] if website else []
+    internal_cards = [c for c in (d1, authentik, kuma) if c]
+    sections = [
+        {"title_key": "group_public", "cards": public_cards},
+        {"title_key": "group_internal", "cards": internal_cards},
+    ]
+
+    total = len(monitors)
+    down = sum(1 for m in monitors if m["status"] == 0)
+    overall_key = "all" if down == 0 else ("partial" if down < total else "down")
+    updated_at = int(time.time())
+    return render_template(
+        "status.html",
+        sections=sections,
+        down=down,
+        total=total,
+        overall_key=overall_key,
+        updated_at=updated_at,
+    )
 
 
 @app.route("/api/i18n/<path:lang>")
@@ -498,11 +515,7 @@ def api_i18n(lang: str):
 
 @app.before_request
 def _detect_lang():
-    """根据 user_lang_preference cookie / Accept-Language / CF 地区 设置当前语言。"""
-    cookie = request.cookies.get(LANG_COOKIE)
-    if cookie and cookie in SUPPORTED_LANGS:
-        g.lang = cookie
-        return
+    """status 页语言：不继承主站共享 cookie，按 Accept-Language / CF 地区 / 默认。"""
     al = request.headers.get("Accept-Language", "")
     for part in al.split(","):
         code = part.split(";")[0].strip().lower()

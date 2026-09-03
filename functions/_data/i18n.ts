@@ -163,7 +163,15 @@ export const translations: Record<string, Record<string, string>> = {
     "all_checks": "全部检查",
     "status_note": "数据来源：Uptime Kuma · status.claude.com",
     "card_website": "Limooo 网站",
-    "card_d1": "Limooo D1 健康检查"
+    "card_d1": "Limooo D1 健康检查",
+    "overall_all": "全部系统运行正常",
+    "overall_partial": "部分系统异常",
+    "overall_down": "系统中断",
+    "card_authentik": "Authentik 单点登录",
+    "card_kuma": "Uptime Kuma 管理面板",
+    "status_refresh": "自动刷新",
+    "group_public": "公开服务",
+    "group_internal": "内部服务"
   },
   "en-us": {
     "redirect_title": "Redirecting",
@@ -328,7 +336,15 @@ export const translations: Record<string, Record<string, string>> = {
     "all_checks": "All checks",
     "status_note": "Data source: Uptime Kuma · status.claude.com",
     "card_website": "Limooo Website",
-    "card_d1": "Limooo D1 Health Check"
+    "card_d1": "Limooo D1 Health Check",
+    "overall_all": "All Systems Operational",
+    "overall_partial": "Partially Operational",
+    "overall_down": "Systems Down",
+    "card_authentik": "Authentik SSO",
+    "card_kuma": "Uptime Kuma Admin",
+    "status_refresh": "Auto refresh in",
+    "group_public": "Public Services",
+    "group_internal": "Internal Services"
   },
   "ja-jp": {
     "redirect_title": "リダイレクト中",
@@ -493,7 +509,15 @@ export const translations: Record<string, Record<string, string>> = {
     "all_checks": "全チェック",
     "status_note": "データソース：Uptime Kuma · status.claude.com",
     "card_website": "Limooo ウェブサイト",
-    "card_d1": "Limooo D1 ヘルスチェック"
+    "card_d1": "Limooo D1 ヘルスチェック",
+    "overall_all": "すべてのシステム正常稼働",
+    "overall_partial": "一部システムに問題",
+    "overall_down": "システム停止中",
+    "card_authentik": "Authentik SSO",
+    "card_kuma": "Uptime Kuma 管理",
+    "status_refresh": "自動更新",
+    "group_public": "公開サービス",
+    "group_internal": "内部サービス"
   },
   "ko-kr": {
     "redirect_title": "리다이렉트 중",
@@ -658,6 +682,14 @@ export const translations: Record<string, Record<string, string>> = {
     "all_checks": "전체 점검",
     "status_note": "데이터 출처: Uptime Kuma · status.claude.com",
     "card_website": "Limooo 웹사이트",
-    "card_d1": "Limooo D1 상태 확인"
+    "card_d1": "Limooo D1 상태 확인",
+    "overall_all": "모든 시스템 정상 작동",
+    "overall_partial": "일부 시스템 문제",
+    "overall_down": "시스템 중단",
+    "card_authentik": "Authentik SSO",
+    "card_kuma": "Uptime Kuma 관리",
+    "status_refresh": "자동 새로고침",
+    "group_public": "공개 서비스",
+    "group_internal": "내부 서비스"
   }
 };
