@@ -13,7 +13,7 @@
 <script src="/static/js/theme-preload.js?v=2"></script>
 <title>{{ _('redirect_title') }}</title>
 {{ preload_links|safe }}
-<link rel="stylesheet" href="/static/css/redirect.css?v=6">
+<link rel="stylesheet" href="/static/css/redirect.css?v=7">
 </head>
 <body data-lang="{{ g.lang }}" data-to="{{ to }}" data-preload='{{ preload_placeholder }}'>
     <div class="card">
@@ -23,7 +23,7 @@
     </div>
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
-            <div class="footer-text">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio<span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
+    <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
         </div>
     </footer>
     <script src="/static/js/redirect.js?v=2" defer></script>

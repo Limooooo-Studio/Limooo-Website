@@ -39,7 +39,7 @@ fi
 if [ "$DRY_RUN" = 1 ]; then
     echo "[r2] DRY-RUN: 不会连接 Cloudflare。"
     echo "[r2] will-run: wrangler r2 bucket create ${BUCKET}  (若不存在)"
-    echo "[r2] will-run: wrangler r2 object put ${BUCKET}/portfolio/<file> --file <file>"
+    echo "[r2] will-run: wrangler r2 object put ${BUCKET}/portfolio/<file> --file <file> --remote"
     echo "[r2] files: $(find "$SOURCE_DIR" -maxdepth 1 -type f | wc -l | tr -d ' ')"
     exit 0
 fi
@@ -67,7 +67,7 @@ for f in "$SOURCE_DIR"/*; do
     [ -f "$f" ] || continue
     name="$(basename "$f")"
     key="${BUCKET}/portfolio/${name}"
-    npx --no-install wrangler r2 object put "$key" --file "$f"
+    npx --no-install wrangler r2 object put "$key" --file "$f" --remote
     count=$((count + 1))
 done
 echo "[r2] uploaded $count originals to $BUCKET"

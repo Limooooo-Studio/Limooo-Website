@@ -90,9 +90,13 @@
             color: inherit; text-decoration: none;
         }
         .footer-text {
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+            gap: 0.25em 0.75em;
             font-size: 10px; font-weight: 600;
             letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
         }
+        /* 语义块（版权 / 权利 / 许可）内部不截断，块之间允许折行 */
+        .footer-text > span, .footer-text > a { white-space: nowrap; }
         .footer-brand {
             font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
             font-weight: 700; letter-spacing: 0.02em;
