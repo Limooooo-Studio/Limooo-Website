@@ -1,3 +1,12 @@
+/* 门禁诊断字体由 R2 托管，包含自绘韩文 위 / 치。 */
+@font-face {
+  font-family: 'Maple Mono NF CN';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.limooo.cn/maple-mono-nf-cn-regular-subset.woff2') format('woff2');
+}
+
 /* 字体由头部的 Google Fonts <link> 提供；Cloudflare Fonts 会改写为本站 /cf-fonts/。
    这里不再声明本站自托管 @font-face，避免浏览器优先使用旧字体。 */
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -145,6 +154,7 @@
   }
   .divider { border: none; border-top: 1px solid var(--line); margin: 0 0 16px; }
   .diag {
+    font-family: 'Maple Mono NF CN', ui-monospace, 'SF Mono', monospace;
     display: block;
     font-size: 13px; color: var(--text); margin-bottom: 20px;
   }
