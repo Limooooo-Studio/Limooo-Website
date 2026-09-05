@@ -312,4 +312,4 @@ Production state (2026-08-27):
 
 ## License
 
-[GNU AGPL v3.0](LICENSE.md) | [GNU AGPL v3.0-简体中文](LICENSE_zh_CN.md) | [GNU AGPL v3.0-日本語](LICENSE_ja_JP.md) | [GNU AGPL v3.0-한국어](LICENSE_ko_KR.md)
+[GNU AGPL v3.0](LICENSE.md)|[GNU AGPL v3.0-简体中文](LICENSE_zh_CN.md)|[GNU AGPL v3.0-日本語](LICENSE_ja_JP.md)|[GNU AGPL v3.0-한국어](LICENSE_ko_KR.md)

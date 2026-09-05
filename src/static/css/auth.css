@@ -7,8 +7,7 @@
   src: url('https://fonts.limooo.cn/maple-mono-nf-cn-regular-subset.woff2') format('woff2');
 }
 
-/* 字体由头部的 Google Fonts <link> 提供；Cloudflare Fonts 会改写为本站 /cf-fonts/。
-   这里不再声明本站自托管 @font-face，避免浏览器优先使用旧字体。 */
+/* 页面其余字体继续沿用模板中的字体配置。 */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     color-scheme: dark;
