@@ -1,4 +1,4 @@
-# Limooo
+# LIMOOO
 
 A Flask-based personal website and admin system running at [limooo.cn](https://limooo.cn). It features visitor geolocation analysis, automatic IP blocking, Apple ID password management, self-hosted authentik authentication, and is accelerated by Cloudflare CDN + HTTP/3.
 

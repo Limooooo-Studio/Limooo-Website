@@ -1,12 +1,12 @@
 // 由 build.py 自动生成，勿手改。
 export const GATE_I18N: Record<string, Record<string, string>> = {
   "zh-cn": {
-    "title": "人机验证 · Limooo",
+    "title": "人机验证 · LIMOOO",
     "heading": "请完成人机验证后再访问本站",
     "location": "位置",
     "ip": "IP",
     "ray": "Ray ID",
-    "foot": "由 Limooo 边缘安全提供保护",
+    "foot": "由 LIMOOO 边缘安全提供保护",
     "lang_aria": "切换语言",
     "theme_aria": "切换主题",
     "footer_rights": "保留所有权利",
@@ -18,12 +18,12 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_failed": "验证未通过，请重试。"
   },
   "en-us": {
-    "title": "Verify you are human · Limooo",
+    "title": "Verify you are human · LIMOOO",
     "heading": "Please complete this CAPTCHA to access the site.",
     "location": "Location",
     "ip": "IP",
     "ray": "Ray ID",
-    "foot": "Secured by Limooo Edge Security",
+    "foot": "Secured by LIMOOO Edge Security",
     "lang_aria": "Switch language",
     "theme_aria": "Toggle theme",
     "footer_rights": "All rights reserved",
@@ -35,12 +35,12 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_failed": "Verification failed. Please try again."
   },
   "ja-jp": {
-    "title": "人認証 · Limooo",
+    "title": "人認証 · LIMOOO",
     "heading": "このサイトにアクセスするには、人認証を完了してください",
     "location": "場所",
     "ip": "IP",
     "ray": "Ray ID",
-    "foot": "Limooo Edge Security により保護されています",
+    "foot": "LIMOOO Edge Security により保護されています",
     "lang_aria": "言語切替",
     "theme_aria": "テーマ切替",
     "footer_rights": "無断転載禁止",
@@ -52,12 +52,12 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_failed": "認証に失敗しました。もう一度お試しください。"
   },
   "ko-kr": {
-    "title": "휴먼 인증 · Limooo",
+    "title": "휴먼 인증 · LIMOOO",
     "heading": "사이트에 접속하려면 인증을 완료해 주세요",
     "location": "위치",
     "ip": "IP",
     "ray": "Ray ID",
-    "foot": "Limooo Edge Security가 보호합니다",
+    "foot": "LIMOOO Edge Security가 보호합니다",
     "lang_aria": "언어 전환",
     "theme_aria": "테마 전환",
     "footer_rights": "모든 권리 보유",

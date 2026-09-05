@@ -1,4 +1,4 @@
-{# Limooo - 人机验证门禁页（auth.limooo.cn/__gate）
+{# LIMOOO - 人机验证门禁页（auth.limooo.cn/__gate）
    由 build.py 按 4 种语言预渲染为 public/<lang>/auth.html。
    Turnstile sitekey、完整 i18n 和错误信息由运行时 /__gate/config 与
    {{error}} 占位符注入；CSS/JS 全部外置，不再在 HTML 内维护样式。 #}
@@ -41,7 +41,7 @@
   </button>
 </div>
 <main class="card">
-  <img class="logo" src="/static/icons/Limooo-xtext.svg?v=2" alt="LIMOOO" width="220">
+  <img class="logo" src="/static/icons/LIMOOO-xtext.svg?v=2" alt="LIMOOO" width="220">
   <h1 data-i18n="heading">{{ heading }}</h1>
   <div id="gate-error" class="error" hidden></div>
   <form id="gate" method="post" action="/__gate/verify">
@@ -55,7 +55,7 @@
     <dt data-i18n="ip">{{ ip }}</dt><dd id="diag-ip">—</dd>
     <dt data-i18n="ray">{{ ray }}</dt><dd id="diag-ray">—</dd>
   </dl>
-  <p class="foot" data-i18n="foot" data-brandify="Limooo">{{ foot }}</p>
+  <p class="foot" data-i18n="foot" data-brandify="LIMOOO">{{ foot }}</p>
 </main>
 <footer class="global-footer" id="global-footer">
   <div class="footer-link">
