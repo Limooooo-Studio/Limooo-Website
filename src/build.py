@@ -485,6 +485,15 @@ def generate_portfolio_thumbs(source_dir=None, output_dir=None) -> int:
             "`pip install -r ops/requirements.txt` 再运行 build.py。"
         )
 
+    # 作品集原图不入库（.gitignore: src/static/portfolio/），CI 干净 checkout
+    # 没有该目录；源图缺失时跳过缩略图生成，避免构建失败。
+    if not os.path.isdir(source_dir):
+        print(
+            f"[build] portfolio originals dir missing: {source_dir}; skipping thumbnails",
+            flush=True,
+        )
+        return 0
+
     os.makedirs(output_dir, exist_ok=True)
     resampling = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
     count = 0
@@ -640,6 +649,14 @@ def remove_public_portfolio_originals(portfolio_dir: str) -> int:
     首页缩略图（/static/portfolio/thumbs/*）。该函数同时清掉构建期间可能混入的
     并行副本（如 “IMG_0064 2.webp”）。
     """
+    # CI 干净 checkout 没原图，public/static/portfolio 可能不存在；缺失即跳过。
+    if not os.path.isdir(portfolio_dir):
+        print(
+            f"[build] public portfolio originals dir missing: {portfolio_dir}; nothing to remove",
+            flush=True,
+        )
+        return 0
+
     removed = 0
     for name in sorted(os.listdir(portfolio_dir)):
         full = os.path.join(portfolio_dir, name)
