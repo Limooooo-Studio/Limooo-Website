@@ -48,7 +48,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 ├── README.md              # this file
 ├── LICENSE.md             # AGPL-3.0
 ├── data/                  # runtime data (generated; git-ignored except blocklist.txt / whitelist.txt)
-│   ├── blocklist.txt      # VPS 本地导入种子/可审计快照（D1 是唯一权威）
+│   ├── blocklist.txt      # VPS local import seed / auditable snapshot (D1 is the sole authority)
 │   ├── whitelist.txt      # trusted ASNs (low-risk) + fully allowed IPs/CIDRs
 │   ├── geo_cache.db       # geolocation cache database
 │   ├── appleid.db         # Apple ID business database (accounts + encrypted passwords)
@@ -71,7 +71,7 @@ A Flask-based personal website and admin system running at [limooo.cn](https://l
 │   ├── export_d1.py       # unified D1 import SQL/JSON export (appleid | blocklist)
 │   └── sync-worker/       # Cloudflare Worker: daily D1 blocked_ips → IP List sync
 ├── functions/             # Cloudflare Pages Functions
-│   ├── _middleware.ts     # gate/redirect/blocklist/visitors/ray 编排
+│   ├── _middleware.ts     # gate/redirect/blocklist/visitors/ray orchestration
 │   ├── _lib/              # config, d1, cidr, gate, env, fernet, oidc, session
 │   ├── _data/             # generated i18n/runtime modules (do not hand-edit)
 │   ├── api/               # appleid, auth, i18n, ray, visitors endpoints
@@ -99,8 +99,7 @@ HTML/CSS/JS diagnostics do not misread template syntax.
 Visit `http://localhost:8080` after starting locally. The admin dashboard and Apple ID manager require authentik auth to be configured first.
 
 Uptime Kuma is deployed on the VPS and served at `https://admin.limooo.cn`.
-初次初始化使用 `bash ops/uptime-kuma/bootstrap.sh`（凭据只写服务器
-`secrets/uptime-kuma.env`）；日常更新用 `bash ops/uptime-kuma/deploy.sh`。
+For first-time initialisation use `bash ops/uptime-kuma/bootstrap.sh` (credentials are written only to the server's `secrets/uptime-kuma.env`); for routine updates use `bash ops/uptime-kuma/deploy.sh`.
 
 ## Build, testing and deploy
 
@@ -116,8 +115,8 @@ npm run build
 `functions/_data/i18n.ts`, `functions/_data/runtime.ts` and `preview/`.
 Do not hand-edit those outputs; change `locales/*.json`, templates or static
 sources and rebuild. `src/static/tailwind.css` is the checked-in prebuilt
-Tailwind output. `npm run build` uses `ops/build.sh`，会创建 `.venv-build`
-并生成 `public/manifest.json`（构建产物哈希证据）。
+Tailwind output. `npm run build` uses `ops/build.sh`, which creates `.venv-build`
+and generates `public/manifest.json` (build-artifact hash evidence).
 
 Deploy only the Pages output with:
 
@@ -125,10 +124,10 @@ Deploy only the Pages output with:
 bash ops/pages_deploy.sh --verbose
 ```
 
-只构建不部署：`bash ops/pages_deploy.sh --build-only`；预览命令：
-`bash ops/pages_deploy.sh --dry-run` 与 `bash ops/deploy.sh --dry-run`。
-`ops/deploy.sh` 默认不再自动 commit/push；需要时显式传 `--commit` / `--push`。
-`ops/migrate_d1.sh` 和 `ops/workers_deploy.sh` 也支持 `--dry-run`。
+Build-only (no deploy): `bash ops/pages_deploy.sh --build-only`; preview commands:
+`bash ops/pages_deploy.sh --dry-run` and `bash ops/deploy.sh --dry-run`.
+`ops/deploy.sh` no longer commits/pushes automatically by default; pass `--commit` / `--push` explicitly when needed.
+`ops/migrate_d1.sh` and `ops/workers_deploy.sh` also support `--dry-run`.
 
 Full VPS + Pages deployment is `bash ops/deploy.sh`; `ops/upload.sh` forwards
 to it. Per current workspace rules, do not run deployment without explicit
@@ -168,7 +167,7 @@ Injected via `secrets/webauthn.env` (systemd `EnvironmentFile`), not committed t
 | Time | Job |
 | --- | --- |
 | Daily 03:00 | `src/auto_block.py` scans logs and syncs VPS ipset + D1 |
-| Daily 03:30 | `ops/sync-worker` Worker 从 D1 同步 active 行到 Cloudflare IP List |
+| Daily 03:30 | `ops/sync-worker` Worker syncs active D1 rows to the Cloudflare IP List |
 
 ## Deployment
 
@@ -208,7 +207,7 @@ The ASN list is sourced from [china-mainland-asn](https://github.com/xingpingcn/
 - User-facing strings: `locales/*.json`; `functions/_data/*` and API i18n routes are generated from it.
 - Shared runtime constants: `config-contract.json` is the agreed cross-runtime contract; `src/config.py` and the generated `functions/_lib/config.ts` both consume it, with `ops/check_config_contract.py` enforcing agreement (docs/02).
 - Gate/redirect copy: `locales/*.json` via `functions/_data/runtime.ts`; `src/build.py` assembles it.
-- D1 schema and migrations: `ops/migrations/*.sql`; `blocked_ips` 是封禁唯一权威源。
+- D1 schema and migrations: `ops/migrations/*.sql`; `blocked_ips` is the sole authority for blocking.
 - Security response headers baseline (when enabled): `ops/security-headers.json` (docs/05).
 - Deployment and server boundaries: workspace `../AGENTS.md`.
 
@@ -233,7 +232,7 @@ New architecture:
 - `ops/migrations/001_init.sql`: D1 initial schema (`apple_accounts` / `blocked_ips` / `visitors`)
 - `ops/export_d1.py`: generate D1 import SQL (output in `ops/out/`, git-ignored)
 - `ops/migrations/007_visitor_status_indexes.sql`: adds `(status, ts)` and `(status, ip_hash, ts)` indexes for visitor status filtering
-- `ops/sync-worker/`: a daily 03:30 Worker cron syncs active D1 `blocked_ips` rows to the Cloudflare IP List; `auto_block.py cf` 仅供显式维护
+- `ops/sync-worker/`: a daily 03:30 Worker cron syncs active D1 `blocked_ips` rows to the Cloudflare IP List; `auto_block.py cf` is for explicit maintenance only
 - Note: Pages now exposes `POST /logout/backchannel` and revokes D1 `auth_sessions`
   by `sub`; the legacy Flask `/logout/backchannel` remains for existing authentik
   configuration until the provider URL is switched or mirrored.
@@ -314,3 +313,6 @@ Production state (2026-08-27):
 ## License
 
 [GNU AGPL v3.0](LICENSE.md)
+[GNU AGPL v3.0-简体中文](LICENSE_zh_CN.md)
+[GNU AGPL v3.0-日本語](LICENSE_ja_JP.md)
+[GNU AGPL v3.0-한국어](LICENSE_ko_KR.md)
