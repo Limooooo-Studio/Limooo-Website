@@ -145,12 +145,22 @@
   }
   .divider { border: none; border-top: 1px solid var(--line); margin: 0 0 16px; }
   .diag {
-    display: grid; grid-template-columns: 96px 1fr; gap: 5px 14px;
+    display: block;
     font-size: 13px; color: var(--text); margin-bottom: 20px;
   }
-  .diag dt { color: var(--muted); text-align: right; }
-  .diag dd { overflow-wrap: anywhere; }
+  .diag dt {
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .diag dt::after { content: ":"; }
+  .diag dd { overflow-wrap: anywhere; margin: 0 0 4px; }
   .foot { text-align: center; font-size: 12px; color: var(--foot); }
+  .foot .brand-word {
+    font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size-adjust: 0.6552;
+  }
   /* ── 底部版权（与主站 base.html 一致） ── */
   .global-footer {
     position: fixed; bottom: 0; left: 0; width: 100%; z-index: 90;
@@ -177,6 +187,4 @@
     font-size-adjust: 0.6552;
   }
   .footer-source-link { color: inherit; text-decoration: underline; white-space: nowrap; }
-  @media (hover: none) and (pointer: coarse) {
-    .global-footer { display: none !important; }
-  }
+  /* 页脚在移动端（触屏设备）同样显示 */

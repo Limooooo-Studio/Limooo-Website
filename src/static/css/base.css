@@ -100,10 +100,15 @@
             font-size: 10px;
             font-size-adjust: 0.6552;
         }
-        .footer-source-link { color: inherit; text-decoration: underline; white-space: nowrap; }
-        @media (hover: none) and (pointer: coarse) {
-            .global-footer { display: none !important; }
+        /* 通用品牌词：让正文中的 Limooo / LIMOOO 统一使用 Baloo 2（可复用） */
+        .brand-word {
+            font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            font-size-adjust: 0.6552;
         }
+        .footer-source-link { color: inherit; text-decoration: underline; white-space: nowrap; }
+        /* 页脚在移动端（触屏设备）同样显示，不再按指针类型隐藏 */
 
         /* ── 图标按钮（社交链接 / 主题切换 / 语言切换 / 移动端菜单，VitePress 风格） ── */
         .icon-btn, .theme-btn {

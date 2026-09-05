@@ -1,0 +1,114 @@
+{# Limooo - Flask Web Application
+
+Copyright (C) 2026 Limooo <https://limooo.cn/>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
+
+{% extends "base.html" %}
+
+{% block title %}{{ _('status_meta_title') }}{% endblock %}
+
+{% block head_links %}
+<link rel="stylesheet" href="/static/css/status.css?v=1">
+{% endblock %}
+
+{% block nav_logo %}
+<h1 class="nav-title">STATUS <span>LIMOOO</span></h1>
+{% endblock %}
+
+{% block nav_links %}
+<div class="global-nav hidden md:flex items-center">
+    <a href="{{ home_url }}" class="nav-link">
+        <span data-i18n="nav_home">{{ _('nav_home') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+    <a href="{{ services_url }}" class="nav-link">
+        <span data-i18n="nav_services">{{ _('nav_services') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+    <a href="{{ contact_url }}" class="nav-link">
+        <span data-i18n="nav_contact">{{ _('nav_contact') }}</span>
+        <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
+    </a>
+</div>
+<span class="nav-divider hidden md:block"></span>
+{% endblock %}
+
+{% block nav_dropdown %}
+<div class="theme-toggle">
+    <button class="theme-btn nav-mobile-menu" data-action="toggleMobileMenu" data-needs-event aria-label="{{ _('nav_menu_aria') }}" data-i18n-attr="aria-label:nav_menu_aria">
+        <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+    </button>
+    <div id="navLinksDropdown" class="theme-menu">
+        <div class="theme-option" data-i18n="nav_home" data-action="navigateTo" data-arg="https://limooo.cn">{{ _('nav_home') }}</div>
+        <div class="theme-option" data-i18n="nav_services" data-action="navigateTo" data-arg="https://services.limooo.cn">{{ _('nav_services') }}</div>
+        <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<main class="status-main">
+    <header class="status-head">
+        <h1 class="service-title text-4xl md:text-6xl tracking-[calc(0.15em*var(--ls-scale))] uppercase" data-i18n="status_title">{{ _('status_title') }}</h1>
+        <p class="status-sub" data-i18n="status_subtitle">{{ _('status_subtitle') }}</p>
+        <p class="status-updated" data-i18n-attr="title:status_updated" title="{{ _('status_updated') }}">{{ _('status_updated') }} {{ now }}</p>
+    </header>
+
+    <div class="status-grid">
+        {% for g in groups %}
+        <div class="status-card">
+            <span class="status-index">{{ "%02d/"|format(loop.index) }}</span>
+            <div class="status-card-head">
+                <h3 class="status-name" data-i18n="{{ g.key }}">{{ _(g.key) }}</h3>
+                <span class="status-badge {{ g.status_key }}" data-i18n="state_{{ g.status_key }}">{{ _('state_' ~ g.status_key) }}</span>
+            </div>
+            <p class="status-uptime">{% if g.uptime is not none %}<span data-i18n="uptime_label">{{ _('uptime_label') }}</span> {{ "%.2f"|format(g.uptime) }}%{% endif %}</p>
+            {% if g.checks %}
+            <ul class="status-checks">
+                {% for c in g.checks %}
+                <li class="status-check">
+                    <span class="check-dot {{ c.status_key }}"></span>
+                    <span class="check-name">{{ c.name }}</span>
+                    <span class="check-state" data-i18n="state_{{ c.status_key }}">{{ _('state_' ~ c.status_key) }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if all_checks %}
+    <section class="status-all">
+        <h2 data-i18n="all_checks">{{ _('all_checks') }}</h2>
+        <ul class="status-checks">
+            {% for c in all_checks %}
+            <li class="status-check">
+                <span class="check-dot {{ c.status_key }}"></span>
+                <span class="check-name">{{ c.name }}</span>
+                <span class="check-state" data-i18n="state_{{ c.status_key }}">{{ _('state_' ~ c.status_key) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <p class="status-note" data-i18n="status_note">{{ _('status_note') }}</p>
+</main>
+{% endblock %}

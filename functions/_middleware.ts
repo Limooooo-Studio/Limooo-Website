@@ -26,7 +26,6 @@ import {
   APPLEID_HOSTNAME,
   BASE_URL,
   GATE_COOKIE,
-  GATE_HOSTNAME,
   IMAGES_HOSTNAME,
   LANG_COOKIE,
   VISITOR_HOSTNAME,
@@ -159,7 +158,8 @@ function forceGateRedirect(
   pathname: string,
   search: string,
 ): Response {
-  const gateUrl = new URL("/__gate", `https://${GATE_HOSTNAME}/`);
+  // 同域名挑战：在请求来源主机上渲染门禁，而不是跳去 auth.<root_domain>。
+  const gateUrl = new URL("/__gate", `https://${hostname}/`);
   const nextUrl = new URL(pathname + search, BASE_URL);
   nextUrl.searchParams.delete("challenge");
   gateUrl.searchParams.set("host", hostname);
@@ -208,7 +208,42 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   // authentik backchannel logout 是服务端回调用，不能被人机门禁重定向。
   if (pathname === "/logout/backchannel") return next();
 
-  // 图片子域的门面页同样走主站主题切换逻辑；强制挑战直接去 auth。<root_domain>。
+  // 门禁页：任意主机（对应域名）都能渲染/回跳，做到同域名完成 challenge。
+  if (pathname === "/__gate") {
+    const gateIp = request.headers.get("CF-Connecting-IP") ?? "";
+    const gateWhitelisted = isGateTrustedIp(gateIp);
+    const gateCrawler = isTrustedCrawler(request);
+    const gateCookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
+    const gateValid = gateCookie
+      ? await isValidGateCookie(gateCookie, env.GATE_HMAC_KEY)
+      : false;
+    const passed = gateWhitelisted || gateCrawler || gateValid;
+
+    // 已验证：仍在门禁页则送回原主机原路径（不再跳回 auth 中转）。
+    if (passed && !forceChallenge) {
+      const back = safeNextPath(url.searchParams.get("next") ?? "/");
+      const host = sanitizeHost(url.searchParams.get("host"));
+      let resp = Response.redirect(viaRedirect(host, back), 302);
+      if (!gateValid) {
+        const headers = new Headers(resp.headers);
+        headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));
+        resp = new Response(resp.body, {
+          status: resp.status,
+          statusText: resp.statusText,
+          headers,
+        });
+      }
+      return withLangCookie(request, resp);
+    }
+
+    // 未验证 / 强制挑战：在对应域名渲染门禁页。
+    return renderGatePage(context, {
+      host: url.searchParams.get("host") ?? undefined,
+      next: url.searchParams.get("next") ?? "/",
+    });
+  }
+
+  // 图片子域的门面页同样走主站主题切换逻辑；强制挑战直接去同域名 /__gate。
   if (forceChallenge && hostname === IMAGES_HOSTNAME) {
     return forceGateRedirect(request, hostname, pathname, url.search);
   }
@@ -267,7 +302,7 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
 
   // 快速切换主题触发的强制挑战：即使来自中国大陆 ASN、白名单 IP、
   // 只有有效 __gate cookie 或经 Cloudflare verifiedBot 验证才放行；cf_clearance 不再作为绕过依据。
-  if (forceChallenge && hostname !== GATE_HOSTNAME) {
+  if (forceChallenge) {
     defer(
       context,
       logEvent(env, "gate_redirect", request, {
@@ -299,22 +334,6 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
         }),
       );
     }
-    // 已通过门禁；若仍停在验证子域，送回原主机原路径。
-    if (hostname === GATE_HOSTNAME) {
-      const back = safeNextPath(url.searchParams.get("next") ?? "/");
-      const host = sanitizeHost(url.searchParams.get("host"));
-      let resp = Response.redirect(viaRedirect(host, back), 302);
-      if (!cookie || !(await isValidGateCookie(cookie, env.GATE_HMAC_KEY))) {
-        const headers = new Headers(resp.headers);
-        headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));
-        resp = new Response(resp.body, {
-          status: resp.status,
-          statusText: resp.statusText,
-          headers,
-        });
-      }
-      return withLangCookie(request, resp);
-    }
 
     const lang = detectLang(request);
     const asset = pageAsset(hostname, pathname, lang);
@@ -327,33 +346,26 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     return next();
   }
 
-  // 未验证：只在 auth.<root_domain> 渲染门禁页，其它主机 302 过去。
-  if (hostname !== GATE_HOSTNAME) {
-    const gateUrl = new URL("/__gate", `https://${GATE_HOSTNAME}/`);
-    gateUrl.searchParams.set("host", hostname);
-    gateUrl.searchParams.set("next", pathname + url.search);
-    defer(
-      context,
-      logEvent(env, "gate_redirect", request, {
-        outcome: "unverified",
-        status: 302,
-        path: pathname,
-        message: "redirect_to_gate",
-      }),
-    );
-    return withLangCookie(request, new Response(null, {
+  // 未验证：在对应域名渲染门禁页（同域名 challenge，不再跳去 auth。<root_domain>）。
+  const gateUrl = new URL("/__gate", `https://${hostname}/`);
+  gateUrl.searchParams.set("host", hostname);
+  gateUrl.searchParams.set("next", pathname + url.search);
+  defer(
+    context,
+    logEvent(env, "gate_redirect", request, {
+      outcome: "unverified",
       status: 302,
-      headers: {
-        Location: gateUrl.toString(),
-        "Cache-Control": "no-store",
-      },
-    }));
-  }
-
-  return renderGatePage(context, {
-    host: url.searchParams.get("host") ?? undefined,
-    next: url.searchParams.get("next") ?? "/",
-  });
+      path: pathname,
+      message: "redirect_to_gate",
+    }),
+  );
+  return withLangCookie(request, new Response(null, {
+    status: 302,
+    headers: {
+      Location: gateUrl.toString(),
+      "Cache-Control": "no-store",
+    },
+  }));
 }
 
 export const onRequest: PagesFunction = async (context) => {

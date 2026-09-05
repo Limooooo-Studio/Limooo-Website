@@ -79,6 +79,14 @@ function showError(key) {
   el.textContent = t('error_' + key);
 }
 
+/* 把文案中的品牌词（如 "Limooo"）包成 Baloo 2 字体的 span，语言变体同样生效。 */
+function brandifyText(el) {
+  var word = el.getAttribute('data-brandify');
+  if (!word || !el.textContent || el.textContent.indexOf(word) === -1) return;
+  if (el.querySelector('.brand-word')) return;
+  el.innerHTML = el.textContent.split(word).join('<span class="brand-word">' + word + '</span>');
+}
+
 function resetTurnstile() {
   var wrap = document.getElementById('turnstile-wrap');
   if (!wrap) return;
@@ -107,6 +115,7 @@ function renderI18n() {
     var prefix = el.getAttribute('data-i18n-prefix');
     if (prefix != null) text = text ? prefix + text : '';
     el.textContent = text;
+    brandifyText(el);
   });
   document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
     var text = t(el.getAttribute('data-i18n-html'));
@@ -251,6 +260,9 @@ document.addEventListener('click', function (e) {
 /* 页面静态文案先按构建语言渲染；运行时加载配置后补齐 Turnstile 与切换能力。 */
 applyTheme(effectiveTheme());
 renderI18n();
+/* i18n 不可用时的静态回退也保留品牌字 Baloo 2 渲染。 */
+var staticBrandTarget = document.querySelector('[data-brandify]');
+if (staticBrandTarget) brandifyText(staticBrandTarget);
 showError(document.body.getAttribute('data-gate-error') || '');
 
 fetch('/__gate/config', { headers: { 'Accept': 'application/json' } })

@@ -15,7 +15,7 @@
 <title>{{ title }}</title>
 <link rel="stylesheet" href="/static/fonts-round75.css?v=2">
 <script src="/static/js/theme-preload.js?v=2"></script>
-<link rel="stylesheet" href="/static/css/auth.css?v=7">
+<link rel="stylesheet" href="/static/css/auth.css?v=9">
 </head>
 <body data-lang="{{ lang }}" data-gate-error="{{ error_html }}">
 <div class="gate-controls">
@@ -55,7 +55,7 @@
     <dt data-i18n="ip">{{ ip }}</dt><dd id="diag-ip">—</dd>
     <dt data-i18n="ray">{{ ray }}</dt><dd id="diag-ray">—</dd>
   </dl>
-  <p class="foot" data-i18n="foot">{{ foot }}</p>
+  <p class="foot" data-i18n="foot" data-brandify="Limooo">{{ foot }}</p>
 </main>
 <footer class="global-footer" id="global-footer">
   <div class="footer-link">
@@ -64,6 +64,6 @@
 </footer>
     <script id="gate-i18n" type="application/json">{{ gate_i18n_json | safe }}</script>
     <script src="/static/js/actions.js?v=1" defer></script>
-    <script src="/static/js/auth.js?v=4" defer></script>
+    <script src="/static/js/auth.js?v=5" defer></script>
 </body>
 </html>

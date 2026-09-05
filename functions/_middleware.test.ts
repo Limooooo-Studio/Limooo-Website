@@ -29,7 +29,7 @@ function context(request: Request, env: Partial<Env> = {}): RequestContext {
 }
 
 describe("force theme challenge", () => {
-  it("redirects whitelisted/cf-cleared main-site requests to auth.limooo.cn", async () => {
+  it("redirects whitelisted/cf-cleared main-site requests to the same-host gate", async () => {
     const resp = await handleOnRequest(
       context(
         new Request("https://limooo.cn/services?challenge=1", {
@@ -43,16 +43,16 @@ describe("force theme challenge", () => {
 
     expect(resp.status).toBe(302);
     const location = resp.headers.get("Location") ?? "";
-    expect(location).toContain("https://auth.limooo.cn/__gate");
+    expect(location).toContain("https://limooo.cn/__gate");
     expect(location).toContain("challenge=1");
     expect(decodeURIComponent(new URL(location).searchParams.get("next") ?? "")).not.toContain("challenge=1");
   });
 
-  it("still renders the gate on auth.limooo.cn when a challenge is forced", async () => {
+  it("renders the gate on the same host when a challenge is forced", async () => {
     const resp = await handleOnRequest(
       context(
         new Request(
-          "https://auth.limooo.cn/__gate?challenge=1&host=limooo.cn&next=%2Fservices",
+          "https://limooo.cn/__gate?challenge=1&host=limooo.cn&next=%2Fservices",
           { headers: { Cookie: "cf_clearance=test" } },
         ),
         {

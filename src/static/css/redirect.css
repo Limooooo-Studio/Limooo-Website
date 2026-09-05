@@ -56,6 +56,4 @@
         font-size-adjust: 0.6552;
     }
     .footer-source-link { color: inherit; text-decoration: underline; white-space: nowrap; }
-    @media (hover: none) and (pointer: coarse) {
-        .global-footer { display: none !important; }
-    }
+    /* 页脚在移动端（触屏设备）同样显示 */

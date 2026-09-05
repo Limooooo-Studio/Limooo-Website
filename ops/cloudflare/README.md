@@ -10,7 +10,8 @@ token、secret 与可复现的 ID **不写在这里**，统一从以下来源读
 | D1 数据库 | `DB` binding | `Flask/wrangler.toml` 的 `database_id` | Pages 与 `sync-worker` 共用 |
 | D1 迁移 | `ops/migrations/*.sql` | Git 仓库代码 | 执行入口 `ops/migrate_d1.sh` |
 | Worker：封禁同步 | `limooo-blocklist-sync` | `ops/sync-worker/wrangler.toml` | 每日 03:30，D1 active 行 → Cloudflare IP List |
-| Worker：图片水印 | `image-watermark` | `ops/image-watermark/wrangler.toml` | `image.limooo.cn/*` 按 Referer 返回原图/水印 |
+| Worker：图片水印 | `image-watermark` | `ops/image-watermark/wrangler.toml` | `image.limooo.cn/*` 归一化代理，/portfolio/* 永远返水印（A2） |
+| R2 私有桶（原图备份） | `limooo-originals` | `ops/upload_originals.sh` | A2 后作品集原图只存本地 + 私有 R2，不随 Pages 发布 |
 | WAF IP List | `limooo_blocklist` | `ops/sync-worker` | Cloudflare List，供 WAF 规则引用；`auto_block.py cf` 仅维护用 |
 | DNS 区域 | `limooo.cn` | Cloudflare 控制台 | CNAME 到 `limooo.pages.dev`，详见 AGENTS.md |
 | WAF 规则 | 自定义规则 | Cloudflare 控制台 | `ip.src in $limooo_blocklist`、低风险 `js_challenge` |
@@ -65,6 +66,12 @@ bash ops/workers_deploy.sh
   `/static/*`，以及主站 favicon 与 `Limooo-xtext.svg`；Edge/Browser TTL
   1 年。
 
+> A2 之后 `/static/portfolio/**` 不再被当作公开图片（原图已移除，只保留
+> `/static/wm/portfolio/**` 水印与 `/static/portfolio/thumbs/**` 缩略图），
+> 但旧版本曾以 `immutable`（1 年）缓存过干净原图。切换到 A2 后需
+> **手动清理 `/static/portfolio/*` 的 Cloudflare 边缘缓存**，否则边缘可能
+> 继续返回旧的干净原图。
+
 规则通过 Cloudflare Rulesets API 的 `http_request_cache_settings` phase
 管理，token 权限需求见 Cloudflare Cache Rules 文档。修改或删除请到
 Cloudflare 控制台 `Rules → Cache Rules` 操作，避免与当前 Pages 代码
@@ -83,3 +90,4 @@ Cloudflare 控制台 `Rules → Cache Rules` 操作，避免与当前 Pages 代�
 - Pages 新代码尚未部署；部署后重新执行 `migrate_d1.sh --check-schema --remote`。
 - WAF 自定义规则、DNS record 的变更应通过 Cloudflare API 或控制台执行，
   本文件只负责让这些状态可追溯。
+- A2 图片归属已落地：原图私有（`limooo-originals`），公开只发水印变体与缩略图。

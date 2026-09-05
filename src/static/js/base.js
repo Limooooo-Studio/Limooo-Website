@@ -60,7 +60,8 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
     var themeChallengeStarted = false;
 
     function themeChallengeUrl() {
-        var base = document.body.getAttribute('data-gate-url') || 'https://auth.limooo.cn/__gate';
+        /* 同域名挑战：在请求来源主机上完成，而不是跳去 auth.<root_domain>。 */
+        var base = 'https://' + location.hostname + '/__gate';
         var url = new URL(base, location.origin);
         url.searchParams.set('host', location.hostname);
         url.searchParams.set('next', location.pathname + location.search + location.hash);
@@ -182,6 +183,52 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
                 el.setAttribute(x.attr, t(x.key, x.params));
             });
         });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       站点级品牌字统一：把可见文本里的 Limooo / LIMOOO 包成 .brand-word，
+       统一用 Baloo 2 渲染。跳过已用 Baloo 的品牌元素（nav-brand/footer-brand/
+       hero-title/brand-word）以及不应触碰的技术容器。
+       ═══════════════════════════════════════════════════════════════ */
+    var BRAND_SKIP_SELECTOR = '.hero-title, .brand-word, [class*="brand"], [data-brandify], svg, script, style, title, template, noscript, textarea, option, code, pre';
+    var BRAND_RE = /(?<![A-Za-z0-9])(Limooo|LIMOOO)(?![A-Za-z0-9])/g;
+
+    function brandifyTextNode(node) {
+        var text = node.nodeValue;
+        if (!text) return;
+        BRAND_RE.lastIndex = 0;
+        var frag = document.createDocumentFragment();
+        var last = 0;
+        var matched = false;
+        var m;
+        while ((m = BRAND_RE.exec(text)) !== null) {
+            matched = true;
+            if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+            var span = document.createElement('span');
+            span.className = 'brand-word';
+            span.textContent = m[0];
+            frag.appendChild(span);
+            last = m.index + m[0].length;
+        }
+        if (!matched) return;
+        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+        node.parentNode.replaceChild(frag, node);
+    }
+
+    function brandifyWalk(node) {
+        if (node.nodeType === 3) {
+            brandifyTextNode(node);
+            return;
+        }
+        if (node.nodeType !== 1) return;
+        if (node.matches && node.matches(BRAND_SKIP_SELECTOR)) return;
+        var children = Array.prototype.slice.call(node.childNodes);
+        for (var i = 0; i < children.length; i++) brandifyWalk(children[i]);
+    }
+
+    function brandifySite() {
+        if (!document.body) return;
+        brandifyWalk(document.body);
     }
 
     /* 写入 365 天语言 cookie(跨 .limooo.cn 子域共享) */
@@ -375,6 +422,9 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         /* 恢复主题：有缓存用缓存，无缓存跟随系统（VitePress appearance 行为） */
         applyTheme(effectiveTheme());
 
+        /* 站点级品牌字统一：把 Limooo / LIMOOO 统一渲染为 Baloo 2 */
+        brandifySite();
+
         /* 系统主题变化时：仅在无缓存（跟随系统）状态下自动跟随 */
         window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
             if (!localStorage.getItem('theme')) applyTheme(getSystemTheme());
@@ -388,6 +438,10 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
             }
         });
 
+        /* 切换语言后 data-i18n 文本被重写，需要重新 brandify */
+        document.addEventListener('languagechange', function() {
+            brandifySite();
+        });
 
         /* 界面加载完成后立即预取全部语言:切换语言时字典已在缓存,不再等网络;
            另外两个主页的 prefetch 保持低优先级,不抢首屏之后的带宽 */

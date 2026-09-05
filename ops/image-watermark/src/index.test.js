@@ -1,66 +1,68 @@
 /**
- * image-watermark 路由纯函数测试（docs/14）。
+ * image-watermark 路由纯函数测试（docs/14，A2 归一化代理）。
  * 运行：node --test ops/image-watermark/src/index.test.js
  */
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { refererAllowed, routeFor, shouldWatermark, wmTarget } from "./index.js";
+import { logicalPath, routeFor, shouldWatermark, wmTarget } from "./index.js";
 
 const ORIGIN = "https://limooo.cn";
 
-function request(referer) {
-  const headers = new Headers();
-  if (referer) headers.set("Referer", referer);
-  return { headers };
-}
+test("logicalPath 去掉 /static 前缀（兼容 images.limooo.cn 风格路径）", () => {
+  assert.equal(logicalPath("/portfolio/a.webp"), "/portfolio/a.webp");
+  assert.equal(logicalPath("/static/portfolio/a.webp"), "/portfolio/a.webp");
+  assert.equal(logicalPath("/static/qr-codes/a.png"), "/qr-codes/a.png");
+});
 
-test("只给 portfolio 下的 png/jpg/jpeg/webp 加水印", () => {
+test("只有作品集根目录下的 png/jpg/jpeg/webp 加水印，thumbs 不算", () => {
   assert.equal(shouldWatermark("/portfolio/a.webp"), true);
   assert.equal(shouldWatermark("/portfolio/a.jpg"), true);
   assert.equal(shouldWatermark("/portfolio/a.png"), true);
-  assert.equal(shouldWatermark("/portfolio/a.gif"), false);
+  assert.equal(shouldWatermark("/portfolio/thumbs/a.webp"), false);
   assert.equal(shouldWatermark("/qr-codes/a.png"), false);
   assert.equal(shouldWatermark("/icons/a.png"), false);
 });
 
-test("Referer 白名单精确匹配 limooo.cn 家族", () => {
-  assert.equal(refererAllowed("https://limooo.cn/"), true);
-  assert.equal(refererAllowed("https://services.limooo.cn/"), true);
-  assert.equal(refererAllowed("https://image.limooo.cn/a"), true);
-  assert.equal(refererAllowed("https://limooo.cn.evil.example/"), false);
-  assert.equal(refererAllowed("https://evil.example/"), false);
-  assert.equal(refererAllowed(""), false);
-});
-
-test("站内 Referer 返回原图，站外返回水印变体", () => {
+test("作品集根目录图片永远返回水印变体（无论来源）", () => {
   const url = new URL("https://image.limooo.cn/portfolio/a.webp");
-  assert.equal(
-    routeFor(url, request("https://limooo.cn/"), ORIGIN).watermarked,
-    false,
-  );
-  assert.equal(
-    routeFor(url, request("https://evil.example/"), ORIGIN).watermarked,
-    true,
-  );
-  assert.equal(routeFor(url, request(null), ORIGIN).watermarked, true);
+  const route = routeFor(url, { headers: new Headers() }, ORIGIN);
+  assert.equal(route.watermarked, true);
+  assert.ok(route.target.startsWith(`${ORIGIN}/static/wm/portfolio/a.webp`));
+  assert.ok(route.target.includes("__wmver="));
 });
 
-test("非图片请求只允许已知资源目录，杜绝任意 /api/* 代理", () => {
-  const url = new URL("https://image.limooo.cn/api/secret?q=1");
-  const route = routeFor(url, request(null), ORIGIN);
-  assert.equal(route.image, false);
-  assert.equal(route.target, "");
+test("thumbs / qr-codes / icons 走干净静态版，不加水印", () => {
+  const thumb = routeFor(new URL("https://image.limooo.cn/portfolio/thumbs/a.webp"), { headers: new Headers() }, ORIGIN);
+  assert.equal(thumb.watermarked, false);
+  assert.equal(thumb.target, `${ORIGIN}/static/portfolio/thumbs/a.webp`);
 
-  const knownUrl = new URL("https://image.limooo.cn/portfolio/index.html");
-  const known = routeFor(knownUrl, request(null), ORIGIN);
-  assert.equal(known.image, false);
-  assert.equal(known.target, `${ORIGIN}/portfolio/index.html`);
+  const qr = routeFor(new URL("https://image.limooo.cn/qr-codes/a.png"), { headers: new Headers() }, ORIGIN);
+  assert.equal(qr.watermarked, false);
+  assert.equal(qr.target, `${ORIGIN}/static/qr-codes/a.png`);
+
+  const icon = routeFor(new URL("https://image.limooo.cn/icons/logo.svg"), { headers: new Headers() }, ORIGIN);
+  assert.equal(icon.watermarked, false);
+  assert.equal(icon.target, `${ORIGIN}/static/icons/logo.svg`);
 });
 
-test("水印回源 URL 只访问 /static/wm/ 并带版本参数", () => {
-  const url = new URL("https://image.limooo.cn/portfolio/a.webp?v=1");
-  const target = wmTarget(ORIGIN, url);
+test("兼容 /static 前缀：/static/portfolio/a.webp 同样返回水印", () => {
+  const route = routeFor(new URL("https://images.limooo.cn/static/portfolio/a.webp"), { headers: new Headers() }, ORIGIN);
+  assert.equal(route.watermarked, true);
+  assert.ok(route.target.startsWith(`${ORIGIN}/static/wm/portfolio/a.webp`));
+});
+
+test("绝不代理 /api/* 与未知路径", () => {
+  const api = routeFor(new URL("https://image.limooo.cn/api/secret?q=1"), { headers: new Headers() }, ORIGIN);
+  assert.equal(api.target, "");
+  assert.equal(api.image, false);
+
+  const unknown = routeFor(new URL("https://image.limooo.cn/random/thing"), { headers: new Headers() }, ORIGIN);
+  assert.equal(unknown.target, "");
+});
+
+test("水印回源 URL 访问 /static/wm/ 并带版本参数", () => {
+  const target = wmTarget(ORIGIN, "/portfolio/a.webp", "?v=1");
   assert.equal(new URL(target).pathname, "/static/wm/portfolio/a.webp");
   assert.ok(target.includes("__wmver=3"));
 });
