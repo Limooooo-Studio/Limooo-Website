@@ -27,7 +27,7 @@ export const SKIP_PATHS = new Set<string>([
   "/__gate/verify",
   "/__gate/diag",
   "/__gate/config",
-  "/Limooo-xtext.svg",
+  "/limooo-xtext.svg",
   "/favicon.ico",
 ]);
 
@@ -178,7 +178,7 @@ export function isPublicAssetPath(pathname: string): boolean {
     SKIP_PATHS.has(pathname) ||
     pathname.startsWith("/static/") ||
     pathname === "/favicon.ico" ||
-    pathname === "/Limooo-xtext.svg"
+    pathname === "/limooo-xtext.svg"
   );
 }
 

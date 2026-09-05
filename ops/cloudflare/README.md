@@ -63,7 +63,7 @@ bash ops/workers_deploy.sh
   的 `/`、`/services`、`/contact` 页面，且请求带 `user_lang_preference`
   cookie；Edge/Browser TTL 300 秒。避免缓存首次访问的 `Set-Cookie`。
 - 静态资源：匹配上述主域及 `images.limooo.cn` 的
-  `/static/*`，以及主站 favicon 与 `Limooo-xtext.svg`；Edge/Browser TTL
+  `/static/*`，以及主站 favicon 与 `limooo-xtext.svg`；Edge/Browser TTL
   1 年。
 
 > A2 之后 `/static/portfolio/**` 不再被当作公开图片（原图已移除，只保留
