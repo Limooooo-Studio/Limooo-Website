@@ -155,7 +155,7 @@
   .diag {
     font-family: 'Maple Mono NF CN', ui-monospace, 'SF Mono', monospace;
     display: block;
-    font-size: 13px; color: var(--text); margin-bottom: 20px;
+    font-size: 13.5px; color: var(--text); margin-bottom: 20px;
   }
   .diag dt {
     color: var(--muted);
