@@ -5,7 +5,13 @@
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { logicalPath, routeFor, shouldWatermark, wmTarget } from "./index.js";
+import worker, {
+  landingRedirect,
+  logicalPath,
+  routeFor,
+  shouldWatermark,
+  wmTarget,
+} from "./index.js";
 
 const ORIGIN = "https://limooo.cn";
 
@@ -13,6 +19,27 @@ test("logicalPath 去掉 /static 前缀（兼容 images.limooo.cn 风格路径�
   assert.equal(logicalPath("/portfolio/a.webp"), "/portfolio/a.webp");
   assert.equal(logicalPath("/static/portfolio/a.webp"), "/portfolio/a.webp");
   assert.equal(logicalPath("/static/qr-codes/a.png"), "/qr-codes/a.png");
+});
+
+test("裸域跳转到可索引的图片门面页，其余资源路径不跳转", () => {
+  assert.equal(
+    landingRedirect(new URL("https://image.limooo.cn/")),
+    "https://images.limooo.cn/",
+  );
+  assert.equal(
+    landingRedirect(new URL("https://image.limooo.cn/portfolio/a.webp")),
+    "",
+  );
+});
+
+test("Worker 对裸域请求返回永久跳转", async () => {
+  const response = await worker.fetch(
+    new Request("https://image.limooo.cn/"),
+    {},
+    { waitUntil() {} },
+  );
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get("location"), "https://images.limooo.cn/");
 });
 
 test("只有作品集根目录下的 png/jpg/jpeg/webp 加水印，thumbs 不算", () => {

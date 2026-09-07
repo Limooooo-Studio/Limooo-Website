@@ -21,6 +21,9 @@
  */
 
 const ORIGIN = "https://limooo.cn";
+// image.limooo.cn 是资源归一化入口；访问域名根目录时交给可索引的图片门面页，
+// 避免爬虫将裸域误判为软错误或 404。
+const LANDING_PAGE = "https://images.limooo.cn/";
 
 // 站点上实际使用的图片扩展名（与 public/static 暴露的内容一致）
 const IMAGE_PATH_RE = /\.(png|jpe?g|webp|avif|gif|bmp|ico|svg)$/i;
@@ -44,6 +47,11 @@ export function logicalPath(pathname) {
   return pathname.startsWith("/static/")
     ? pathname.slice("/static".length)
     : pathname;
+}
+
+/** image.limooo.cn 的裸域统一跳转到公开图片门面页。 */
+export function landingRedirect(url) {
+  return url.pathname === "/" ? LANDING_PAGE : "";
 }
 
 /** 构造水印变体回源 URL（带版本参数，缓存破坏用）。 */
@@ -163,6 +171,9 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = env.ORIGIN || ORIGIN;
+
+    const landing = landingRedirect(url);
+    if (landing) return Response.redirect(landing, 301);
 
     // HEAD：同 GET 决策，只回头部
     if (request.method === "HEAD") {
