@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh Claude public status every minute
+
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=60s
+AccuracySec=5s
+Unit=claude-status-sync.service
+
+[Install]
+WantedBy=timers.target

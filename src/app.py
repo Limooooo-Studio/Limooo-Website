@@ -33,6 +33,7 @@ import json
 import os
 import secrets
 import sqlite3
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -494,6 +495,99 @@ def status_page():
         total=total,
         overall_key=overall_key,
         updated_at=updated_at,
+    )
+
+
+STATUS_PROVIDER_DBS = {
+    "claude": "/opt/claude-webhook/events.db",
+    "cloudflare": "/opt/cloudflare-webhook/events.db",
+}
+CLAUDE_SUMMARY_TTL_SECONDS = 60
+_claude_summary_cache: dict[str, object] | None = None
+_claude_summary_cached_at = 0.0
+_claude_summary_lock = threading.Lock()
+
+
+def _claude_summary() -> dict[str, object]:
+    """Fetch Claude's summary at most once per minute per Flask worker."""
+    global _claude_summary_cache, _claude_summary_cached_at
+    now = time.monotonic()
+    if _claude_summary_cache and now - _claude_summary_cached_at < CLAUDE_SUMMARY_TTL_SECONDS:
+        return _claude_summary_cache
+
+    # Keep concurrent page refreshes from stampeding the upstream status API.
+    with _claude_summary_lock:
+        now = time.monotonic()
+        if _claude_summary_cache and now - _claude_summary_cached_at < CLAUDE_SUMMARY_TTL_SECONDS:
+            return _claude_summary_cache
+        response = requests.get(
+            "https://status.claude.com/api/v2/summary.json",
+            timeout=8,
+            headers={"User-Agent": "Limooo-Status/1.0"},
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("Claude status summary is not a JSON object")
+        _claude_summary_cache = payload
+        _claude_summary_cached_at = time.monotonic()
+        return payload
+
+
+def _provider_events(provider: str) -> list[dict[str, object]]:
+    path = STATUS_PROVIDER_DBS[provider]
+    try:
+        # The webhook receiver may write at the same time.  A context manager
+        # releases the read-only handle even when SQLite raises.
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT event_type, incident_name, incident_status, impact, "
+                "component_name, component_status, new_status, received_at, updated_at "
+                "FROM events WHERE event_type != 'unknown' ORDER BY id DESC LIMIT 30"
+            ).fetchall()
+        return [dict(row) for row in rows]
+    except Exception as exc:  # noqa: BLE001
+        app.logger.warning("[%s-status] read events failed: %s", provider, exc)
+        return []
+
+
+@app.route("/claude")
+@app.route("/cloudflare")
+def provider_status_page():
+    """Provider status pages rendered through base.html for an identical shell."""
+    provider_key = request.path.strip("/")
+    provider = "Claude" if provider_key == "claude" else "Cloudflare"
+    provider_source = "status.claude.com" if provider_key == "claude" else "www.cloudflarestatus.com"
+    components: list[dict[str, object]] = []
+    incidents: list[dict[str, object]] = []
+    events = _provider_events(provider_key)
+    source_updated = None
+    if provider_key == "claude":
+        try:
+            payload = _claude_summary()
+            components = payload.get("components", [])
+            incidents = payload.get("incidents", [])
+            source_updated = payload.get("page", {}).get("updated_at")
+        except Exception as exc:  # noqa: BLE001
+            app.logger.warning("[claude-status] summary failed: %s", exc)
+    else:
+        incidents = [
+            {
+                "name": event.get("incident_name"),
+                "status": event.get("incident_status"),
+                "impact": event.get("impact"),
+                "updated_at": event.get("updated_at") or event.get("received_at"),
+            }
+            for event in events
+            if event.get("event_type") == "incident"
+        ]
+        source_updated = incidents[0].get("updated_at") if incidents else None
+    active = [item for item in incidents if str(item.get("status", "")).upper() not in ("RESOLVED", "COMPLETED")]
+    return render_template(
+        "provider_status.html", provider=provider, provider_key=provider_key, provider_source=provider_source,
+        components=components, incidents=incidents, events=events,
+        source_updated=source_updated, has_issues=bool(active),
     )
 
 

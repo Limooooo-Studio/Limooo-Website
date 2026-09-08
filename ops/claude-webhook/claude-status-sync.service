@@ -1,0 +1,8 @@
+[Unit]
+Description=Refresh Claude public status summary snapshot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/usr/bin/curl --fail --silent --show-error --max-time 20 --retry 2 -A Limooo-Status/1.0 https://status.claude.com/api/v2/summary.json -o /opt/claude-webhook/summary.json.next && /usr/bin/python3 -m json.tool /opt/claude-webhook/summary.json.next >/dev/null && /usr/bin/mv /opt/claude-webhook/summary.json.next /opt/claude-webhook/summary.json'

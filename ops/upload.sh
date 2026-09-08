@@ -215,6 +215,21 @@ WEOF
         grep -q '^AUTHENTIK_INTERNAL_URL=' secrets/webauthn.env || echo 'AUTHENTIK_INTERNAL_URL=http://127.0.0.1:9000' >> secrets/webauthn.env
     fi
 
+    # Nginx 不解析 dotenv；从仅服务器可读的现有 env 生成其 include，避免把
+    # webhook token 写入仓库或 Nginx 主配置。
+    CLAUDE_WEBHOOK_TOKEN="$(sed -n 's/^CLAUDE_WEBHOOK_TOKEN=//p' secrets/webauthn.env | tail -n 1)"
+    if [ -z "$CLAUDE_WEBHOOK_TOKEN" ] || ! printf '%s' "$CLAUDE_WEBHOOK_TOKEN" | grep -Eq '^[A-Za-z0-9_-]{32,256}$'; then
+        echo "FATAL: secrets/webauthn.env must define a safe CLAUDE_WEBHOOK_TOKEN" >&2
+        exit 1
+    fi
+    if ! sudo grep -q '^set \$cloudflare_webhook_token ' /etc/nginx/cloudflare-webhook-secret.inc; then
+        echo "FATAL: /etc/nginx/cloudflare-webhook-secret.inc has no cloudflare webhook token" >&2
+        exit 1
+    fi
+    sudo grep '^set \$cloudflare_webhook_token ' /etc/nginx/cloudflare-webhook-secret.inc | tail -n 1 | sudo tee /etc/nginx/webhook-secret.inc >/dev/null
+    printf 'set $claude_webhook_token "%s";\n' "$CLAUDE_WEBHOOK_TOKEN" | sudo tee -a /etc/nginx/webhook-secret.inc >/dev/null
+    sudo chmod 600 /etc/nginx/webhook-secret.inc
+
     sudo cp ops/limooo.service /etc/systemd/system/limooo.service
     sudo systemctl daemon-reload
     sudo systemctl enable limooo >/dev/null 2>&1

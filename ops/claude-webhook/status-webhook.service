@@ -1,0 +1,15 @@
+[Unit]
+Description=%i status webhook receiver for status.limooo.cn
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/var/www/limooo/secrets/%i-webhook.env
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/python3 /opt/%i-webhook/app.py
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

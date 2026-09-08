@@ -1,0 +1,47 @@
+/* Claude webhook status page — relies on base.html's shared tokens and navigation. */
+html, body { min-height: 100%; overflow: auto; }
+body { background: var(--bg); }
+.claude-nav { background:var(--bg); }
+.claude-main { width: min(100% - 40px, 1120px); margin: 0 auto; padding: 154px 0 132px; }
+.claude-hero { max-width:none; margin-bottom:52px; text-align:center; }
+.claude-eyebrow, .section-kicker { margin: 0; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .13em; }
+.claude-eyebrow span { color: var(--text); opacity: .4; padding: 0 4px; }
+.claude-hero h1 { margin:0; font-size:clamp(30px,5vw,48px); line-height:1.08; letter-spacing:-.04em; }
+.claude-hero > p:last-child { margin: 0; color: var(--text); opacity: .6; font-size: 15px; line-height: 1.75; }
+.overall-card { display: flex; align-items: flex-start; gap: 14px; padding: 24px 26px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-bg); }
+.overall-indicator { width: 10px; height: 10px; margin-top: 7px; border-radius: 50%; flex: 0 0 auto; }
+.overall-card--healthy .overall-indicator { background: #22c55e; box-shadow: 0 0 0 5px rgba(34,197,94,.12); }
+.overall-card--attention .overall-indicator { background: #f59e0b; box-shadow: 0 0 0 5px rgba(245,158,11,.12); }
+.overall-card strong { display: block; font-size: 16px; letter-spacing: -.01em; }
+.overall-card p { margin: 3px 0 0; font-size: 12px; color: var(--text); opacity: .55; }
+.claude-section { margin-top: 44px; }
+.claude-details { display:block; }
+.claude-details .claude-section { min-width:0; }
+.section-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 12px; }
+.section-heading h2 { margin: 4px 0 0; font-size: 19px; letter-spacing: -.02em; }
+.section-count { color: var(--text); opacity: .45; font-size: 12px; font-variant-numeric: tabular-nums; }
+.status-card { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-bg); overflow: hidden; }
+.event-list { list-style: none; padding: 0; margin: 0; }
+.event-row { display: flex; justify-content: space-between; gap: 24px; padding: 18px 20px; border-bottom: 1px solid var(--line); transition:background-color 180ms var(--ease-out); }
+.event-row:active { transform:scale(.99); }
+@media (hover:hover) and (pointer:fine) { .event-row:hover { background:var(--highlight); } }
+.event-row:last-child { border-bottom: 0; }
+.event-copy { min-width: 0; }
+.event-copy strong { display: block; font-size: 14px; font-weight: 650; line-height: 1.45; overflow-wrap: anywhere; }
+.event-copy span { display: block; margin-top: 4px; color: var(--text); opacity: .54; font-size: 12px; overflow-wrap: anywhere; }
+.event-meta { display: flex; align-items: flex-end; flex-direction: column; gap: 7px; flex: 0 0 auto; }
+.event-meta time { color: var(--text); opacity: .42; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.status-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 8px; border-radius: var(--radius-full); font-size: 11px; line-height: 1; font-weight: 700; white-space: nowrap; }
+.status-badge--success { color: #15803d; background: rgba(34,197,94,.16); }
+.status-badge--warning { color: #b45309; background: rgba(245,158,11,.18); }
+.status-badge--danger { color: #dc2626; background: rgba(239,68,68,.16); }
+.status-badge--info { color: #0284c7; background: rgba(56,189,248,.16); }
+.status-badge--neutral { color: var(--text); background: var(--highlight); }
+html:not(.light-mode) .status-badge--success { color: #86efac; }
+html:not(.light-mode) .status-badge--warning { color: #fcd34d; }
+html:not(.light-mode) .status-badge--danger { color: #fca5a5; }
+html:not(.light-mode) .status-badge--info { color: #7dd3fc; }
+.empty-state { padding: 26px 20px; color: var(--text); opacity: .5; font-size: 13px; }
+.status-source { margin:38px 0 0; padding-top:18px; border-top:1px solid var(--line); color:var(--text); opacity:.45; font-size:11px; text-align:center; }
+@media (max-width: 767px) { .claude-main { width: min(100% - 28px, 960px); padding-top: 108px; padding-bottom: 42px; } .claude-details { display:block; } .event-row { gap: 14px; padding: 16px; } .event-meta { align-items: flex-start; } }
+@media (max-width: 520px) { .claude-hero { margin-bottom: 30px; } .claude-hero h1 { font-size: 31px; } .overall-card { padding: 17px; } .event-row { display: block; } .event-meta { flex-direction: row; align-items: center; justify-content: space-between; margin-top: 11px; } .event-meta time { font-size: 10px; } }

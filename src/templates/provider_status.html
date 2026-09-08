@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ provider }} 服务状态 · LIMOOO{% endblock %}
+
+{% block head_links %}<link rel="stylesheet" href="/static/css/claude-status.css?v=2">{% endblock %}
+
+{% block content %}
+<main class="claude-main">
+    <header class="claude-hero"><h1>{{ provider }} 服务状态</h1></header>
+    <section class="overall-card overall-card--{{ 'attention' if has_issues else 'healthy' }}" aria-label="整体状态">
+        <span class="overall-indicator" aria-hidden="true"></span>
+        <div><strong>{{ '检测到正在处理的事件' if has_issues else '所有已知服务正常' }}</strong><p>{% if source_updated %}更新于 {{ source_updated }}{% else %}等待状态事件{% endif %}</p></div>
+    </section>
+    {% if components %}
+    <section class="claude-section"><div class="section-heading"><div><p class="section-kicker">COMPONENTS</p><h2>当前组件</h2></div><span class="section-count">{{ components|length }} 项</span></div><div class="status-card"><ul class="event-list">
+        {% for item in components %}<li class="event-row"><div class="event-copy"><strong>{{ item.name }}</strong><span>{{ item.updated_at or '—' }}</span></div><div class="event-meta"><span class="status-badge status-badge--{{ 'success' if item.status|upper == 'OPERATIONAL' else 'warning' }}">{{ item.status }}</span></div></li>{% endfor %}
+    </ul></div></section>
+    {% endif %}
+    <div class="claude-details">
+        <section class="claude-section"><div class="section-heading"><div><p class="section-kicker">INCIDENTS</p><h2>事件</h2></div><span class="section-count">{{ incidents|length }} 项</span></div><div class="status-card">{% if incidents %}<ul class="event-list">{% for item in incidents %}<li class="event-row"><div class="event-copy"><strong>{{ item.name }}</strong><span>{{ item.impact or '—' }}</span></div><div class="event-meta"><span class="status-badge status-badge--{{ 'success' if item.status|upper in ('RESOLVED','COMPLETED') else 'warning' }}">{{ item.status }}</span><time>{{ item.updated_at or '—' }}</time></div></li>{% endfor %}</ul>{% else %}<div class="empty-state">暂无事件。</div>{% endif %}</div></section>
+        <section class="claude-section"><div class="section-heading"><div><p class="section-kicker">ACTIVITY</p><h2>最近活动</h2></div><span class="section-count">{{ events|length }} 条</span></div><div class="status-card">{% if events %}<ul class="event-list">{% for item in events %}<li class="event-row"><div class="event-copy"><strong>{{ item.incident_name or item.component_name or item.event_type }}</strong><span>{{ item.event_type|upper }}</span></div><div class="event-meta"><time>{{ item.received_at or '—' }}</time></div></li>{% endfor %}</ul>{% else %}<div class="empty-state">暂无活动。</div>{% endif %}</div></section>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/claude-status.js?v=1" defer></script>{% endblock %}
+
+{% block footer_markup %}
+<footer class="global-footer" id="global-footer">
+    <div class="footer-link">
+        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio</span><span>|保留所有权利</span><span>|根据 AGPL-3.0 许可证发布，源码在<a class="footer-source-link" href="https://github.com/Limooooo-Studio/Limooo-Website" target="_blank" rel="noopener noreferrer">这里</a></span><span>|数据由 {{ provider_source }} 的事件 webhook 提供</span></div>
+    </div>
+</footer>
+{% endblock %}
