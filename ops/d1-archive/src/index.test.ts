@@ -26,7 +26,7 @@ describe("d1 archive", () => {
       events: 1,
     });
     expect(f.put).toHaveBeenCalledTimes(4);
-    expect(f.put.mock.calls[0][0]).toBe("visitor_rollups_2026_09_08.jsonl.gz");
+    expect(f.put.mock.calls[0][0]).toBe("analytics/visitor_rollups_2026_09_08.jsonl.gz");
     expect(f.put.mock.calls[0][2]).toEqual({
       httpMetadata: { contentType: "application/x-ndjson", contentEncoding: "gzip" },
     });
