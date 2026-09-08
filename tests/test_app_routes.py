@@ -21,6 +21,28 @@ def test_gate_check_rejects_missing_key():
     assert resp.status_code == 403
 
 
+def test_gate_check_allows_shared_whitelist_ip(monkeypatch, tmp_path):
+    whitelist = tmp_path / "whitelist.txt"
+    whitelist.write_text("IP-CIDR/203.0.113.7/32\n", encoding="utf-8")
+    monkeypatch.setattr(app, "GATE_WHITELIST_FILE", str(whitelist))
+    monkeypatch.setattr(app, "_gate_whitelist_cache", None)
+
+    client = app.app.test_client()
+    resp = client.get("/__gate_check", headers={"CF-Connecting-IP": "203.0.113.7"})
+    assert resp.status_code == 204
+
+
+def test_gate_check_allows_shared_whitelist_asn(monkeypatch, tmp_path):
+    whitelist = tmp_path / "whitelist.txt"
+    whitelist.write_text("ASN/64512\n", encoding="utf-8")
+    monkeypatch.setattr(app, "GATE_WHITELIST_FILE", str(whitelist))
+    monkeypatch.setattr(app, "_gate_whitelist_cache", None)
+
+    client = app.app.test_client()
+    resp = client.get("/__gate_check", headers={"CF-ASN": "64512"})
+    assert resp.status_code == 204
+
+
 def test_provider_status_reuses_a_successful_summary(monkeypatch):
     class SummaryResponse:
         def raise_for_status(self):

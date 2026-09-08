@@ -46,7 +46,7 @@
     }
     .footer-text {
         display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-        gap: 0.25em 0.75em;
+        gap: 0;
         font-size: 10px; font-weight: 600;
         letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
     }

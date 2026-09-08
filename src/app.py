@@ -29,6 +29,7 @@
 import base64
 import hashlib
 import hmac
+import ipaddress
 import json
 import os
 import secrets
@@ -73,6 +74,7 @@ app = Flask(
 
 SECRET_KEY_ETC = "/etc/limooo/flask_secret.key"
 SECRET_KEY_FILE = os.path.join(BASE_DIR, "secrets", "flask_secret.key")
+GATE_WHITELIST_FILE = os.path.join(DATA_DIR, "whitelist.txt")
 
 if BUILD_MODE:
     app.secret_key = ""
@@ -341,9 +343,48 @@ def _gate_cookie_valid(value: str | None, key: str) -> bool:
     return int(payload) > int(time.time())
 
 
+type IpNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
+
+
+_gate_whitelist_cache: tuple[int, tuple[IpNetwork, ...], frozenset[int]] | None = None
+
+
+def _gate_whitelisted(ip: str, asn: str) -> bool:
+    """Read the shared IP/ASN whitelist for the VPS-only status gate."""
+    global _gate_whitelist_cache
+    try:
+        mtime = os.stat(GATE_WHITELIST_FILE).st_mtime_ns
+        if _gate_whitelist_cache is None or _gate_whitelist_cache[0] != mtime:
+            networks: list[IpNetwork] = []
+            asns: set[int] = set()
+            with open(GATE_WHITELIST_FILE, encoding="utf-8") as f:
+                for raw in f:
+                    entry = raw.split("#", 1)[0].strip()
+                    if entry.startswith("IP-CIDR/"):
+                        networks.append(ipaddress.ip_network(entry.removeprefix("IP-CIDR/"), strict=False))
+                    elif entry.startswith("ASN/") and entry.removeprefix("ASN/").isdigit():
+                        asns.add(int(entry.removeprefix("ASN/")))
+            _gate_whitelist_cache = (mtime, tuple(networks), frozenset(asns))
+        _, networks, asns = _gate_whitelist_cache
+        try:
+            address = ipaddress.ip_address(ip)
+        except ValueError:
+            address = None
+        return (address is not None and any(address in network for network in networks)) or (
+            asn.isdigit() and int(asn) in asns
+        )
+    except (OSError, ValueError):
+        # A missing or malformed whitelist must never turn into an allow-all.
+        return False
+
+
 @app.route("/__gate_check")
 def gate_check():
     """nginx auth_request 内部端点：__gate 有效 → 204；无效 → 403。"""
+    if _gate_whitelisted(
+        request.headers.get("CF-Connecting-IP", ""), request.headers.get("CF-ASN", "")
+    ):
+        return Response(status=204)
     key = os.environ.get("GATE_HMAC_KEY", "")
     if _gate_cookie_valid(request.cookies.get(GATE_COOKIE), key):
         return Response(status=204)
