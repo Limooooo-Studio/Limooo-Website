@@ -231,9 +231,13 @@ WEOF
     sudo chmod 600 /etc/nginx/webhook-secret.inc
 
     sudo cp ops/limooo.service /etc/systemd/system/limooo.service
+    for unit in claude-status-sync.service claude-status-sync.timer cloudflare-status-sync.service cloudflare-status-sync.timer; do
+        sudo cp "ops/claude-webhook/$unit" "/etc/systemd/system/$unit"
+    done
     sudo systemctl daemon-reload
     sudo systemctl enable limooo >/dev/null 2>&1
     sudo systemctl start limooo
+    sudo systemctl enable --now claude-status-sync.timer cloudflare-status-sync.timer
     sleep 2
     sudo systemctl is-active limooo | sed 's/^/limooo: /'
 

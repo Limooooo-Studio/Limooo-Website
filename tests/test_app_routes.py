@@ -21,7 +21,7 @@ def test_gate_check_rejects_missing_key():
     assert resp.status_code == 403
 
 
-def test_claude_status_reuses_a_successful_summary(monkeypatch):
+def test_provider_status_reuses_a_successful_summary(monkeypatch):
     class SummaryResponse:
         def raise_for_status(self):
             return None
@@ -32,8 +32,8 @@ def test_claude_status_reuses_a_successful_summary(monkeypatch):
     calls = []
     monkeypatch.setattr(app, "_provider_events", lambda _provider: [])
     monkeypatch.setattr(app.requests, "get", lambda *args, **kwargs: calls.append((args, kwargs)) or SummaryResponse())
-    monkeypatch.setattr(app, "_claude_summary_cache", None)
-    monkeypatch.setattr(app, "_claude_summary_cached_at", 0.0)
+    monkeypatch.setattr(app, "_provider_summary_cache", {})
+    monkeypatch.setitem(app.STATUS_PROVIDER_SUMMARIES, "claude", ("/not-a-snapshot.json", "https://example.test"))
 
     client = app.app.test_client()
     assert client.get("/claude").status_code == 200
