@@ -1,24 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════
    Status 页样式：Kuma Mieru 卡片布局（配色沿用 Limooo / base）
    ═══════════════════════════════════════════════════════════════ */
-.status-main {
-    width: 100%;
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 120px 20px 80px;
-    min-height: 100vh;
-}
+.status-main { min-height: 0; }
 
 /* ── 整体状态横幅 ── */
 .status-overall {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 40px;
+    margin-bottom: 44px;
     padding: 22px 26px;
     border: 1px solid var(--line);
     background: var(--panel-bg);
-    border-radius: var(--radius-lg);
+    border-radius: 20px;
 }
 .status-overall-text { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .status-overall-title { margin: 0; font-size: 24px; font-weight: 700; }
@@ -39,7 +33,7 @@
 .status-overall.down   .status-overall-dot { background: #ef4444; }
 
 /* ── 分组标题 ── */
-.status-section { margin-bottom: 36px; }
+.status-section { margin-bottom: 44px; }
 .status-section-title {
     font-size: 13px; font-weight: 600; text-transform: uppercase;
     letter-spacing: calc(0.18em * var(--ls-scale)); opacity: 0.55;
@@ -50,19 +44,19 @@
 .status-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 16px;
 }
 @media (min-width: 720px) { .status-grid { grid-template-columns: repeat(2, 1fr); } }
 .status-card {
     display: flex; flex-direction: column; gap: 14px;
-    padding: 18px 20px;
+    padding: 22px;
     border: 1px solid var(--line);
     background: var(--panel-bg);
-    border-radius: var(--radius-lg);
-    transition: border-color 250ms var(--ease-out), transform 250ms var(--ease-out);
+    border-radius: 20px;
+    transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
-    .status-card:hover { border-color: var(--highlight); transform: translateY(-2px); }
+    .status-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 18px 38px rgba(0, 0, 0, .12); }
 }
 .status-card-top { display: flex; align-items: center; gap: 10px; }
 .status-dot {

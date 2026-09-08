@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}{{ provider }} 服务状态 · LIMOOO{% endblock %}
+{% block title %}{{ _(provider_title_key) }} · LIMOOO{% endblock %}
 
-{% block head_links %}<link rel="stylesheet" href="/static/css/claude-status.css?v=2">{% endblock %}
+{% block body_class %}status-surface{% endblock %}
+
+{% block head_links %}<link rel="stylesheet" href="/static/css/status-shell.css?v=1"><link rel="stylesheet" href="/static/css/claude-status.css?v=3">{% endblock %}
 
 {% block content %}
 <main class="claude-main">
-    <header class="claude-hero"><h1>{{ provider }} 服务状态</h1></header>
+    <header class="claude-hero"><h1 data-i18n="{{ provider_title_key }}">{{ _(provider_title_key) }}</h1></header>
     <section class="overall-card overall-card--{{ 'attention' if has_issues else 'healthy' }}" aria-label="整体状态">
         <span class="overall-indicator" aria-hidden="true"></span>
         <div><strong>{{ '检测到正在处理的事件' if has_issues else '所有已知服务正常' }}</strong><p>{% if source_updated %}更新于 {{ source_updated }}{% else %}等待状态事件{% endif %}</p></div>
@@ -28,7 +30,7 @@
 {% block footer_markup %}
 <footer class="global-footer" id="global-footer">
     <div class="footer-link">
-        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio</span><span>|保留所有权利</span><span>|根据 AGPL-3.0 许可证发布，源码在<a class="footer-source-link" href="https://github.com/Limooooo-Studio/Limooo-Website" target="_blank" rel="noopener noreferrer">这里</a></span><span>|数据由 {{ provider_source }} 的事件 webhook 提供</span></div>
+        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | "> | {{ _('footer_rights') }}</span><span data-i18n="footer_source" data-i18n-prefix=" | "> | {{ _('footer_source') }}</span><a class="footer-source-link" href="https://github.com/Limooooo-Studio/Limooo-Website" target="_blank" rel="noopener noreferrer" data-i18n="footer_source_link">{{ _('footer_source_link') }}</a><span> | <span data-i18n="provider_data_source">{{ _('provider_data_source') }}</span> {{ provider_source }}</span></div>
     </div>
 </footer>
 {% endblock %}

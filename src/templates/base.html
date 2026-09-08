@@ -56,7 +56,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
     {% block head_links %}{% endblock %}
 </head>
-<body class="antialiased" data-lang="{{ g.lang }}" data-gate-url="{{ gate_url }}" data-image-asset-base="{{ image_asset_base }}" data-image-watermark-base="{{ image_watermark_base }}" data-i18n-dict='{{ translations | tojson }}'>
+<body class="antialiased {% block body_class %}{% endblock %}" data-lang="{{ g.lang }}" data-gate-url="{{ gate_url }}" data-image-asset-base="{{ image_asset_base }}" data-image-watermark-base="{{ image_watermark_base }}" data-i18n-dict='{{ translations | tojson }}'>
 
     <!-- 闪光灯组件（由各页面按需启用，默认隐藏） -->
     {% block flash %}{% endblock %}

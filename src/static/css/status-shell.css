@@ -1,0 +1,18 @@
+/* Shared shell for every status.limooo.cn route. */
+body.status-surface {
+    min-height: 100%; overflow: auto; display: flex; flex-direction: column;
+    background: radial-gradient(900px 460px at 50% -180px, var(--accent-glow), transparent 68%), var(--bg);
+}
+.status-surface .site-nav {
+    background: color-mix(in srgb, var(--bg) 84%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+    backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+.status-surface .status-main, .status-surface .claude-main { flex: 1 0 auto; width: min(100% - 40px, 1040px); margin: 0 auto; padding: 154px 0 48px; }
+.status-surface .global-footer { position: static; margin-top: auto; background: transparent !important; }
+.status-surface .status-card, .status-surface .overall-card { border-color: color-mix(in srgb, var(--line) 84%, transparent); box-shadow: 0 16px 44px rgba(0, 0, 0, .08); }
+.status-surface .status-card, .status-surface .status-overall, .status-surface .overall-card { border-radius: 20px; }
+.status-surface .section-kicker, .status-surface .status-section-title { color: var(--accent); opacity: 1; }
+@media (prefers-reduced-transparency: reduce) { .status-surface .site-nav { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+@media (prefers-reduced-motion: reduce) { .status-surface *, .status-surface *::before, .status-surface *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (max-width: 767px) { .status-surface .status-main, .status-surface .claude-main { width: min(100% - 28px, 1040px); padding-top: 108px; padding-bottom: 32px; } }

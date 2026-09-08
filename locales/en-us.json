@@ -169,5 +169,8 @@
   "card_kuma": "Uptime Kuma Admin",
   "status_refresh": "Auto refresh in",
   "group_public": "Public Services",
-  "group_internal": "Internal Services"
+  "group_internal": "Internal Services",
+  "provider_status_claude": "Claude Service Status",
+  "provider_status_cloudflare": "Cloudflare Service Status",
+  "provider_data_source": "Data provided by"
 }

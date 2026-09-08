@@ -169,5 +169,8 @@
   "card_kuma": "Uptime Kuma 管理",
   "status_refresh": "自動更新",
   "group_public": "公開サービス",
-  "group_internal": "内部サービス"
+  "group_internal": "内部サービス",
+  "provider_status_claude": "Claude サービスステータス",
+  "provider_status_cloudflare": "Cloudflare サービスステータス",
+  "provider_data_source": "データ提供："
 }

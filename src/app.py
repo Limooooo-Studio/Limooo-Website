@@ -599,7 +599,8 @@ def provider_status_page():
             source_updated = incidents[0].get("updated_at") if incidents else None
     active = [item for item in incidents if str(item.get("status", "")).upper() not in ("RESOLVED", "COMPLETED")]
     return render_template(
-        "provider_status.html", provider=provider, provider_key=provider_key, provider_source=provider_source,
+        "provider_status.html", provider=provider, provider_key=provider_key,
+        provider_title_key=f"provider_status_{provider_key}", provider_source=provider_source,
         components=components, incidents=incidents, events=events,
         source_updated=source_updated, has_issues=bool(active),
     )

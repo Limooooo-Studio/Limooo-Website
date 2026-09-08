@@ -171,7 +171,10 @@ export const translations: Record<string, Record<string, string>> = {
     "card_kuma": "Uptime Kuma 管理面板",
     "status_refresh": "自动刷新",
     "group_public": "公开服务",
-    "group_internal": "内部服务"
+    "group_internal": "内部服务",
+    "provider_status_claude": "Claude 服务状态",
+    "provider_status_cloudflare": "Cloudflare 服务状态",
+    "provider_data_source": "数据来源："
   },
   "en-us": {
     "redirect_title": "Redirecting",
@@ -344,7 +347,10 @@ export const translations: Record<string, Record<string, string>> = {
     "card_kuma": "Uptime Kuma Admin",
     "status_refresh": "Auto refresh in",
     "group_public": "Public Services",
-    "group_internal": "Internal Services"
+    "group_internal": "Internal Services",
+    "provider_status_claude": "Claude Service Status",
+    "provider_status_cloudflare": "Cloudflare Service Status",
+    "provider_data_source": "Data provided by"
   },
   "ja-jp": {
     "redirect_title": "リダイレクト中",
@@ -517,7 +523,10 @@ export const translations: Record<string, Record<string, string>> = {
     "card_kuma": "Uptime Kuma 管理",
     "status_refresh": "自動更新",
     "group_public": "公開サービス",
-    "group_internal": "内部サービス"
+    "group_internal": "内部サービス",
+    "provider_status_claude": "Claude サービスステータス",
+    "provider_status_cloudflare": "Cloudflare サービスステータス",
+    "provider_data_source": "データ提供："
   },
   "ko-kr": {
     "redirect_title": "리다이렉트 중",
@@ -690,6 +699,9 @@ export const translations: Record<string, Record<string, string>> = {
     "card_kuma": "Uptime Kuma 관리",
     "status_refresh": "자동 새로고침",
     "group_public": "공개 서비스",
-    "group_internal": "내부 서비스"
+    "group_internal": "내부 서비스",
+    "provider_status_claude": "Claude 서비스 상태",
+    "provider_status_cloudflare": "Cloudflare 서비스 상태",
+    "provider_data_source": "데이터 제공:"
   }
 };
