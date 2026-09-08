@@ -103,6 +103,7 @@ rsync -aqz --delete -e "ssh $SSH_OPTS" \
     --exclude '.d1-migrations' \
     --exclude '.claude' \
     --exclude 'command.txt' \
+    --exclude 'secrets/' \
     --exclude 'flask_secret.key' \
     --exclude 'appleid_encryption.key' \
     --exclude 'secrets/smtp-relay.env' \
