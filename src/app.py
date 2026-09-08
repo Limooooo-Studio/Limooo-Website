@@ -381,14 +381,48 @@ def _gate_whitelisted(ip: str, asn: str) -> bool:
 @app.route("/__gate_check")
 def gate_check():
     """nginx auth_request 内部端点：__gate 有效 → 204；无效 → 403。"""
-    if _gate_whitelisted(
-        request.headers.get("CF-Connecting-IP", ""), request.headers.get("CF-ASN", "")
-    ):
-        return Response(status=204)
-    key = os.environ.get("GATE_HMAC_KEY", "")
-    if _gate_cookie_valid(request.cookies.get(GATE_COOKIE), key):
+    if _gate_allowed():
         return Response(status=204)
     return Response("Forbidden", status=403)
+
+
+def _gate_allowed() -> bool:
+    return _gate_whitelisted(
+        request.headers.get("CF-Connecting-IP", ""), request.headers.get("CF-ASN", "")
+    ) or _gate_cookie_valid(
+        request.cookies.get(GATE_COOKIE), os.environ.get("GATE_HMAC_KEY", "")
+    )
+
+
+@app.route("/__kuma_auth_check")
+def kuma_auth_check():
+    """串联 Pages 门禁与 Authentik Outpost，供 /kuma/ 的单一 auth_request 使用。"""
+    if not _gate_allowed():
+        return Response("Forbidden", status=403)
+
+    original_uri = request.headers.get("X-Original-URI", "/")
+    headers = {
+        "Host": "admin.limooo.cn",
+        "Cookie": request.headers.get("Cookie", ""),
+        "X-Original-URL": f"https://admin.limooo.cn{original_uri}",
+        "X-Forwarded-Host": "admin.limooo.cn",
+        "X-Forwarded-Proto": "https",
+        "X-Real-IP": request.headers.get("X-Real-IP", ""),
+        "X-Forwarded-For": request.headers.get("X-Forwarded-For", ""),
+    }
+    try:
+        upstream = requests.get(
+            f"{AUTHENTIK_INTERNAL}/outpost.goauthentik.io/auth/nginx",
+            headers=headers,
+            timeout=10,
+        )
+    except requests.RequestException:
+        return Response("Authentik unavailable", status=503)
+
+    response = Response(status=upstream.status_code)
+    if cookie := upstream.headers.get("Set-Cookie"):
+        response.headers.add("Set-Cookie", cookie)
+    return response
 
 
 # ── 模板渲染 i18n（构建与本地预览仍依赖） ─────────────

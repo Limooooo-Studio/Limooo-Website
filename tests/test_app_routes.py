@@ -43,6 +43,21 @@ def test_gate_check_allows_shared_whitelist_asn(monkeypatch, tmp_path):
     assert resp.status_code == 204
 
 
+def test_kuma_auth_check_rejects_before_calling_authentik(monkeypatch):
+    monkeypatch.setattr(app, "_gate_allowed", lambda: False)
+    called = False
+
+    def unexpected_request(*_args, **_kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(app.requests, "get", unexpected_request)
+    resp = app.app.test_client().get("/__kuma_auth_check")
+
+    assert resp.status_code == 403
+    assert not called
+
+
 def test_provider_status_reuses_a_successful_summary(monkeypatch):
     class SummaryResponse:
         def raise_for_status(self):
