@@ -97,7 +97,7 @@ async function archiveTable(env: Env, table: TableSpec, day: { day: string; star
   // visitor_rollups 用 bucket_hour，其余分析表使用 ts；两者都是 UTC epoch 秒。
   const rows = await env.DB.prepare(table.sql).bind(day.start, day.end).all();
   const payload = await gzipJsonl(rows.results ?? []);
-  await env.ARCHIVE.put(`analytics/${day.day}/${table.name}.jsonl.gz`, payload, {
+  await env.ARCHIVE.put(`${table.name}_${day.day}.jsonl.gz`, payload, {
     httpMetadata: { contentType: "application/x-ndjson", contentEncoding: "gzip" },
   });
   return rows.results?.length ?? 0;
@@ -120,9 +120,8 @@ export default {
     ctx.waitUntil(archivePreviousDay(env));
   },
 
-  async fetch(request: Request, env: Env): Promise<Response> {
-    if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
-    const counts = await archivePreviousDay(env);
-    return Response.json({ ok: true, counts });
+  async fetch(_request: Request): Promise<Response> {
+    // 归档只允许由 Cloudflare Cron 触发，避免公开 URL 被反复调用造成 D1 读取。
+    return new Response("Not Found", { status: 404 });
   },
 };
