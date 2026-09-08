@@ -1,8 +1,8 @@
 /** 人机验证门禁：cookie 校验/签发、Turnstile 验证、门禁页渲染、配置接口。 */
 
-import { queryAll } from "./d1";
-import { networkAddress, normalizeIp } from "./cidr";
-import { logEvent } from "./logging";
+import { execute, executeBatch, queryAll } from "./d1";
+import { networkAddress, normalizeIp, parseCidr } from "./cidr";
+import { ipHash, logEvent } from "./logging";
 import type { RequestContext } from "./routing";
 import {
   detectLang,
@@ -23,6 +23,8 @@ import { GATE_I18N } from "../_data/runtime";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 3000;
+const GATE_FAILURE_WINDOW_SECONDS = 24 * 60 * 60;
+const GATE_FAILURE_BAN_THRESHOLD = 3;
 
 const textEncoder = new TextEncoder();
 
@@ -187,6 +189,89 @@ interface BlockedRow {
   prefix: number;
 }
 
+/**
+ * 记录未通过门禁的来源；同一 IP 在 24 小时内第 3 次失败时精确封禁该 IP。
+ *
+ * 计数只保存 HMAC 后的 IP，封禁时才把规范化地址写入 blocked_ips。成功写入
+ * blocked_ips 后删除计数器，避免被封来源继续占用表空间或反复触发封禁审计。
+ */
+export async function banAfterGateFailures(
+  env: import("./env").Env,
+  request: Request,
+  ip: string,
+): Promise<boolean> {
+  if (!env.DB || !env.OBSERVABILITY_HMAC_KEY) return false;
+  const normalized = normalizeIp(ip);
+  if (!normalized) return false;
+  const parsed = parseCidr(normalized);
+  if (!parsed) return false;
+
+  const hashedIp = await ipHash(normalized, env);
+  if (!hashedIp) return false;
+
+  try {
+    const rows = await queryAll<{ failures: number }>(
+      env.DB,
+      `INSERT INTO gate_failures (ip_hash, failures, window_started_at, last_seen_at)
+       VALUES (?, 1, unixepoch(), unixepoch())
+       ON CONFLICT(ip_hash) DO UPDATE SET
+         failures = CASE
+           WHEN gate_failures.last_seen_at < unixepoch() - ? THEN 1
+           ELSE gate_failures.failures + 1
+         END,
+         window_started_at = CASE
+           WHEN gate_failures.last_seen_at < unixepoch() - ? THEN unixepoch()
+           ELSE gate_failures.window_started_at
+         END,
+         last_seen_at = unixepoch()
+       RETURNING failures`,
+      hashedIp,
+      GATE_FAILURE_WINDOW_SECONDS,
+      GATE_FAILURE_WINDOW_SECONDS,
+    );
+    if ((rows[0]?.failures ?? 0) < GATE_FAILURE_BAN_THRESHOLD) return false;
+
+    const now = "datetime('now')";
+    const reason = `${GATE_FAILURE_BAN_THRESHOLD} unverified gate requests within 24h`;
+    const mutationSql =
+      `INSERT INTO blocked_ips
+         (cidr, network, prefix, reason, source, created_at, updated_at, updated_by, active)
+       VALUES (?, ?, ?, ?, 'gate/threshold', ${now}, ${now}, 'gate-threshold', 1)
+       ON CONFLICT(cidr) DO UPDATE SET
+         network = excluded.network, prefix = excluded.prefix, reason = excluded.reason,
+         source = 'gate/threshold', updated_at = excluded.updated_at,
+         updated_by = 'gate-threshold', active = 1`;
+    const auditSql =
+      `INSERT INTO blocklist_audit
+         (cidr, network, prefix, action, actor, reason, source, previous_reason,
+          previous_source, previous_updated_at, created_at)
+       VALUES (?, ?, ?, 'threshold_block', 'gate-threshold', ?, 'gate/threshold',
+               '', '', '', ${now})`;
+    const clearSql = "DELETE FROM gate_failures WHERE ip_hash = ?";
+    const statements = [
+      env.DB.prepare(mutationSql).bind(parsed.cidr, parsed.network, parsed.prefix, reason),
+      env.DB.prepare(auditSql).bind(parsed.cidr, parsed.network, parsed.prefix, reason),
+      env.DB.prepare(clearSql).bind(hashedIp),
+    ];
+    const batched = await executeBatch(env.DB, statements);
+    if (!batched) {
+      if (!(await execute(env.DB, mutationSql, parsed.cidr, parsed.network, parsed.prefix, reason))) return false;
+      if (!(await execute(env.DB, auditSql, parsed.cidr, parsed.network, parsed.prefix, reason))) return false;
+      if (!(await execute(env.DB, clearSql, hashedIp))) return false;
+    }
+    await logEvent(env, "gate_threshold_block", request, {
+      outcome: "blocked",
+      status: 403,
+      ip: normalized,
+      message: `cidr=${parsed.cidr}; failures=${GATE_FAILURE_BAN_THRESHOLD}`,
+    });
+    return true;
+  } catch {
+    // 封禁计数不可用时维持门禁原有行为，不能误封。
+    return false;
+  }
+}
+
 /** 封禁检查：规范化请求 IP 后，按 blocked_ips(network, prefix) 精确查询（DB 异常时放行）。 */
 export async function isBlocked(
   env: { DB?: import("./env").Env["DB"] },
@@ -205,9 +290,10 @@ export async function isBlocked(
   }
   try {
     let matched: BlockedRow | null = null;
-    // 分批查询，避免一条 SQL 绑定 129 个 CIDR 参数；D1 索引命中后每个批次最多一行。
-    for (let start = 0; start < candidates.length; start += 20) {
-      const chunk = candidates.slice(start, start + 20);
+    // 每对 network/prefix 占两个绑定参数；49 对可保持在 D1 单语句 100 参数限制内。
+    // 因而 IPv4 只需一次查询，IPv6 由原先七次降为三次。
+    for (let start = 0; start < candidates.length; start += 49) {
+      const chunk = candidates.slice(start, start + 49);
       const conditions = chunk.map(() => "(network = ? AND prefix = ?)").join(" OR ");
       const rows = await queryAll<BlockedRow>(
         env.DB,

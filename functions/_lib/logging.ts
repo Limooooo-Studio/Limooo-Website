@@ -74,7 +74,6 @@ async function ensureEventSchema(env: Env): Promise<void> {
     "CREATE INDEX IF NOT EXISTS idx_events_ts_event ON events (ts, event)",
     "CREATE INDEX IF NOT EXISTS idx_events_event_outcome_ts ON events (event, outcome, ts)",
     "CREATE INDEX IF NOT EXISTS idx_events_request_id ON events (request_id)",
-    "CREATE INDEX IF NOT EXISTS idx_events_ip_hash_ts ON events (ip_hash, ts)",
   ];
   try {
     for (const sql of ddl) {

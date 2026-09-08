@@ -16,6 +16,16 @@ import { IMAGES_HOSTNAME, REDIRECT_HOSTNAME } from "./config";
 let trackingSchemaReady = false;
 
 const TRACKING_DDL = [
+  `CREATE TABLE IF NOT EXISTS visitor_rollups (
+    bucket_hour INTEGER NOT NULL,
+    ip_hash     TEXT NOT NULL DEFAULT '',
+    country     TEXT NOT NULL DEFAULT '',
+    status      INTEGER NOT NULL DEFAULT 0,
+    page_slug   TEXT NOT NULL DEFAULT '',
+    requests    INTEGER NOT NULL DEFAULT 1,
+    last_ts     INTEGER NOT NULL DEFAULT (unixepoch()),
+    PRIMARY KEY (bucket_hour, ip_hash, country, status, page_slug)
+  )`,
   `CREATE TABLE IF NOT EXISTS visitors_v2 (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     ip_hash     TEXT NOT NULL DEFAULT '',
@@ -40,7 +50,6 @@ const TRACKING_DDL = [
     ua_family       TEXT NOT NULL DEFAULT ''
   )`,
   "CREATE INDEX IF NOT EXISTS idx_ray_log_v2_ts ON ray_log_v2 (ts)",
-  "CREATE INDEX IF NOT EXISTS idx_ray_log_v2_host_ts ON ray_log_v2 (host, ts)",
 ];
 
 export function isTrustedCrawler(request: Request): boolean {
@@ -141,7 +150,7 @@ async function ensureTrackingSchema(env: Env): Promise<void> {
   }
 }
 
-/** 响应完成后记录访客；只写 ip_hash/country/status/ts/page_slug。 */
+/** 响应完成后记录访客；同一小时/IP/页面/状态聚合为一行，计数仍保持精确。 */
 export async function recordVisit(env: Env, request: Request, status: number): Promise<void> {
   if (!env.DB) return;
   const url = new URL(request.url);
@@ -150,7 +159,12 @@ export async function recordVisit(env: Env, request: Request, status: number): P
     await ensureTrackingSchema(env);
     await execute(
       env.DB,
-      "INSERT INTO visitors_v2 (ip_hash, country, status, ts, page_slug) VALUES (?, ?, ?, unixepoch(), ?)",
+      `INSERT INTO visitor_rollups
+         (bucket_hour, ip_hash, country, status, page_slug, requests, last_ts)
+       VALUES ((unixepoch() / 3600) * 3600, ?, ?, ?, ?, 1, unixepoch())
+       ON CONFLICT(bucket_hour, ip_hash, country, status, page_slug) DO UPDATE SET
+         requests = visitor_rollups.requests + 1,
+         last_ts = excluded.last_ts`,
       await ipHash(request.headers.get("CF-Connecting-IP") ?? "", env),
       cf?.country ?? "",
       status,

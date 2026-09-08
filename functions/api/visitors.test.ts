@@ -65,8 +65,10 @@ describe("visitors API", () => {
     expect(vi.mocked(queryAll)).toHaveBeenCalledTimes(2);
     expect(vi.mocked(queryAll).mock.calls[0][1]).toContain("GROUP_CONCAT");
     expect(vi.mocked(queryAll).mock.calls[0][2]).toBe(expectedCutoff);
+    expect(vi.mocked(queryAll).mock.calls[0][3]).toBe(expectedCutoff);
     expect(vi.mocked(queryAll).mock.calls[1][1]).toContain("LIMIT 500");
     expect(vi.mocked(queryAll).mock.calls[1][2]).toBe(expectedCutoff);
+    expect(vi.mocked(queryAll).mock.calls[1][3]).toBe(expectedCutoff);
 
     expect(data.stats.total_requests).toBe(4);
     expect(data.stats.total_ips).toBe(2);
@@ -105,6 +107,8 @@ describe("visitors API", () => {
     expect(markerSql).toContain("status = ?");
     expect(vi.mocked(queryAll).mock.calls[1][2]).toBe(expectedCutoff);
     expect(vi.mocked(queryAll).mock.calls[1][3]).toBe(404);
+    expect(vi.mocked(queryAll).mock.calls[1][4]).toBe(expectedCutoff);
+    expect(vi.mocked(queryAll).mock.calls[1][5]).toBe(404);
   });
 
   it("returns 400 for an invalid status param without querying D1", async () => {

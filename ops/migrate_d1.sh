@@ -86,7 +86,7 @@ is_applied() {
 }
 
 if [ "$CHECK_SCHEMA" = 1 ]; then
-    expected=(apple_accounts blocked_ips visitors ray_log events visitors_v2 ray_log_v2 visitors_daily retention_state schema_version blocklist_audit)
+    expected=(apple_accounts blocked_ips visitors ray_log events visitors_v2 visitor_rollups ray_log_v2 visitors_daily retention_state schema_version blocklist_audit gate_failures)
     if [ -f "$MIGRATIONS_DIR/008_auth_sessions.sql" ] || [ -f "$MIGRATIONS_DIR/004_auth_sessions.sql" ]; then
         expected+=(auth_sessions)
     fi

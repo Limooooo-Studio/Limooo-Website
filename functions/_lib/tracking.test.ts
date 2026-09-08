@@ -65,8 +65,9 @@ describe("tracking", () => {
       200,
     );
     const calls = vi.mocked(execute).mock.calls;
-    const insert = calls.find((call) => String(call[1]).includes("INSERT INTO visitors_v2"));
+    const insert = calls.find((call) => String(call[1]).includes("INSERT INTO visitor_rollups"));
     expect(insert).toBeDefined();
+    expect(String(insert![1])).toContain("ON CONFLICT");
     const values = insert!.slice(2).map(String);
     expect(values).toContain("portfolio");
     expect(values.some((value) => value.includes("8.8.8.8") || value.includes("secret=1"))).toBe(false);

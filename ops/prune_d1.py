@@ -11,7 +11,7 @@
 
 保留期：
     ray_log_v2  7 天
-    visitors_v2 30 天
+    visitors_v2 / visitor_rollups 30 天
     events      90 天
     visitors_daily 永久
 """
@@ -38,6 +38,7 @@ DAY_SECONDS = 86400
 BUCKETS: dict[str, int] = {
     "ray_log_v2": 7 * DAY_SECONDS,
     "visitors_v2": 30 * DAY_SECONDS,
+    "visitor_rollups": 30 * DAY_SECONDS,
     "events": 90 * DAY_SECONDS,
 }
 AGGREGATE_WINDOW_SECONDS = DAY_SECONDS
@@ -56,14 +57,21 @@ def _count_rows(cfg: dict[str, str], table: str, cutoff: int) -> int:
 
 
 def _aggregate_sql() -> str:
-    """把最近一天的新 visitors_v2 汇入 visitors_daily（可重复执行）。"""
+    """把旧明细与新小时汇总合并进 visitors_daily（可重复执行）。"""
     return (
         "INSERT OR REPLACE INTO visitors_daily "
         "(day, country, page_slug, status, unique_ips, requests) "
+        "WITH combined AS ("
+        "SELECT ts, ip_hash, country, page_slug, status, 1 AS requests, "
+        "'v:' || id AS fallback_id FROM visitors_v2 "
+        f"WHERE ts >= unixepoch() - {AGGREGATE_WINDOW_SECONDS} UNION ALL "
+        "SELECT last_ts AS ts, ip_hash, country, page_slug, status, requests, "
+        "'r:' || bucket_hour || ':' || country || ':' || status || ':' || page_slug AS fallback_id "
+        "FROM visitor_rollups "
+        f"WHERE last_ts >= unixepoch() - {AGGREGATE_WINDOW_SECONDS}) "
         "SELECT strftime('%Y-%m-%d', ts, 'unixepoch'), country, page_slug, status, "
-        "COUNT(DISTINCT CASE WHEN ip_hash <> '' THEN ip_hash ELSE id END), COUNT(*) "
-        "FROM visitors_v2 "
-        f"WHERE ts >= unixepoch() - {AGGREGATE_WINDOW_SECONDS} "
+        "COUNT(DISTINCT CASE WHEN ip_hash <> '' THEN ip_hash ELSE fallback_id END), SUM(requests) "
+        "FROM combined "
         "GROUP BY strftime('%Y-%m-%d', ts, 'unixepoch'), country, page_slug, status"
     )
 
@@ -71,10 +79,11 @@ def _aggregate_sql() -> str:
 def _aggregate_count_sql() -> str:
     return (
         "SELECT COUNT(*) AS count FROM ("
-        "SELECT strftime('%Y-%m-%d', ts, 'unixepoch') AS day, "
-        "country, page_slug, status, COUNT(*) AS n "
-        "FROM visitors_v2 "
-        f"WHERE ts >= unixepoch() - {AGGREGATE_WINDOW_SECONDS} "
+        "SELECT strftime('%Y-%m-%d', ts, 'unixepoch') AS day, country, page_slug, status "
+        "FROM (SELECT ts, country, page_slug, status FROM visitors_v2 "
+        f"WHERE ts >= unixepoch() - {AGGREGATE_WINDOW_SECONDS} UNION ALL "
+        "SELECT last_ts AS ts, country, page_slug, status FROM visitor_rollups "
+        f"WHERE last_ts >= unixepoch() - {AGGREGATE_WINDOW_SECONDS}) "
         "GROUP BY day, country, page_slug, status)"
     )
 

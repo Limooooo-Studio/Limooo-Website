@@ -5,9 +5,8 @@
  * ip_hash。前端状态筛选已本地化，因此主前端只调用不带 status 参数的端点；
  * `?status=<3位数字>` 保留给深链和外部调用。
  *
- * 查询范围：visitors_v2 默认只统计最近 30 天（与 docs/11 保留期一致），
- * 避免表增长后每次刷新都做全表聚合。本实现把“全局统计 + 状态分布”合并为
- * 一条查询，把“IP 列表 + 每个 IP 的状态分布”合并为另一条查询。
+ * 查询范围：新 visitor_rollups 与迁移前 visitors_v2 明细共同统计最近 30 天。
+ * rollups 把同一小时/IP/页面/状态压成一行，但 requests 仍是精确请求数。
  */
 
 import { queryAll } from "../_lib/d1";
@@ -129,17 +128,22 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const statsRows = await queryAll<StatsRow>(
     context.env.DB,
     `WITH scoped AS (
-        SELECT ip_hash, country, status, ts
+        SELECT ip_hash, country, status, ts, 1 AS requests
         FROM visitors_v2
         WHERE ts >= ?
+        UNION ALL
+        SELECT ip_hash, country, status, last_ts AS ts, requests
+        FROM visitor_rollups
+        WHERE last_ts >= ?
      )
      SELECT
        (SELECT COUNT(DISTINCT ip_hash) FROM scoped) AS ips,
-       (SELECT COUNT(*) FROM scoped) AS requests,
+       (SELECT COALESCE(SUM(requests), 0) FROM scoped) AS requests,
        (SELECT COUNT(DISTINCT country) FROM scoped) AS countries,
        (SELECT GROUP_CONCAT(status || ':' || n, ',') FROM (
-          SELECT status, COUNT(*) AS n FROM scoped GROUP BY status ORDER BY status
+          SELECT status, SUM(requests) AS n FROM scoped GROUP BY status ORDER BY status
        )) AS status_series`,
+    cutoff,
     cutoff,
   );
 
@@ -147,9 +151,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   // 先取 top 500，再按 ip_hash+status 分组，一次拿到构建 markers 所需的全部行。
   const markerSql = statusNum === null
     ? `WITH scoped AS (
-         SELECT ip_hash, country, status, ts
+         SELECT ip_hash, country, status, ts, 1 AS requests
          FROM visitors_v2
          WHERE ts >= ?
+         UNION ALL
+         SELECT ip_hash, country, status, last_ts AS ts, requests
+         FROM visitor_rollups
+         WHERE last_ts >= ?
        ),
        top AS (
          SELECT ip_hash, MAX(ts) AS last_ts
@@ -161,16 +169,20 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        SELECT v.ip_hash,
               MAX(v.country) AS country,
               v.status,
-              COUNT(*) AS n,
+              SUM(v.requests) AS n,
               strftime('%Y-%m-%d %H:%M:%S', MAX(v.ts), 'unixepoch') AS last_ts
        FROM scoped v
        JOIN top t ON t.ip_hash = v.ip_hash
        GROUP BY v.ip_hash, v.status
        ORDER BY MAX(v.ts) DESC, v.status`
     : `WITH scoped AS (
-         SELECT ip_hash, country, status, ts
+         SELECT ip_hash, country, status, ts, 1 AS requests
          FROM visitors_v2
          WHERE ts >= ? AND status = ?
+         UNION ALL
+         SELECT ip_hash, country, status, last_ts AS ts, requests
+         FROM visitor_rollups
+         WHERE last_ts >= ? AND status = ?
        ),
        top AS (
          SELECT ip_hash, MAX(ts) AS last_ts
@@ -182,14 +194,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        SELECT v.ip_hash,
               MAX(v.country) AS country,
               v.status,
-              COUNT(*) AS n,
+              SUM(v.requests) AS n,
               strftime('%Y-%m-%d %H:%M:%S', MAX(v.ts), 'unixepoch') AS last_ts
        FROM scoped v
        JOIN top t ON t.ip_hash = v.ip_hash
        GROUP BY v.ip_hash, v.status
        ORDER BY MAX(v.ts) DESC, v.status`;
 
-  const markerParams: unknown[] = statusNum === null ? [cutoff] : [cutoff, statusNum];
+  const markerParams: unknown[] = statusNum === null
+    ? [cutoff, cutoff]
+    : [cutoff, statusNum, cutoff, statusNum];
   const markerRows = await queryAll<MarkerRow>(context.env.DB, markerSql, ...markerParams);
 
   const stats = statsRows[0] ?? { ips: 0, requests: 0, countries: 0, status_series: null };

@@ -37,11 +37,17 @@ WHERE event IN ('visit_record_error', 'ray_record_error')
 
 -- name: visitor_trend_1h
 SELECT
-  (SELECT COUNT(*) FROM visitors_v2
-    WHERE ts >= unixepoch() - 3600) AS current_hour,
-  (SELECT COUNT(*) FROM visitors_v2
-    WHERE ts >= unixepoch() - 7200
-      AND ts < unixepoch() - 3600) AS previous_hour;
+  (SELECT
+     (SELECT COUNT(*) FROM visitors_v2 WHERE ts >= unixepoch() - 3600) +
+     (SELECT COALESCE(SUM(requests), 0) FROM visitor_rollups
+       WHERE last_ts >= unixepoch() - 3600)
+  ) AS current_hour,
+  (SELECT
+     (SELECT COUNT(*) FROM visitors_v2
+       WHERE ts >= unixepoch() - 7200 AND ts < unixepoch() - 3600) +
+     (SELECT COALESCE(SUM(requests), 0) FROM visitor_rollups
+       WHERE last_ts >= unixepoch() - 7200 AND last_ts < unixepoch() - 3600)
+  ) AS previous_hour;
 
 -- name: ray_status_distribution_1h
 SELECT status, COUNT(*) AS count

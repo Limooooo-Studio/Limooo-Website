@@ -35,6 +35,7 @@ import {
   handleGateConfig,
   handleGateDiag,
   handleVerify,
+  banAfterGateFailures,
   isBlocked,
   isValidGateCookie,
   mintGateCookie,
@@ -350,15 +351,9 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   const gateUrl = new URL("/__gate", `https://${hostname}/`);
   gateUrl.searchParams.set("host", hostname);
   gateUrl.searchParams.set("next", pathname + url.search);
-  defer(
-    context,
-    logEvent(env, "gate_redirect", request, {
-      outcome: "unverified",
-      status: 302,
-      path: pathname,
-      message: "redirect_to_gate",
-    }),
-  );
+  if (await banAfterGateFailures(env, request, ip)) {
+    return new Response("Forbidden", { status: 403 });
+  }
   return withLangCookie(request, new Response(null, {
     status: 302,
     headers: {
@@ -374,14 +369,16 @@ export const onRequest: PagesFunction = async (context) => {
   const startedAt = Date.now();
   const resp = withSecurityHeaders(request, await handleOnRequest(context));
 
-  if (shouldTrackVisit(request, url)) {
+  // 门禁拒绝与已封来源不落访问/Ray 日志，避免扫描流量反过来耗尽 D1 配额。
+  const trackResponse = resp.status !== 403;
+  if (trackResponse && shouldTrackVisit(request, url)) {
     if (typeof context.waitUntil === "function") {
       context.waitUntil(recordVisit(env, request, resp.status));
     } else {
       void recordVisit(env, request, resp.status);
     }
   }
-  if (shouldTrackRay(request, url)) {
+  if (trackResponse && shouldTrackRay(request, url)) {
     const durationMs = Date.now() - startedAt;
     if (typeof context.waitUntil === "function") {
       context.waitUntil(recordRay(env, request, resp.status, durationMs));

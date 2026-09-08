@@ -86,7 +86,6 @@ def _schema_statements() -> list[str]:
         "CREATE INDEX IF NOT EXISTS idx_events_ts_event ON events (ts, event)",
         "CREATE INDEX IF NOT EXISTS idx_events_event_outcome_ts ON events (event, outcome, ts)",
         "CREATE INDEX IF NOT EXISTS idx_events_request_id ON events (request_id)",
-        "CREATE INDEX IF NOT EXISTS idx_events_ip_hash_ts ON events (ip_hash, ts)",
         """
         CREATE TABLE IF NOT EXISTS visitors_v2 (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +99,18 @@ def _schema_statements() -> list[str]:
         "CREATE INDEX IF NOT EXISTS idx_visitors_v2_ts ON visitors_v2 (ts)",
         "CREATE INDEX IF NOT EXISTS idx_visitors_v2_ip_hash_ts ON visitors_v2 (ip_hash, ts)",
         "CREATE INDEX IF NOT EXISTS idx_visitors_v2_page_slug_ts ON visitors_v2 (page_slug, ts)",
+        """
+        CREATE TABLE IF NOT EXISTS visitor_rollups (
+            bucket_hour INTEGER NOT NULL,
+            ip_hash     TEXT NOT NULL DEFAULT '',
+            country     TEXT NOT NULL DEFAULT '',
+            status      INTEGER NOT NULL DEFAULT 0,
+            page_slug   TEXT NOT NULL DEFAULT '',
+            requests    INTEGER NOT NULL DEFAULT 1,
+            last_ts     INTEGER NOT NULL DEFAULT (unixepoch()),
+            PRIMARY KEY (bucket_hour, ip_hash, country, status, page_slug)
+        )
+        """,
         """
         CREATE TABLE IF NOT EXISTS ray_log_v2 (
             ray             TEXT PRIMARY KEY,
@@ -115,7 +126,6 @@ def _schema_statements() -> list[str]:
         )
         """,
         "CREATE INDEX IF NOT EXISTS idx_ray_log_v2_ts ON ray_log_v2 (ts)",
-        "CREATE INDEX IF NOT EXISTS idx_ray_log_v2_host_ts ON ray_log_v2 (host, ts)",
         """
         CREATE TABLE IF NOT EXISTS visitors_daily (
             day         TEXT NOT NULL,
