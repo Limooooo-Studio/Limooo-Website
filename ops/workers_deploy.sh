@@ -42,12 +42,13 @@ DIRTY="$(git -C "$ROOT" status --porcelain | wc -l | tr -d ' ')"
 
 printf '%-24s %s %s\n' "commit" "$COMMIT" "dirty_files=$DIRTY"
 
-WORKERS=("$ROOT/ops/sync-worker" "$ROOT/ops/image-watermark")
+WORKERS=("$ROOT/ops/sync-worker" "$ROOT/ops/image-watermark" "$ROOT/ops/d1-archive")
 if [ -n "$SELECTED" ]; then
     case "$SELECTED" in
         sync-worker) WORKERS=("$ROOT/ops/sync-worker") ;;
         image-watermark) WORKERS=("$ROOT/ops/image-watermark") ;;
-        *) echo "FATAL: 未知 Worker $SELECTED（可选 sync-worker / image-watermark）" >&2; exit 2 ;;
+        d1-archive) WORKERS=("$ROOT/ops/d1-archive") ;;
+        *) echo "FATAL: 未知 Worker $SELECTED（可选 sync-worker / image-watermark / d1-archive）" >&2; exit 2 ;;
     esac
 fi
 

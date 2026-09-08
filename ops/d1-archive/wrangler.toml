@@ -1,0 +1,17 @@
+# 每日 UTC 00:00 将前一天的分析明细压缩归档到 R2。
+name = "limooo-d1-archive"
+main = "src/index.ts"
+compatibility_date = "2026-08-15"
+account_id = "4a7fd8c8f1a59a265981a73e631b9e3f"
+
+[triggers]
+crons = ["0 0 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "limooo"
+database_id = "e2f29d54-29c0-46af-938d-e13995a11d7f"
+
+[[r2_buckets]]
+binding = "ARCHIVE"
+bucket_name = "limooo-analytics"
