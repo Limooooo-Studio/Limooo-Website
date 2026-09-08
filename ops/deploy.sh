@@ -45,7 +45,7 @@ done
 # Config(走 ~/.ssh/config 的 limooo 别名:IP/密钥/端口都在那里)
 REMOTE_HOST="limooo"   # <-- 换服务器时改这里(改成新服务器的 ssh config 别名或 IP)
 REMOTE_DIR="/var/www/limooo"
-LOCAL_DIR="/Users/lime/Documents/Project/Limooo/Flask/"
+LOCAL_DIR="${LOCAL_DIR:-/Users/lime/Documents/Project/Limooo/Flask/}"
 SSH_OPTS="-o LogLevel=ERROR"
 
 echo "cd $LOCAL_DIR"
@@ -114,6 +114,8 @@ rsync -avz --delete -e "ssh $SSH_OPTS" \
     --exclude 'secrets/authentik-email.env' \
     --exclude 'secrets/uptime-kuma.env' \
     --exclude 'secrets/webauthn.env' \
+    --exclude 'secrets/*.env' \
+    --exclude 'ops/backups/' \
     --exclude 'README 2.md' \
     --exclude 'geo_cache.db*' \
     --exclude 'appleid.db*' \
