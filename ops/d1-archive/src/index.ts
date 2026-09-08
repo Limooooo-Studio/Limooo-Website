@@ -97,7 +97,7 @@ async function archiveTable(env: Env, table: TableSpec, day: { day: string; star
   // visitor_rollups 用 bucket_hour，其余分析表使用 ts；两者都是 UTC epoch 秒。
   const rows = await env.DB.prepare(table.sql).bind(day.start, day.end).all();
   const payload = await gzipJsonl(rows.results ?? []);
-  await env.ARCHIVE.put(`analytics/${table.name}_${day.day}.jsonl.gz`, payload, {
+  await env.ARCHIVE.put(`analytics/${day.day}/${table.name}.jsonl.gz`, payload, {
     httpMetadata: { contentType: "application/x-ndjson", contentEncoding: "gzip" },
   });
   return rows.results?.length ?? 0;
