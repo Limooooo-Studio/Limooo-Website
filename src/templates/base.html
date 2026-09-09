@@ -27,7 +27,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <meta name="color-scheme" content="dark light">
     {% endblock %}
 
-    <title>{% block title %}LIMOOO{% endblock %}</title>
+    <title>{% block title %}{{ _('page_title_home') }}{% endblock %}</title>
 
     <!-- 预加载主题脚本：在渲染之前检测 localStorage，防止浅色模式下的白色闪烁 -->
     {% block theme_preload %}
@@ -70,7 +70,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <nav class="site-nav fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl z-[100] flex items-center px-5 md:px-8 h-[70px] md:h-[100px]">
         {% block nav_logo %}
         <a href="{{ home_url }}" class="flex items-center gap-2 md:gap-2.5 shrink-0" id="nav-logo">
-            <span class="nav-brand text-lg md:text-2xl font-semibold uppercase tracking-[0.05em]">LIMOOO</span>
+            <span class="nav-brand text-lg md:text-2xl font-semibold tracking-[0.05em]">Limooo</span>
         </a>
         {% endblock %}
 
@@ -143,7 +143,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% block footer_markup %}
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
-        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
+        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
         </div>
     </footer>
     {% endblock %}

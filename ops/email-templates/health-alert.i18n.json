@@ -4,7 +4,7 @@
     "description": "Limooo 健康检查告警邮件四语种文案。",
     "sender": "no-reply-<N>@limooo.cn",
     "default_reply_to": "contact@limooo.cn",
-    "footer_brand": "LIMOOO",
+    "footer_brand": "Limooo",
     "footer_suffix": "Studio"
   },
   "zh-cn": {

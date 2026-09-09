@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 {% extends "base.html" %}
 
-{% block title %}LIMOOO{% endblock %}
+{% block title %}{{ _('page_title_home') }}{% endblock %}
 
 {% block head_links %}
 <link rel="stylesheet" href="/static/css/index.css?v=7">
@@ -28,7 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block flash %}{% endblock %}
 
 {% block content %}
-<h1 id="hero-title" class="hero-title text-4xl md:text-7xl tracking-[0.05em] uppercase"><span class="bracket">「</span>LIMOOO<span class="bracket">」</span></h1>
+<h1 id="hero-title" class="hero-title text-4xl md:text-7xl tracking-[0.05em]"><span class="bracket">「</span>Limooo<span class="bracket">」</span></h1>
 <!-- ═══ 首屏（home） ═══ -->
 <div id="home-screen" class="page-layer">
     <section class="flex-grow flex flex-col justify-center items-center text-center px-6"></section>

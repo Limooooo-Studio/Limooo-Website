@@ -2,7 +2,7 @@
   "meta": {
     "template": "framework",
     "description": "通用邮件框架默认可选文案（四语种）。框架本身无主题文案，各服务单独提供主题正文；此处仅提供通用提示/页脚/按钮等可选默认值。",
-    "footer_brand": "LIMOOO",
+    "footer_brand": "Limooo",
     "footer_suffix": "Studio",
     "default_reply_to": "contact@limooo.cn",
     "sender": "no-reply-<N>@limooo.cn"

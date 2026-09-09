@@ -72,7 +72,7 @@ def test_visitor_inherits_base_nav_logo():
     logo_start = html.index('id="nav-logo"')
     logo_open_end = html.index(">", logo_start) + 1
 
-    assert "LIMOOO" in html[logo_start:html.index("</a>", logo_open_end)]
+    assert "Limooo" in html[logo_start:html.index("</a>", logo_open_end)]
     assert 'href="https://limooo.cn"' in html[html.rindex("<a", 0, logo_start):logo_open_end]
 
 
@@ -100,7 +100,7 @@ def test_pages_edge_config_excludes_static_assets(tmp_path):
     routes = json.loads((tmp_path / "_routes.json").read_text(encoding="utf-8"))
     assert routes["version"] == 1
     assert "/static/*" in routes["exclude"]
-    assert "/favicon.ico" in routes["exclude"]
+    assert "/favicon.svg" in routes["exclude"]
 
     headers = (tmp_path / "_headers").read_text(encoding="utf-8")
     assert "Cache-Control: public, max-age=86400" in headers

@@ -40,7 +40,7 @@
   </button>
 </div>
 <main class="card">
-  <img class="logo" src="/static/icons/Limooo-xtext.svg?v=2" alt="LIMOOO" width="220">
+  <img class="logo" src="/static/icons/Limooo-xtext.svg?v=2" alt="Limooo" width="220">
   <h1 data-i18n="heading">{{ heading }}</h1>
   <div id="gate-error" class="error" hidden></div>
   <form id="gate" method="post" action="/__gate/verify">
@@ -54,11 +54,11 @@
     <dt data-i18n="ip">{{ ip }}</dt><dd id="diag-ip">—</dd>
     <dt data-i18n="ray">{{ ray }}</dt><dd id="diag-ray">—</dd>
   </dl>
-  <p class="foot" data-i18n="foot" data-brandify="LIMOOO">{{ foot }}</p>
+  <p class="foot" data-i18n="foot" data-brandify="Limooo">{{ foot }}</p>
 </main>
 <footer class="global-footer" id="global-footer">
   <div class="footer-link">
-  <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">LIMOOO</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
+  <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
   </div>
 </footer>
     <script id="gate-i18n" type="application/json">{{ gate_i18n_json | safe }}</script>
