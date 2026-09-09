@@ -113,7 +113,7 @@ export function shouldTrackVisit(request: Request, url: URL): boolean {
     p.startsWith("/static/") ||
     p.startsWith("/__gate") ||
     p.startsWith("/favicon") ||
-    p === "/limooo-xtext.svg"
+    p === "/Limooo-xtext.svg"
   ) {
     return false;
   }
@@ -133,7 +133,7 @@ export function shouldTrackRay(request: Request, url: URL): boolean {
   ) {
     return false;
   }
-  if (p.startsWith("/favicon") || p === "/limooo-xtext.svg") return false;
+  if (p.startsWith("/favicon") || p === "/Limooo-xtext.svg") return false;
   if (/\.(png|webp|jpg|jpeg|gif|ico|svg|css|js|json|webmanifest|txt|xml)$/i.test(p)) return false;
   return true;
 }

@@ -27,8 +27,8 @@ export const SKIP_PATHS = new Set<string>([
   "/__gate/verify",
   "/__gate/diag",
   "/__gate/config",
-  "/limooo-xtext.svg",
-  "/favicon.ico",
+  "/Limooo-xtext.svg",
+  "/favicon.svg",
 ]);
 
 /** 门禁/封禁白名单：只认 data/whitelist.txt 生成的门禁信任配置。 */
@@ -177,8 +177,8 @@ export function isPublicAssetPath(pathname: string): boolean {
   return (
     SKIP_PATHS.has(pathname) ||
     pathname.startsWith("/static/") ||
-    pathname === "/favicon.ico" ||
-    pathname === "/limooo-xtext.svg"
+    pathname === "/favicon.svg" ||
+    pathname === "/Limooo-xtext.svg"
   );
 }
 

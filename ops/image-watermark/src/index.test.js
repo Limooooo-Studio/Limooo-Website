@@ -68,9 +68,9 @@ test("thumbs / qr-codes / icons 走干净静态版，不加水印", () => {
   assert.equal(qr.watermarked, false);
   assert.equal(qr.target, `${ORIGIN}/static/qr-codes/a.png`);
 
-  const icon = routeFor(new URL("https://image.limooo.cn/icons/logo.svg"), { headers: new Headers() }, ORIGIN);
+  const icon = routeFor(new URL("https://image.limooo.cn/icons/Limooo.svg"), { headers: new Headers() }, ORIGIN);
   assert.equal(icon.watermarked, false);
-  assert.equal(icon.target, `${ORIGIN}/static/icons/logo.svg`);
+  assert.equal(icon.target, `${ORIGIN}/static/icons/Limooo.svg`);
 });
 
 test("兼容 /static 前缀：/static/portfolio/a.webp 同样返回水印", () => {

@@ -185,7 +185,7 @@ def render():
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark light"><title>%s</title>
 <script src="/static/js/theme-preload.js?v=2"></script>
-<link rel="icon" href="https://images.limooo.cn/static/icons/favicon.ico" sizes="any">
+<link rel="icon" href="https://images.limooo.cn/static/icons/Limooo.svg" type="image/svg+xml">
 <link rel="preload" href="/static/fonts/baloo2/baloo2-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/tailwind.css?v=4"><link rel="stylesheet" href="/static/fonts-round75.css?v=2">
 <link rel="stylesheet" href="/static/css/base.css?v=16"><link rel="stylesheet" href="/static/css/claude-status.css?v=1">
