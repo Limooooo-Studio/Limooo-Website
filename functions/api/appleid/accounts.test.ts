@@ -128,7 +128,7 @@ describe("appleid accounts API", () => {
     expect(vi.mocked(execute)).toHaveBeenCalledWith(
       env.DB,
       expect.stringContaining("INSERT INTO apple_accounts"),
-      "alice@appleid.limooo.cn",
+      "alice@apple.limooo.cn",
       "encrypted",
       "note",
       2,

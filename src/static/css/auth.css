@@ -197,6 +197,10 @@
     }
     /* 语义块（版权 / 权利 / 许可）内部不截断，块之间允许折行 */
     .footer-text > span, .footer-text > a { white-space: nowrap; }
+    .footer-text > [data-i18n="footer_rights"],
+    .footer-text > [data-i18n="footer_source"] { margin-left: 0.7em; }
+    .footer-text > [data-i18n="footer_rights"]::before,
+    .footer-text > [data-i18n="footer_source"]::before { content: "|"; margin-right: 0.7em; }
   .footer-brand {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700; letter-spacing: 0.02em;

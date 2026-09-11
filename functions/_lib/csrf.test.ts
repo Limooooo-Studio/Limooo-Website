@@ -28,7 +28,7 @@ function request(
 describe("csrf", () => {
   it("round-trips a signed token with matching cookie and header", async () => {
     const { token } = await createCsrfToken(env);
-    expect(await verifyCsrf(env, request("https://appleid.limooo.cn", token))).toBe(true);
+    expect(await verifyCsrf(env, request("https://apple.limooo.cn", token))).toBe(true);
   });
 
   it("rejects missing or mismatched header/cookie", async () => {
