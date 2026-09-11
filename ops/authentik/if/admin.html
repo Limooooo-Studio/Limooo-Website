@@ -32,4 +32,78 @@
             });
     })();
 </script>
+<script data-id="limooo-admin-brand-size">
+    "use strict";
+    (function () {
+        // The Admin UI is composed of nested Lit Shadow DOM components. Authentik
+        // loads brand CSS into those roots, so apply the sizing rule in each root
+        // instead of relying on document-level selectors.
+        var STYLE_ID = "limooo-admin-brand-size-style";
+        var BRAND_CSS = [
+            ".brand .logo {",
+            "  display: block !important;",
+            "  width: 75% !important;",
+            "  max-width: 240px !important;",
+            "  min-width: 0 !important;",
+            "  height: auto !important;",
+            "  max-height: 72px !important;",
+            "}",
+            ".brand .logo > img, .brand .logo > svg {",
+            "  display: block !important;",
+            "  width: 100% !important;",
+            "  max-width: 100% !important;",
+            "  height: auto !important;",
+            "  max-height: 72px !important;",
+            "  object-fit: contain !important;",
+            "  object-position: center !important;",
+            "}",
+            ".branding-logo, .sidebar-brand {",
+            "  display: block !important;",
+            "  width: 75% !important;",
+            "  max-width: 240px !important;",
+            "  min-width: 0 !important;",
+            "  height: auto !important;",
+            "  max-height: 72px !important;",
+            "  object-fit: contain !important;",
+            "  object-position: left center !important;",
+            "}",
+            ".branding-logo > img, .branding-logo > svg, .sidebar-brand > img, .sidebar-brand > svg, img.branding-logo, svg.branding-logo {",
+            "  width: 100% !important;",
+            "  max-width: 100% !important;",
+            "  height: auto !important;",
+            "  max-height: 72px !important;",
+            "  object-fit: contain !important;",
+            "  object-position: left center !important;",
+            "}"
+        ].join("\n");
+
+        function inject(root) {
+            if (!root || !root.querySelectorAll) {
+                return;
+            }
+            if (!root.querySelector("style[data-id='" + STYLE_ID + "']")) {
+                var style = document.createElement("style");
+                style.setAttribute("data-id", STYLE_ID);
+                style.textContent = BRAND_CSS;
+                root.appendChild(style);
+            }
+            root.querySelectorAll("*").forEach(function (element) {
+                if (element.shadowRoot) {
+                    inject(element.shadowRoot);
+                }
+            });
+        }
+
+        function scan() {
+            inject(document);
+        }
+
+        new MutationObserver(scan).observe(document.documentElement, {
+            childList: true,
+            subtree: true
+        });
+        window.setInterval(scan, 1000);
+        scan();
+    })();
+</script>
 {% endblock %}
