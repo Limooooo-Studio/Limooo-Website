@@ -244,11 +244,14 @@ def _sig(secret, data):
     return hmac.new(secret.encode("utf-8"), data, hashlib.sha256).hexdigest()
 
 def verify_signature(headers, body):
+    # Nginx 已在 internal location 校验随机 token，并强制覆盖该 header。
+    # 这样 Cloudflare 通知（没有 Instatus HMAC）仍可用；直连进程时不放行。
+    nginx_verified = (headers.get("x-limooo-webhook-verified", "") or "").strip() == "1"
     if not SECRET:
-        return None
+        return nginx_verified
     provided = (headers.get("x-instatus-webhook-signature", "") or "").strip()
     if not provided:
-        return None
+        return nginx_verified
     cands = [body]
     try:
         canon = json.dumps(json.loads(body.decode("utf-8")), separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -300,7 +303,8 @@ class Handler(BaseHTTPRequestHandler):
             ok = record(payload)
         except Exception as ex:
             _log("[%s] POST %s -> 500 db_err=%s\n" % (ts, self.path, ex)); self._send(500, b'{"ok":false,"error":"db"}'); return
-        _log("[%s] POST %s -> 200 recorded=%s body=%s\n" % (ts, self.path, ok, body[:1200]))
+        body_hash = hashlib.sha256(body).hexdigest()[:16]
+        _log("[%s] POST %s -> 200 recorded=%s body_len=%d body_sha256=%s\n" % (ts, self.path, ok, len(body), body_hash))
         self._send(200, b'{"ok":true}')
     def do_GET(self):
         body = render()

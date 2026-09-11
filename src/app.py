@@ -31,6 +31,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import math
 import os
 import secrets
 import sqlite3
@@ -210,7 +211,7 @@ def _ensure_logout_table(conn: sqlite3.Connection) -> None:
     )
 
 
-def _record_logout(sub: str, ts: float) -> None:
+def _record_logout(sub: str, ts: float) -> bool:
     conn = _get_auth_db()
     try:
         _ensure_logout_table(conn)
@@ -219,8 +220,10 @@ def _record_logout(sub: str, ts: float) -> None:
             (sub, ts),
         )
         conn.commit()
+        return True
     except sqlite3.Error as exc:
         log_event("backchannel_logout_error", outcome="failed", message=str(exc))
+        return False
     finally:
         conn.close()
 
@@ -252,6 +255,8 @@ def _get_ak_jwks() -> list[dict]:
 
 def _verify_ak_token(token: str) -> dict | None:
     """校验 authentik logout_token 签名与客户端；失败返回 None。"""
+    if not token or len(token) > 16 * 1024:
+        return None
     try:
         header, payload, signature = token.split(".")
         hdr = json.loads(_b64decode(header))
@@ -278,11 +283,17 @@ def _verify_ak_token(token: str) -> dict | None:
         claims = json.loads(_b64decode(payload))
     except Exception:  # noqa: BLE001
         return None
-    if claims.get("aud") != CLIENT_ID:
+    if not isinstance(claims, dict) or claims.get("aud") != CLIENT_ID:
         return None
-    if claims.get("iss") and not str(claims["iss"]).endswith(
-        f"/application/o/{PROVIDER_SLUG}/"
-    ):
+    expected_issuer = f"{AUTHENTIK_BASE.rstrip('/')}/application/o/{PROVIDER_SLUG}"
+    actual_issuer = str(claims.get("iss", "")).rstrip("/")
+    if not actual_issuer or actual_issuer != expected_issuer:
+        return None
+    events = claims.get("events")
+    if not isinstance(events, dict) or "http://schemas.openid.net/event/backchannel-logout" not in events:
+        return None
+    iat = claims.get("iat")
+    if not isinstance(iat, (int, float)) or not math.isfinite(iat):
         return None
     return claims
 
@@ -317,7 +328,14 @@ def backchannel_logout():
             message="missing_sub",
         )
         return "", 400
-    _record_logout(sub, claims.get("iat") or time.time())
+    if not _record_logout(sub, claims["iat"]):
+        log_event(
+            "backchannel_logout",
+            outcome="failed",
+            status=503,
+            message="logout_store_unavailable",
+        )
+        return "", 503
     log_event(
         "backchannel_logout",
         outcome="ok",

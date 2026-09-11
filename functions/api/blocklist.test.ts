@@ -13,6 +13,8 @@ vi.mock("../_lib/d1", () => ({
 }));
 vi.mock("../_lib/logging", () => ({ logEvent: vi.fn() }));
 vi.mock("../_lib/session", () => ({ requireAuth: vi.fn() }));
+vi.mock("../_lib/csrf", () => ({ verifyCsrf: vi.fn() }));
+import { verifyCsrf } from "../_lib/csrf";
 
 const env = {
   DB: { batch: undefined as (() => unknown) | undefined },
@@ -44,6 +46,7 @@ beforeEach(() => {
   vi.mocked(requireAuth).mockResolvedValue(adminSession());
   vi.mocked(execute).mockResolvedValue(true);
   vi.mocked(executeBatch).mockResolvedValue(true);
+  vi.mocked(verifyCsrf).mockResolvedValue(true);
 });
 
 describe("blocklist API", () => {
@@ -110,11 +113,26 @@ describe("blocklist API", () => {
       },
     ]);
     const resp = await onRequestDelete(
-      context(new Request("https://limooo.cn/api/blocklist?cidr=1.2.3.0/24")) as never,
+      context(new Request("https://limooo.cn/api/blocklist?cidr=1.2.3.0/24", {
+        method: "DELETE",
+        headers: { Origin: "https://limooo.cn" },
+      })) as never,
     );
     const data = await resp.json();
     expect(resp.status).toBe(200);
     expect(data.action).toBe("unblock");
     expect(vi.mocked(execute).mock.calls[0][1]).toContain("UPDATE blocked_ips");
+  });
+
+  it("rejects mutating requests without CSRF", async () => {
+    vi.mocked(verifyCsrf).mockResolvedValue(false);
+    const resp = await onRequestPost(
+      context(new Request("https://limooo.cn/api/blocklist", {
+        method: "POST",
+        body: JSON.stringify({ cidr: "1.2.3.4" }),
+      })) as never,
+    );
+    expect(resp.status).toBe(403);
+    expect(vi.mocked(execute)).not.toHaveBeenCalled();
   });
 });

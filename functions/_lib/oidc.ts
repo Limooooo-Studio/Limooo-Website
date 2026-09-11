@@ -15,6 +15,7 @@ const USERINFO_TIMEOUT_MS = 10000;
 const JWKS_TIMEOUT_MS = 10000;
 const TOKEN_TIMEOUT_MS = 10000;
 const CLOCK_SKEW_SECONDS = 60;
+const MAX_JWT_LENGTH = 16384;
 const OIDC_USER_AGENT = "Mozilla/5.0 (compatible; limooo-pages/1.0)";
 
 export interface OidcUserSession {
@@ -89,6 +90,9 @@ function b64urlEncode(bytes: Uint8Array): string {
 }
 
 function b64urlDecode(input: string): Uint8Array {
+  if (!input || !/^[A-Za-z0-9_-]+$/.test(input) || input.length % 4 === 1) {
+    throw new Error("invalid_base64url");
+  }
   const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   const bin = atob(padded);
@@ -307,6 +311,9 @@ async function verifyJwt(
   token: string,
   options: { expectedNonce?: string; requireBackchannelEvent?: boolean },
 ): Promise<OidcTokenResult> {
+  if (!token || token.length > MAX_JWT_LENGTH) {
+    return { ok: false, reason: "jwt_too_large" };
+  }
   const parts = token.split(".");
   if (parts.length !== 3) return { ok: false, reason: "jwt_format" };
 
@@ -327,7 +334,12 @@ async function verifyJwt(
   const key = selectJwk(header, jwks.keys, alg);
   if (!key) return { ok: false, reason: "jwt_kid_missing" };
 
-  const signature = b64urlDecode(parts[2]);
+  let signature: Uint8Array;
+  try {
+    signature = b64urlDecode(parts[2]);
+  } catch {
+    return { ok: false, reason: "jwt_signature_parse" };
+  }
   const signingInput = `${parts[0]}.${parts[1]}`;
   if (!(await verifyJwtSignature(header, signingInput, signature, key, alg))) {
     return { ok: false, reason: "jwt_signature_invalid" };

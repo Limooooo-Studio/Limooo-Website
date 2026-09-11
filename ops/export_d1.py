@@ -58,6 +58,9 @@ def export_appleid(db_path: str) -> int:
             for r in rows
         ]
         f.write(",\n".join(values) + ";\n")
+    # 导出包含 Apple ID 密文；不要让默认 umask 决定其是否对组/其他用户可读。
+    os.chmod(os.path.join(OUT_DIR, "appleid.json"), 0o600)
+    os.chmod(os.path.join(OUT_DIR, "appleid.sql"), 0o600)
     print(f"[export] {len(rows)} rows -> ops/out/appleid.sql / appleid.json", flush=True)
     return 0
 

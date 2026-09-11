@@ -72,8 +72,21 @@ if [ "$DO_COMMIT" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; 
     fi
 fi
 if [ "$DO_PUSH" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "git push origin main"
-    git push origin main
+    echo "git fetch origin main"
+    git fetch origin main
+    LOCAL_HEAD="$(git rev-parse HEAD)"
+    REMOTE_HEAD="$(git rev-parse origin/main)"
+    if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
+        echo "GitHub already up to date; skipping push"
+    elif git merge-base --is-ancestor "$REMOTE_HEAD" "$LOCAL_HEAD"; then
+        echo "git push origin main"
+        git push origin main
+    elif git merge-base --is-ancestor "$LOCAL_HEAD" "$REMOTE_HEAD"; then
+        echo "Warning: GitHub is newer; skipping push" >&2
+    else
+        echo "FATAL: local and GitHub histories diverged; skipping push" >&2
+        exit 1
+    fi
 fi
 
 # 先把服务器上的业务库(geo_cache.db 缓存 + appleid.db 账户)拉回本地覆盖,再推代码

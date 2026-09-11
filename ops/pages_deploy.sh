@@ -84,7 +84,15 @@ if ! ssh $SSH_OPTS "$REMOTE_HOST" "test -f $REMOTE_DIR/secrets/webauthn.env"; th
     echo "FATAL: server missing $REMOTE_DIR/secrets/webauthn.env; cannot get Cloudflare token" >&2
     exit 1
 fi
-eval "$(ssh $SSH_OPTS "$REMOTE_HOST" "cat $REMOTE_DIR/secrets/webauthn.env")"
+REMOTE_CF_ENV="$(ssh $SSH_OPTS "$REMOTE_HOST" "sed -n -E '/^(CLOUDFLARE_API_TOKEN|CLOUDFLARE_ACCOUNT_ID)=/p' '$REMOTE_DIR/secrets/webauthn.env'")"
+CLOUDFLARE_API_TOKEN=""
+CLOUDFLARE_ACCOUNT_ID=""
+while IFS='=' read -r key value; do
+    case "$key" in
+        CLOUDFLARE_API_TOKEN) CLOUDFLARE_API_TOKEN="$value" ;;
+        CLOUDFLARE_ACCOUNT_ID) CLOUDFLARE_ACCOUNT_ID="$value" ;;
+    esac
+done <<< "$REMOTE_CF_ENV"
 export CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
     echo "FATAL: webauthn.env has no CLOUDFLARE_API_TOKEN" >&2

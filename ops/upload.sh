@@ -69,10 +69,24 @@ if [ "$DO_COMMIT" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; 
     fi
 fi
 if [ "$DO_PUSH" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    if git push origin main >/dev/null 2>&1; then
-        echo "Git: pushed to GitHub"
+    if git fetch origin main >/dev/null 2>&1; then
+        LOCAL_HEAD="$(git rev-parse HEAD)"
+        REMOTE_HEAD="$(git rev-parse origin/main)"
+        if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
+            echo "Git: GitHub already up to date, skipped push"
+        elif git merge-base --is-ancestor "$REMOTE_HEAD" "$LOCAL_HEAD"; then
+            if git push origin main >/dev/null 2>&1; then
+                echo "Git: pushed to GitHub"
+            else
+                echo "Warning: git push failed, continuing deploy"
+            fi
+        elif git merge-base --is-ancestor "$LOCAL_HEAD" "$REMOTE_HEAD"; then
+            echo "Warning: GitHub is newer, skipped push"
+        else
+            echo "Warning: local and GitHub histories diverged, skipped push"
+        fi
     else
-        echo "Warning: git push failed, continuing deploy"
+        echo "Warning: could not fetch GitHub state, skipped push"
     fi
 fi
 

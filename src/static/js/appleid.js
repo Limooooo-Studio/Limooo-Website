@@ -29,12 +29,12 @@ window.addEventListener('pageshow', function(e) {
 // 前端切换语言后重渲染:弹层标题/描述 + 账号列表
 document.addEventListener('languagechange', function() {
     var modal = document.getElementById('modal');
-    if (!modal.classList.contains('hidden')) {
+    if (modal && !modal.classList.contains('hidden')) {
         document.getElementById('modal-title').textContent = editingId ? t('modal_edit_title') : t('modal_add_title');
         document.getElementById('modal-desc').textContent = editingId ? t('modal_edit_desc') : t('modal_add_desc');
     }
     var dmodal = document.getElementById('delete-modal');
-    if (!dmodal.classList.contains('hidden')) {
+    if (dmodal && !dmodal.classList.contains('hidden')) {
         var target = accounts.find(function(a) { return a.id === deleteTargetId; });
         if (target) document.getElementById('delete-desc').textContent = t('delete_confirm', { email: target.email });
     }
@@ -75,7 +75,7 @@ function showDashboard() {
     if (currentRole !== 'admin') {
         // 只读账户:隐藏添加按钮(写操作按钮一并隐藏,无提示)
         var addBtn = document.querySelector('.search-actions .btn-primary');
-        if (addBtn) addBtn.style.display = 'none';
+        if (addBtn) addBtn.hidden = true;
     }
     loadAccounts();
 }
@@ -319,7 +319,9 @@ function deleteAccount(id) {
 }
 
 function closeDeleteModal() {
-    document.getElementById('delete-modal').classList.add('hidden');
+    var modal = document.getElementById('delete-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
     deleteTargetId = null;
 }
 
@@ -344,7 +346,6 @@ function openAddModal() {
     document.getElementById('modal-title').textContent = t('modal_add_title');
     document.getElementById('field-email').value = '';
     document.getElementById('field-notes').value = '';
-    document.getElementById('field-email').style.display = 'block';
     // 密码:真实值清空,密文状态
     var pwInput = document.getElementById('field-password');
     pwInput.dataset.real = '';
@@ -361,7 +362,6 @@ function openEditModal(id) {
     document.getElementById('modal-desc').textContent = t('modal_edit_desc');
     document.getElementById('field-email').value = a.email.split('@')[0];
     document.getElementById('field-notes').value = a.notes || '';
-    document.getElementById('field-email').style.display = 'block';
     // 密码:列表 API 返回的是掩码值,需通过 reveal 接口取真实密码,
     // 预填为密文状态(圆点),修改时保存到 dataset.original 判断是否变更
     var pwInput = document.getElementById('field-password');
@@ -380,7 +380,9 @@ function openEditModal(id) {
 }
 
 function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
+    var modal = document.getElementById('modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
     // 重置密码字段状态,避免下次打开残留明文/圆点
     fieldPwHidden = true;
     document.getElementById('field-password').dataset.real = '';
@@ -421,11 +423,13 @@ async function saveAccount() {
     btn.disabled = false;
 }
 
-document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
-document.getElementById('delete-modal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
+var accountModal = document.getElementById('modal');
+var deleteModal = document.getElementById('delete-modal');
+if (accountModal) accountModal.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+if (deleteModal) deleteModal.addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') { closeModal(); closeDeleteModal(); }
-    if (e.key === 'Enter' && !document.getElementById('modal').classList.contains('hidden') && document.activeElement.tagName !== 'TEXTAREA') saveAccount();
+    if (e.key === 'Enter' && accountModal && !accountModal.classList.contains('hidden') && document.activeElement.tagName !== 'TEXTAREA') saveAccount();
 });
 
 function toast(msg) { var el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); setTimeout(function(){ el.classList.remove('show'); }, 2000); }

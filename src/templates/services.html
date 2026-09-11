@@ -53,7 +53,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <!-- 服务卡片网格 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl">
         <div class="reveal-item service-card group relative p-12 md:p-20 flex flex-col items-center justify-center text-center"
-            data-action="openServiceDetail" data-arg="convention" role="button" aria-haspopup="dialog">
+            data-action="openServiceDetail" data-arg="convention" role="button" tabindex="0" aria-haspopup="dialog">
             <span class="absolute top-6 left-8 text-[10px] font-mono opacity-30 font-bold">01/</span>
             <h3 class="service-item text-xl md:text-3xl tracking-[calc(0.15em*var(--ls-scale))]" data-i18n="service_convention">{{ _('service_convention') }}</h3>
             <span class="detail-hint" data-i18n="detail_hint">{{ _('detail_hint') }}
@@ -61,7 +61,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             </span>
         </div>
         <div class="reveal-item service-card group relative p-12 md:p-20 flex flex-col items-center justify-center text-center"
-            data-action="openServiceDetail" data-arg="outdoor" role="button" aria-haspopup="dialog">
+            data-action="openServiceDetail" data-arg="outdoor" role="button" tabindex="0" aria-haspopup="dialog">
             <span class="absolute top-6 left-8 text-[10px] font-mono opacity-30 font-bold">02/</span>
             <h3 class="service-item text-xl md:text-3xl tracking-[calc(0.15em*var(--ls-scale))]" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
             <span class="detail-hint" data-i18n="detail_hint">{{ _('detail_hint') }}
@@ -72,7 +72,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 </main>
 
 <!-- ═══ 详情弹层 01 / 场照拍摄 ═══ -->
-<div class="service-modal" id="modal-convention" role="dialog" aria-modal="true" aria-label="{{ _('service_convention') }}" data-i18n-attr="aria-label:service_convention">
+<div class="service-modal" id="modal-convention" role="dialog" aria-modal="true" aria-labelledby="modal-convention-title" aria-label="{{ _('service_convention') }}" data-i18n-attr="aria-label:service_convention">
     <div class="modal-frost"></div>
     <div class="modal-backdrop" data-action="closeServiceDetail"></div>
     <div class="modal-panel">
@@ -81,7 +81,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 <span class="modal-index">01 / CONVENTION</span>
                 <button class="modal-close" data-action="closeServiceDetail" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
             </div>
-            <h3 class="modal-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
+            <h3 class="modal-title" id="modal-convention-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
         </div>
         <div class="modal-body">
         <div class="plan-grid plan-grid-quad">
@@ -119,7 +119,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 </div>
 
 <!-- ═══ 详情弹层 02 / 正片拍摄 ═══ -->
-<div class="service-modal" id="modal-outdoor" role="dialog" aria-modal="true" aria-label="{{ _('service_outdoor') }}" data-i18n-attr="aria-label:service_outdoor">
+<div class="service-modal" id="modal-outdoor" role="dialog" aria-modal="true" aria-labelledby="modal-outdoor-title" aria-label="{{ _('service_outdoor') }}" data-i18n-attr="aria-label:service_outdoor">
     <div class="modal-frost"></div>
     <div class="modal-backdrop" data-action="closeServiceDetail"></div>
     <div class="modal-panel">
@@ -128,7 +128,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
                 <span class="modal-index">02 / OUTDOOR</span>
                 <button class="modal-close" data-action="closeServiceDetail" aria-label="{{ _('close_aria') }}" data-i18n-attr="aria-label:close_aria">×</button>
             </div>
-            <h3 class="modal-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
+            <h3 class="modal-title" id="modal-outdoor-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
         </div>
         <div class="modal-body">
         <div class="plan-grid plan-grid-quad">
@@ -177,5 +177,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block scripts %}
-    <script src="/static/js/services.js?v=2" defer></script>
+    <script src="/static/js/services.js?v=3" defer></script>
 {% endblock %}

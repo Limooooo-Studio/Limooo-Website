@@ -13,6 +13,8 @@ import {
 const textEncoder = new TextEncoder();
 const COOKIE_DOMAIN = `.${ROOT_DOMAIN}`;
 const AUTH_SESSION_TABLE = "auth_sessions";
+const MAX_SIGNED_TOKEN_LENGTH = 8192;
+const MAX_SESSION_FIELD_LENGTH = 512;
 
 export interface SessionUser {
   email: string;
@@ -65,6 +67,9 @@ function toB64Url(bytes: Uint8Array): string {
 }
 
 function fromB64Url(input: string): Uint8Array {
+  if (!input || !/^[A-Za-z0-9_-]+$/.test(input) || input.length % 4 === 1) {
+    throw new Error("invalid_base64url");
+  }
   const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   const bin = atob(padded);
@@ -112,15 +117,17 @@ async function signPayload(key: string, payload: string): Promise<string> {
 }
 
 async function verifyPayload<T>(key: string, token: string | undefined): Promise<T | null> {
-  if (!key || !token) return null;
-  const dot = token.lastIndexOf(".");
-  if (dot <= 0) return null;
-  const b64 = token.slice(0, dot);
-  const sig = token.slice(dot + 1);
-  const expected = await hmacHex(key, new TextDecoder().decode(fromB64Url(b64)));
-  if (!timingSafeEqual(sig, expected)) return null;
   try {
-    return JSON.parse(new TextDecoder().decode(fromB64Url(b64))) as T;
+    if (!key || !token || token.length > MAX_SIGNED_TOKEN_LENGTH) return null;
+    const dot = token.lastIndexOf(".");
+    if (dot <= 0) return null;
+    const b64 = token.slice(0, dot);
+    const sig = token.slice(dot + 1);
+    if (!/^[0-9a-f]{64}$/.test(sig)) return null;
+    const payload = new TextDecoder().decode(fromB64Url(b64));
+    const expected = await hmacHex(key, payload);
+    if (!timingSafeEqual(sig, expected)) return null;
+    return JSON.parse(payload) as T;
   } catch {
     return null;
   }
@@ -158,14 +165,19 @@ export async function readSession(
   if (!data) return null;
   if (
     typeof data.exp !== "number" ||
-    data.exp < Math.floor(Date.now() / 1000) ||
+    data.exp <= Math.floor(Date.now() / 1000) ||
+    !Number.isSafeInteger(data.exp) ||
     typeof data.sid !== "string" ||
+    data.sid.length === 0 || data.sid.length > MAX_SESSION_FIELD_LENGTH ||
     typeof data.sub !== "string" ||
+    data.sub.length === 0 || data.sub.length > MAX_SESSION_FIELD_LENGTH ||
     !data.user ||
     typeof data.user.email !== "string" ||
+    data.user.email.length === 0 || data.user.email.length > 254 ||
     typeof data.user.name !== "string" ||
+    data.user.name.length > MAX_SESSION_FIELD_LENGTH ||
     !["admin", "viewer"].includes(data.role) ||
-    typeof data.authAt !== "number"
+    !Number.isSafeInteger(data.authAt) || data.authAt < 0
   ) {
     return null;
   }

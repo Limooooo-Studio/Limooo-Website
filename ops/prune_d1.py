@@ -42,6 +42,9 @@ BUCKETS: dict[str, int] = {
     "events": 90 * DAY_SECONDS,
 }
 AGGREGATE_WINDOW_SECONDS = DAY_SECONDS
+RETENTION_TIMESTAMP_COLUMNS = {
+    "visitor_rollups": "last_ts",
+}
 
 
 def _quote(value: str) -> str:
@@ -49,9 +52,10 @@ def _quote(value: str) -> str:
 
 
 def _count_rows(cfg: dict[str, str], table: str, cutoff: int) -> int:
+    timestamp_column = RETENTION_TIMESTAMP_COLUMNS.get(table, "ts")
     rows = d1_query(
         cfg,
-        f"SELECT COUNT(*) AS count FROM {table} WHERE ts < {cutoff}",
+        f"SELECT COUNT(*) AS count FROM {table} WHERE {timestamp_column} < {cutoff}",
     )
     return int(rows[0].get("count") or 0) if rows else 0
 
@@ -117,12 +121,10 @@ def _write_retention_state(
 
 
 def aggregate_daily(cfg: dict[str, str]) -> dict[str, Any]:
-    """从 visitors_v2 增量聚合到 visitors_daily。"""
+    """从分析明细增量聚合到 visitors_daily，不再为日志全表计数。"""
     d1_query(cfg, _aggregate_sql())
-    rows = d1_query(cfg, "SELECT COUNT(*) AS count FROM visitors_daily")
-    count = int(rows[0].get("count") or 0) if rows else 0
     _write_retention_state(cfg, "visitors_daily", success=True)
-    return {"visitors_daily_rows": count}
+    return {"visitors_daily": "updated"}
 
 
 def prune_buckets(cfg: dict[str, str]) -> dict[str, Any]:
@@ -131,9 +133,14 @@ def prune_buckets(cfg: dict[str, str]) -> dict[str, Any]:
     now = "unixepoch()"
     for table, seconds in BUCKETS.items():
         cutoff_expr = f"{now} - {seconds}"
-        rows = d1_query(cfg, f"SELECT COUNT(*) AS count FROM {table} WHERE ts < {cutoff_expr}")
+        timestamp_column = RETENTION_TIMESTAMP_COLUMNS.get(table, "ts")
+        rows = d1_query(
+            cfg,
+            f"SELECT COUNT(*) AS count FROM {table} "
+            f"WHERE {timestamp_column} < {cutoff_expr}",
+        )
         count = int(rows[0].get("count") or 0) if rows else 0
-        d1_query(cfg, f"DELETE FROM {table} WHERE ts < {cutoff_expr}")
+        d1_query(cfg, f"DELETE FROM {table} WHERE {timestamp_column} < {cutoff_expr}")
         _write_retention_state(cfg, table, success=True, deleted=count)
         result[table] = count
     return result
@@ -144,9 +151,11 @@ def dry_run(cfg: dict[str, str], mode: str) -> dict[str, Any]:
     plan: dict[str, Any] = {"mode": mode, "buckets": {}}
     if mode in ("all", "prune"):
         for table, seconds in BUCKETS.items():
+            timestamp_column = RETENTION_TIMESTAMP_COLUMNS.get(table, "ts")
             rows = d1_query(
                 cfg,
-                f"SELECT COUNT(*) AS count FROM {table} WHERE ts < unixepoch() - {seconds}",
+                f"SELECT COUNT(*) AS count FROM {table} "
+                f"WHERE {timestamp_column} < unixepoch() - {seconds}",
             )
             plan["buckets"][table] = int(rows[0].get("count") or 0) if rows else 0
     if mode in ("all", "aggregate"):

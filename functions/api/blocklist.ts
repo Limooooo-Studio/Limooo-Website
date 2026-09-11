@@ -10,6 +10,7 @@ import { execute, executeBatch, queryAll } from "../_lib/d1";
 import { logEvent } from "../_lib/logging";
 import { parseCidr } from "../_lib/cidr";
 import { authUnavailableResponse, requireAuth } from "../_lib/session";
+import { verifyCsrf } from "../_lib/csrf";
 import type { Env } from "../_lib/env";
 
 interface BlockedRow {
@@ -47,10 +48,10 @@ async function adminSession(
     return authUnavailableResponse();
   }
   if (!session) {
-    return Response.json({ error: "未登录" }, { status: 401 });
+    return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
   if (session.role !== "admin") {
-    return Response.json({ error: "需要管理员权限" }, { status: 403 });
+    return Response.json({ error: "需要管理员权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
   return { session };
 }
@@ -98,6 +99,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const auth = await adminSession(context.env, context.request);
   if (auth instanceof Response) return auth;
+  if (!(await verifyCsrf(context.env, context.request))) {
+    return Response.json({ error: "csrf_invalid" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
   const { session } = auth;
   const request = context.request;
   let body: unknown;
@@ -152,6 +156,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
   const auth = await adminSession(context.env, context.request);
   if (auth instanceof Response) return auth;
+  if (!(await verifyCsrf(context.env, context.request))) {
+    return Response.json({ error: "csrf_invalid" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
   const { session } = auth;
   const url = new URL(context.request.url);
   const raw = url.searchParams.get("cidr");
@@ -218,7 +225,9 @@ async function writeAndAudit(
       env.DB.prepare(mutationSql).bind(...mutationValues),
       env.DB.prepare(auditSql).bind(...auditValues),
     ]);
-    if (ok) return true;
+    // D1 batch 用于保持“封禁变更 + 审计”原子性；失败时不能降级为
+    // 两次独立写入，否则可能出现无审计的线上变更。
+    return ok;
   }
   const mutationOk = await execute(env.DB, mutationSql, ...mutationValues);
   if (!mutationOk) return false;

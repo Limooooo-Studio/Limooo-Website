@@ -2,11 +2,18 @@
    服务详情弹层：打开 / 关闭
    ═══════════════════════════════════════════════════════════════ */
 
+var lastServiceTrigger = null;
+
 function openServiceDetail(id) {
     var modal = document.getElementById('modal-' + id);
     if (!modal) return;
+    if (this && this.nodeType === 1 && this.matches('[data-action="openServiceDetail"]')) {
+        lastServiceTrigger = this;
+    }
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+    var closeButton = modal.querySelector('.modal-close');
+    if (closeButton) closeButton.focus();
     // 点击服务选项：让地址栏渲染出 /#convention 或 /#outdoor
     if (location.hash !== '#' + id) location.hash = id;
 }
@@ -24,11 +31,48 @@ function closeServiceDetail() {
     });
     document.body.style.overflow = '';
     clearHash();
+    if (lastServiceTrigger && document.contains(lastServiceTrigger)) {
+        lastServiceTrigger.focus();
+    }
+    lastServiceTrigger = null;
 }
 
-/* Esc 键关闭弹层 */
+function serviceModalFocusables(modal) {
+    return Array.prototype.slice.call(modal.querySelectorAll(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(function(el) { return !el.hidden && el.offsetParent !== null; });
+}
+
+/* 键盘操作：卡片支持 Enter/Space，弹层支持 Escape 与焦点循环。 */
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeServiceDetail();
+    var trigger = e.target.closest && e.target.closest('[data-action="openServiceDetail"]');
+    if (trigger && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        openServiceDetail.call(trigger, trigger.getAttribute('data-arg'));
+        return;
+    }
+    var modal = document.querySelector('.service-modal.open');
+    if (!modal) return;
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        closeServiceDetail();
+        return;
+    }
+    if (e.key !== 'Tab') return;
+    var focusables = serviceModalFocusables(modal);
+    if (!focusables.length) {
+        e.preventDefault();
+        return;
+    }
+    var first = focusables[0];
+    var last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+    }
 });
 
 /* 浏览器前进 / 后退时，让弹层与地址栏 hash 保持同步 */

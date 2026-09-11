@@ -47,7 +47,13 @@ export function getCookie(name: string, header: string | null): string | undefin
     const eq = part.indexOf("=");
     if (eq < 0) continue;
     if (part.slice(0, eq).trim() === name) {
-      return decodeURIComponent(part.slice(eq + 1).trim());
+      const value = part.slice(eq + 1).trim();
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        // Cookie 由客户端提供；畸形百分号编码不能让整个请求变成 500。
+        return value;
+      }
     }
   }
   return undefined;

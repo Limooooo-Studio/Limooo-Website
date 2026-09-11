@@ -226,6 +226,17 @@ describe("oidc", () => {
     expect(result.reason).toBe("jwt_signature_invalid");
   });
 
+  it("rejects a malformed base64url signature without throwing", async () => {
+    const token = await signToken({ alg: "RS256", kid: KEY_ID }, baseClaims());
+    const [h, p] = token.split(".");
+    mockFetch(tokenFetch(`${h}.${p}.%%%`));
+    const result = await exchangeCode(env, "code", "https://limooo.cn/login/callback", {
+      nonce: "nonce-1",
+      codeVerifier: "verifier",
+    });
+    expect(result.reason).toBe("jwt_signature_parse");
+  });
+
   it("rejects an unrelated issuer", async () => {
     const token = await signToken(
       { alg: "RS256", kid: KEY_ID },

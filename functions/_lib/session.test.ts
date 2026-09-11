@@ -81,6 +81,10 @@ describe("session cookie", () => {
     const tampered = header.replace(originalPayload, badPayload);
     expect(await readSession(env, tampered)).toBeNull();
   });
+
+  it("rejects a cookie with malformed percent encoding", async () => {
+    await expect(readSession(env, "limooo_session=%" as string)).resolves.toBeNull();
+  });
 });
 
 describe("pending cookie", () => {
