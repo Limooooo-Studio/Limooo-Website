@@ -9,7 +9,6 @@ import {
   getCookie,
   safeNextPath,
   sanitizeHost,
-  viaRedirect,
   withLangCookie,
 } from "./routing";
 import {
@@ -346,7 +345,19 @@ async function verifyTurnstile(
   }
 }
 
-/** POST /__gate/verify：校验 Turnstile，成功签发 cookie 并 302 回原路径。 */
+function wantsJson(request: Request): boolean {
+  return request.headers.get("Accept")?.includes("application/json") ?? false;
+}
+
+function gateTarget(host: string, path: string): string {
+  return `https://${host}${path}`;
+}
+
+/** POST /__gate/verify：校验 Turnstile，成功签发 cookie。
+ *
+ * 门禁页通过 fetch 调用本接口，响应只写 Cookie，不经过 redirect 子域；
+ * 无 JavaScript 时仍直接回原站，作为可访问性降级。
+ */
 export async function handleVerify(context: RequestContext): Promise<Response> {
   const { request, env } = context;
   const startedAt = Date.now();
@@ -403,11 +414,18 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
             : "missing_token",
       }),
     );
+    const errorKey = unavailable ? "unavailable" : "failed";
+    if (wantsJson(request)) {
+      return Response.json(
+        { ok: false, error: errorKey },
+        { status: unavailable ? 503 : 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     return renderGatePage(context, {
       host,
       next,
       unavailable,
-      errorKey: unavailable ? "unavailable" : "failed",
+      errorKey,
     });
   }
 
@@ -416,7 +434,7 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
     context,
     logEvent(env, "gate_verify", request, {
       outcome: "success",
-      status: 302,
+      status: 204,
       durationMs: Date.now() - startedAt,
       message: "cookie_issued",
     }),
@@ -424,10 +442,20 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
 
   // 验证成功只签发 __gate cookie；若再叠加语言 cookie，Workers 会把两条
   // Set-Cookie 合并，Safari 只认第一条。
+  if (wantsJson(request)) {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Set-Cookie": cookie,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   return new Response(null, {
-    status: 302,
+    status: 303,
     headers: {
-      Location: viaRedirect(host, next),
+      Location: gateTarget(host, next),
       "Set-Cookie": cookie,
       "Cache-Control": "no-store",
     },

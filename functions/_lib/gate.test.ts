@@ -1,7 +1,7 @@
 /** isBlocked 的 CIDR 精确匹配测试（docs/10）。 */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isBlocked } from "./gate";
+import { handleVerify, isBlocked } from "./gate";
 import { queryAll } from "./d1";
 import { logEvent } from "./logging";
 
@@ -37,5 +37,58 @@ describe("isBlocked", () => {
     vi.mocked(queryAll).mockResolvedValue([]);
     expect(await isBlocked(env, request, "8.8.8.8")).toBe(false);
     expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleVerify", () => {
+  function verifyContext(request: Request) {
+    return {
+      request,
+      env: {
+        TURNSTILE_SECRET: "turnstile-secret",
+        GATE_HMAC_KEY: "a".repeat(64),
+      },
+      next: async () => new Response("next"),
+    } as never;
+  }
+
+  function verifyRequest(accept: string, token = "token"): Request {
+    const form = new FormData();
+    form.set("cf-turnstile-response", token);
+    form.set("host", "limooo.cn");
+    form.set("next", "/services");
+    return new Request("https://limooo.cn/__gate/verify", {
+      method: "POST",
+      headers: { Accept: accept },
+      body: form,
+    });
+  }
+
+  it("issues the gate cookie to fetch clients without a redirect", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ success: true })));
+
+    const resp = await handleVerify(verifyContext(verifyRequest("application/json")));
+
+    expect(resp.status).toBe(204);
+    expect(resp.headers.get("Location")).toBeNull();
+    expect(resp.headers.get("Set-Cookie")).toContain("__gate=");
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps verification errors on the current page for fetch clients", async () => {
+    const resp = await handleVerify(verifyContext(verifyRequest("application/json", "")));
+
+    expect(resp.status).toBe(403);
+    await expect(resp.json()).resolves.toEqual({ ok: false, error: "failed" });
+  });
+
+  it("sends non-JavaScript form posts directly back to the requested host", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ success: true })));
+
+    const resp = await handleVerify(verifyContext(verifyRequest("text/html")));
+
+    expect(resp.status).toBe(303);
+    expect(resp.headers.get("Location")).toBe("https://limooo.cn/services");
+    vi.unstubAllGlobals();
   });
 });

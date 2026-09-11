@@ -51,7 +51,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <link rel="stylesheet" href="/static/fonts-round75.css?v=2">
 
 <!-- 站点基础样式（由模板内联样式轻量化后抽出的统一 CSS） -->
-    <link rel="stylesheet" href="/static/css/base.css?v=16">
+    <link rel="stylesheet" href="/static/css/base.css?v=17">
 
     {% block head_links %}{% endblock %}
 </head>
@@ -143,14 +143,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% block footer_markup %}
     <footer class="global-footer" id="global-footer">
         <div class="footer-link">
-        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix="   |  ">{% if _('footer_rights') %}   |  {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix="   |  ">{% if _('footer_source') %}   |  {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
+        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights" data-i18n-prefix=" | ">{% if _('footer_rights') %} | {{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source" data-i18n-prefix=" | ">{% if _('footer_source') %} | {{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
         </div>
     </footer>
     {% endblock %}
     {% endblock %}
 
     <script src="/static/js/actions.js?v=1" defer></script>
-    <script src="/static/js/base.js?v=9" defer></script>
+    <script src="/static/js/base.js?v=10" defer></script>
     {% block scripts %}{% endblock %}
     {% block page_scripts %}{% endblock %}
 </body>

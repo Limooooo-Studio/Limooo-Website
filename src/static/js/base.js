@@ -185,52 +185,6 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         });
     }
 
-    /* ═══════════════════════════════════════════════════════════════
-       站点级品牌字统一：把可见文本里的 Limooo / LIMOOO 包成 .brand-word，
-       统一用 Baloo 2 渲染。跳过已用 Baloo 的品牌元素（nav-brand/footer-brand/
-       hero-title/brand-word）以及不应触碰的技术容器。
-       ═══════════════════════════════════════════════════════════════ */
-    var BRAND_SKIP_SELECTOR = '.hero-title, .brand-word, [class*="brand"], [data-brandify], svg, script, style, title, template, noscript, textarea, option, code, pre';
-    var BRAND_RE = /(?<![A-Za-z0-9])(Limooo|LIMOOO)(?![A-Za-z0-9])/g;
-
-    function brandifyTextNode(node) {
-        var text = node.nodeValue;
-        if (!text) return;
-        BRAND_RE.lastIndex = 0;
-        var frag = document.createDocumentFragment();
-        var last = 0;
-        var matched = false;
-        var m;
-        while ((m = BRAND_RE.exec(text)) !== null) {
-            matched = true;
-            if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
-            var span = document.createElement('span');
-            span.className = 'brand-word';
-            span.textContent = m[0];
-            frag.appendChild(span);
-            last = m.index + m[0].length;
-        }
-        if (!matched) return;
-        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
-        node.parentNode.replaceChild(frag, node);
-    }
-
-    function brandifyWalk(node) {
-        if (node.nodeType === 3) {
-            brandifyTextNode(node);
-            return;
-        }
-        if (node.nodeType !== 1) return;
-        if (node.matches && node.matches(BRAND_SKIP_SELECTOR)) return;
-        var children = Array.prototype.slice.call(node.childNodes);
-        for (var i = 0; i < children.length; i++) brandifyWalk(children[i]);
-    }
-
-    function brandifySite() {
-        if (!document.body) return;
-        brandifyWalk(document.body);
-    }
-
     /* 写入 365 天语言 cookie(跨 .limooo.cn 子域共享) */
     function saveLangCookie(code) {
         var domain = location.hostname.endsWith('limooo.cn') ? 'domain=.limooo.cn; ' : '';

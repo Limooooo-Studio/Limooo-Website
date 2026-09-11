@@ -18,7 +18,6 @@ import {
   preserveSetCookie,
   safeNextPath,
   sanitizeHost,
-  viaRedirect,
   withLangCookie,
   type RequestContext,
 } from "./_lib/routing";
@@ -223,7 +222,7 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     if (passed && !forceChallenge) {
       const back = safeNextPath(url.searchParams.get("next") ?? "/");
       const host = sanitizeHost(url.searchParams.get("host"));
-      let resp = Response.redirect(viaRedirect(host, back), 302);
+      let resp = Response.redirect(`https://${host}${back}`, 302);
       if (!gateValid) {
         const headers = new Headers(resp.headers);
         headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));

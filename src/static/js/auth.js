@@ -5,6 +5,7 @@ var CONFIG = null;
 var GATE_I18N = {};
 var TURNSTILE_SITEKEY = "";
 var CURRENT_LANG = document.body.getAttribute('data-lang') || 'en-us';
+var gateVerificationInFlight = false;
 document.documentElement.lang = CURRENT_LANG;
 
 /* 构建时把 4 种语言的 gate 文案内联到 HTML；/__gate/config 仅用于补 sitekey，
@@ -113,11 +114,51 @@ function resetTurnstile() {
   }
   turnstileWidget = window.turnstile.render(wrap, {
     sitekey: TURNSTILE_SITEKEY,
-    callback: function () { document.getElementById('gate').submit(); },
+    callback: submitGateVerification,
     theme: effectiveTheme() === 'light' ? 'light' : 'dark',
     language: turnstileLang(CURRENT_LANG)
   });
 }
+
+/* 验证在当前门禁页完成：接口只返回 Set-Cookie，不再跳转到 redirect 子域。 */
+function submitGateVerification() {
+  var form = document.getElementById('gate');
+  if (!form || gateVerificationInFlight) return;
+  gateVerificationInFlight = true;
+
+  fetch(form.action, {
+    method: 'POST',
+    body: new FormData(form),
+    credentials: 'same-origin',
+    headers: { 'Accept': 'application/json' }
+  })
+    .then(function (response) {
+      if (response.ok) {
+        var next = form.querySelector('input[name="next"]');
+        /* 当前页面直接进入原目标，不走 redirect.limooo.cn 中转页。 */
+        location.replace(next && next.value ? next.value : '/');
+        return null;
+      }
+      return response.json().catch(function () { return { error: 'failed' }; });
+    })
+    .then(function (result) {
+      if (!result) return;
+      showError(result.error || 'failed');
+      if (turnstileWidget && window.turnstile) window.turnstile.reset(turnstileWidget);
+    })
+    .catch(function () {
+      showError('unavailable');
+      if (turnstileWidget && window.turnstile) window.turnstile.reset(turnstileWidget);
+    })
+    .then(function () { gateVerificationInFlight = false; });
+}
+
+document.addEventListener('submit', function (event) {
+  if (event.target && event.target.id === 'gate') {
+    event.preventDefault();
+    submitGateVerification();
+  }
+});
 
 function renderI18n() {
   document.querySelectorAll('[data-i18n]').forEach(function (el) {
