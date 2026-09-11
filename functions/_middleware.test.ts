@@ -1,4 +1,4 @@
-/** 强制主题挑战门禁编排测试：必须无视白名单 IP / cf_clearance，并固定跳 auth。 */
+/** 强制主题挑战门禁编排测试：必须无视白名单 IP / cf_clearance，并保持原 URL。 */
 
 import { describe, expect, it, vi } from "vitest";
 import { handleOnRequest } from "./_middleware";
@@ -29,7 +29,26 @@ function context(request: Request, env: Partial<Env> = {}): RequestContext {
 }
 
 describe("force theme challenge", () => {
-  it("redirects whitelisted/cf-cleared main-site requests to the same-host gate", async () => {
+  it("renders the gate at an unverified visitor's original URL", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/"),
+        {
+          ASSETS: {
+            fetch: async () => new Response("{{host}} {{next}}", {
+              headers: { "Content-Type": "text/html" },
+            }),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(403);
+    expect(resp.headers.get("Location")).toBeNull();
+    await expect(resp.text()).resolves.toContain("limooo.cn /");
+  });
+
+  it("renders the gate at the original URL for forced challenges", async () => {
     const resp = await handleOnRequest(
       context(
         new Request("https://limooo.cn/services?challenge=1", {
@@ -38,14 +57,19 @@ describe("force theme challenge", () => {
             Cookie: "cf_clearance=test",
           },
         }),
+        {
+          ASSETS: {
+            fetch: async () => new Response("{{host}} {{next}}", {
+              headers: { "Content-Type": "text/html" },
+            }),
+          },
+        },
       ),
     );
 
-    expect(resp.status).toBe(302);
-    const location = resp.headers.get("Location") ?? "";
-    expect(location).toContain("https://limooo.cn/__gate");
-    expect(location).toContain("challenge=1");
-    expect(decodeURIComponent(new URL(location).searchParams.get("next") ?? "")).not.toContain("challenge=1");
+    expect(resp.status).toBe(403);
+    expect(resp.headers.get("Location")).toBeNull();
+    await expect(resp.text()).resolves.toContain("limooo.cn /services");
   });
 
   it("renders the gate on the same host when a challenge is forced", async () => {

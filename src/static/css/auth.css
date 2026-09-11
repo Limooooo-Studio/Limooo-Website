@@ -134,30 +134,30 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
-    max-width: 640px;
+    max-width: 512px;
     width: 100%;
-    padding: 40px 40px 28px;
+    padding: 33px 32px 23px;
     transition: background 300ms var(--ease-out), border-color 300ms var(--ease-out);
   }
   .logo { display: block; margin: 0 auto 22px; max-width: 220px; height: auto; }
   h1 {
-    font-size: 18px; font-weight: 600; text-align: center;
+    font-size: 17px; font-weight: 600; text-align: center;
     color: var(--text); line-height: 1.5; margin-bottom: 24px;
   }
   .turnstile-wrap { display: flex; justify-content: center; min-height: 65px; margin-bottom: 26px; }
   .error {
     background: rgba(185, 28, 28, 0.12); border: 1px solid rgba(185, 28, 28, 0.4);
     color: var(--text);
-    border-radius: 6px; padding: 10px 14px; font-size: 14px;
+    border-radius: 6px; padding: 10px 14px; font-size: 13px;
     margin-bottom: 18px; text-align: center;
   }
-  .error.blocked { font-size: 16px; font-weight: 700; }
-  .blocked-detail { margin: -8px 0 18px; text-align: center; font-size: 14px; color: var(--muted); }
+  .error.blocked { font-size: 15px; font-weight: 700; }
+  .blocked-detail { margin: -8px 0 18px; text-align: center; font-size: 13px; color: var(--muted); }
   .divider { border: none; border-top: 1px solid var(--line); margin: 0 0 16px; }
   .diag {
     font-family: 'Maple Mono NF CN', ui-monospace, 'SF Mono', monospace;
     display: block;
-    font-size: 13.5px; color: var(--text); margin-bottom: 20px;
+    font-size: 12.5px; color: var(--text); margin-bottom: 20px;
   }
   .diag dt {
     color: var(--muted);
@@ -168,7 +168,7 @@
   body[data-gate-error="blocked"] #diag-location-label,
   body[data-gate-error="blocked"] #diag-country,
   body[data-gate-error="blocked"] #gate { display: none; }
-  .foot { text-align: center; font-size: 12px; color: var(--foot); }
+  .foot { text-align: center; font-size: 11px; color: var(--foot); }
   .foot .brand-word {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
     font-weight: 700;

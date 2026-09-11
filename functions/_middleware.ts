@@ -150,27 +150,11 @@ async function adminAuthRedirect(
   }
 }
 
-/** 构造强制门禁跳转（供快速切换主题时使用，忽略 WAF/白名单/已验证状态）。 */
-function forceGateRedirect(
-  request: Request,
-  hostname: string,
-  pathname: string,
-  search: string,
-): Response {
-  // 同域名挑战：在请求来源主机上渲染门禁，而不是跳去 auth.<root_domain>。
-  const gateUrl = new URL("/__gate", `https://${hostname}/`);
+/** 取回验证完成后应显示的原路径，移除仅供触发强制验证的参数。 */
+function gateNextPath(pathname: string, search: string): string {
   const nextUrl = new URL(pathname + search, BASE_URL);
   nextUrl.searchParams.delete("challenge");
-  gateUrl.searchParams.set("host", hostname);
-  gateUrl.searchParams.set("next", nextUrl.pathname + nextUrl.search);
-  gateUrl.searchParams.set("challenge", "1");
-  return withLangCookie(request, new Response(null, {
-    status: 302,
-    headers: {
-      Location: gateUrl.toString(),
-      "Cache-Control": "no-store",
-    },
-  }));
+  return nextUrl.pathname + nextUrl.search;
 }
 
 /** 中间件核心编排，导出供本地测试 mock 依赖。 */
@@ -242,9 +226,9 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     });
   }
 
-  // 图片子域的门面页同样走主站主题切换逻辑；强制挑战直接去同域名 /__gate。
+  // 图片子域强制挑战直接在当前 URL 输出门禁页，地址栏不切到 /__gate。
   if (forceChallenge && hostname === IMAGES_HOSTNAME) {
-    return forceGateRedirect(request, hostname, pathname, url.search);
+    return renderGatePage(context, { host: hostname, next: gateNextPath(pathname, url.search) });
   }
 
   // images.<root_domain>：图片子域公开访问；页面路径吐门面页，其余映射 /static。
@@ -310,12 +294,12 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
       context,
       logEvent(env, "gate_redirect", request, {
         outcome: "forced",
-        status: 302,
+        status: 403,
         path: pathname,
         message: "force_theme_challenge",
       }),
     );
-    return forceGateRedirect(request, hostname, pathname, url.search);
+    return renderGatePage(context, { host: hostname, next: gateNextPath(pathname, url.search) });
   }
 
   const cookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
@@ -349,17 +333,8 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     return next();
   }
 
-  // 未验证：在对应域名渲染门禁页（同域名 challenge，不再跳去 auth。<root_domain>）。
-  const gateUrl = new URL("/__gate", `https://${hostname}/`);
-  gateUrl.searchParams.set("host", hostname);
-  gateUrl.searchParams.set("next", pathname + url.search);
-  return withLangCookie(request, new Response(null, {
-    status: 302,
-    headers: {
-      Location: gateUrl.toString(),
-      "Cache-Control": "no-store",
-    },
-  }));
+  // 未验证：直接在被访问的 URL 输出门禁页，地址栏始终保持原页面地址。
+  return renderGatePage(context, { host: hostname, next: pathname + url.search });
 }
 
 export const onRequest: PagesFunction = async (context) => {
