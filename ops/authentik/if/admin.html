@@ -81,11 +81,12 @@
             if (!root || !root.querySelectorAll) {
                 return;
             }
-            if (!root.querySelector("style[data-id='" + STYLE_ID + "']")) {
+            var styleRoot = root.nodeType === 9 ? root.head : root;
+            if (styleRoot && !styleRoot.querySelector("style[data-id='" + STYLE_ID + "']")) {
                 var style = document.createElement("style");
                 style.setAttribute("data-id", STYLE_ID);
                 style.textContent = BRAND_CSS;
-                root.appendChild(style);
+                styleRoot.appendChild(style);
             }
             root.querySelectorAll("*").forEach(function (element) {
                 if (element.shadowRoot) {
