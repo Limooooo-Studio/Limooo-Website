@@ -181,20 +181,29 @@
                 fieldset.style.alignItems = "center";
                 fieldset.style.flexWrap = "nowrap";
                 var source = fieldset.querySelector("button.source-button");
-                var oldLinks = fieldset.querySelectorAll(".limooo-passkey-link");
-                var oldDivider = fieldset.querySelector(".limooo-auth-divider");
-                for (var j = 0; j < oldLinks.length; j++) {
-                    if (oldLinks[j].parentNode) oldLinks[j].parentNode.removeChild(oldLinks[j]);
-                }
-                if (oldDivider && oldDivider.parentNode) oldDivider.parentNode.removeChild(oldDivider);
-                if (source) {
+                /* 只在首次布局时移动节点；周期性重插入会打断 Authentik
+                   绑定的 click 状态，导致 Passkey 需要点击多次。 */
+                if (link.parentNode !== fieldset) {
+                    var oldLinks = fieldset.querySelectorAll(".limooo-passkey-link");
+                    var oldDivider = fieldset.querySelector(".limooo-auth-divider");
+                    for (var j = 0; j < oldLinks.length; j++) {
+                        if (oldLinks[j] !== link && oldLinks[j].parentNode) oldLinks[j].parentNode.removeChild(oldLinks[j]);
+                    }
+                    if (oldDivider && oldDivider.parentNode) oldDivider.parentNode.removeChild(oldDivider);
+                    if (source) {
+                        var divider = document.createElement("span");
+                        divider.className = "limooo-auth-divider";
+                        divider.setAttribute("aria-hidden", "true");
+                        fieldset.insertBefore(divider, source);
+                        fieldset.insertBefore(link, divider);
+                    } else {
+                        fieldset.appendChild(link);
+                    }
+                } else if (source && !fieldset.querySelector(".limooo-auth-divider")) {
                     var divider = document.createElement("span");
                     divider.className = "limooo-auth-divider";
                     divider.setAttribute("aria-hidden", "true");
                     fieldset.insertBefore(divider, source);
-                    fieldset.insertBefore(link, divider);
-                } else {
-                    fieldset.appendChild(link);
                 }
             }
         }
@@ -223,8 +232,6 @@
     setInterval(function () {
         markPasswordRequired(document);
         markPasswordRequired(document.documentElement);
-        layoutPasskey(document);
-        layoutPasskey(document.documentElement);
     }, 500);
 })();
 </script>
