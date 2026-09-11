@@ -12,6 +12,7 @@
 
 import json
 import hashlib
+import io
 import os
 import re
 import shutil
@@ -24,6 +25,12 @@ try:
     from PIL import Image, ImageDraw
 except ImportError:
     Image = ImageDraw = None
+
+try:
+    import cairosvg
+except ImportError:
+    cairosvg = None
+
 
 from config import (
     BASE_DIR,
@@ -573,10 +580,14 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
         print("[build] 没有可水印化的作品集文件，跳过 Pillow 检查", flush=True)
         return 0
 
-    wm_path = os.path.join(STATIC_DIR, "icons", "limooo-watermark.webp")
+    wm_path = os.path.join(STATIC_DIR, "icons", "Limooo-watermark.svg")
+    if not os.path.exists(wm_path):
+        raise FileNotFoundError("缺少水印素材：src/static/icons/Limooo-watermark.svg")
     os.makedirs(out_root, exist_ok=True)
 
-    wm = Image.open(wm_path).convert("RGBA")
+    if cairosvg is None:
+        raise RuntimeError("使用 SVG 水印时需要安装 cairosvg")
+    wm = Image.open(io.BytesIO(cairosvg.svg2png(url=wm_path))).convert("RGBA")
     wm_w0, wm_h0 = wm.size
     count = 0
 
