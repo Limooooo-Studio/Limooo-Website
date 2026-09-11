@@ -12,6 +12,15 @@
 # 4. 生成 public/manifest.json。
 set -euo pipefail
 
+# macOS Homebrew 的 cairosvg/cairocffi 需要显式搜索 Cairo 动态库。
+if [ "$(uname -s)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then
+    CAIRO_PREFIX="$(brew --prefix cairo 2>/dev/null || true)"
+    if [ -n "$CAIRO_PREFIX" ] && [ -d "$CAIRO_PREFIX/lib" ]; then
+        export DYLD_LIBRARY_PATH="$CAIRO_PREFIX/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        export DYLD_FALLBACK_LIBRARY_PATH="$CAIRO_PREFIX/lib${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+    fi
+fi
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
