@@ -422,8 +422,6 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         /* 恢复主题：有缓存用缓存，无缓存跟随系统（VitePress appearance 行为） */
         applyTheme(effectiveTheme());
 
-        /* 站点级品牌字统一：把 Limooo / LIMOOO 统一渲染为 Baloo 2 */
-        brandifySite();
 
         /* 系统主题变化时：仅在无缓存（跟随系统）状态下自动跟随 */
         window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
@@ -438,10 +436,6 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
             }
         });
 
-        /* 切换语言后 data-i18n 文本被重写，需要重新 brandify */
-        document.addEventListener('languagechange', function() {
-            brandifySite();
-        });
 
         /* 界面加载完成后立即预取全部语言:切换语言时字典已在缓存,不再等网络;
            另外两个主页的 prefetch 保持低优先级,不抢首屏之后的带宽 */

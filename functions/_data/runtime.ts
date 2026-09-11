@@ -3,7 +3,7 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
   "zh-cn": {
     "title": "正在验证您是否为人类…",
     "heading": "请完成人机验证后再访问本站",
-    "location": "位置",
+    "location": "Location",
     "ip": "IP",
     "ray": "Ray ID",
     "foot": "由 Limooo 边缘安全提供保护",
@@ -41,7 +41,7 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
   "ja-jp": {
     "title": "人間であることを確認しています…",
     "heading": "このサイトにアクセスするには、人認証を完了してください",
-    "location": "場所",
+    "location": "Location",
     "ip": "IP",
     "ray": "Ray ID",
     "foot": "Limooo Edge Security により保護されています",
@@ -60,7 +60,7 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
   "ko-kr": {
     "title": "사람인지 확인하는 중…",
     "heading": "사이트에 접속하려면 인증을 완료해 주세요",
-    "location": "위치",
+    "location": "Location",
     "ip": "IP",
     "ray": "Ray ID",
     "foot": "Limooo Edge Security가 보호합니다",

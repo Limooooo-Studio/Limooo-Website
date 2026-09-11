@@ -3,7 +3,7 @@
   "redirect_text": "正在跳转... (・ω・)",
   "gate_title": "正在验证您是否为人类…",
   "gate_heading": "请完成人机验证后再访问本站",
-  "gate_location": "位置",
+  "gate_location": "Location",
   "gate_ip": "IP",
   "gate_ray": "Ray ID",
   "gate_foot": "由 Limooo 边缘安全提供保护",

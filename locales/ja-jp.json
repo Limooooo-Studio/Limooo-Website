@@ -3,7 +3,7 @@
   "redirect_text": "リダイレクト中... (・ω・)",
   "gate_title": "人間であることを確認しています…",
   "gate_heading": "このサイトにアクセスするには、人認証を完了してください",
-  "gate_location": "場所",
+  "gate_location": "Location",
   "gate_ip": "IP",
   "gate_ray": "Ray ID",
   "gate_foot": "Limooo Edge Security により保護されています",
