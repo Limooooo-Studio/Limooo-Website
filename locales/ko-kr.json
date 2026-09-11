@@ -13,6 +13,8 @@
   "gate_error_invalid": "잘못된 요청입니다. 다시 시도해 주세요.",
   "gate_error_unavailable": "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
   "gate_error_failed": "인증에 실패했습니다. 다시 시도해 주세요.",
+  "gate_error_blocked": "WAF 규칙에 의해 차단되었습니다",
+  "gate_error_blocked_detail": "VPN을 끈 뒤 다시 시도해 주세요.",
   "lang_aria": "언어 전환",
   "lang_zh": "简体中文",
   "lang_en": "English",

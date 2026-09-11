@@ -35,7 +35,6 @@ import {
   handleGateConfig,
   handleGateDiag,
   handleVerify,
-  banAfterGateFailures,
   isBlocked,
   isValidGateCookie,
   mintGateCookie,
@@ -292,13 +291,17 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   const exempt =
     pathname.startsWith("/login") ||
     pathname.startsWith("/logout") ||
-    pathname.startsWith("/appleid") ||
+    pathname.startsWith("/account") ||
     pathname.startsWith("/visitor") ||
     pathname.startsWith("/api/appleid") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/ray");
   if (!whitelisted && !exempt && ip && (await isBlocked(env, request, ip))) {
-    return new Response("Forbidden", { status: 403 });
+    return renderGatePage(context, {
+      host: hostname,
+      next: pathname + url.search,
+      errorKey: "blocked",
+    });
   }
 
   // 快速切换主题触发的强制挑战：即使来自中国大陆 ASN、白名单 IP、
@@ -351,9 +354,6 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   const gateUrl = new URL("/__gate", `https://${hostname}/`);
   gateUrl.searchParams.set("host", hostname);
   gateUrl.searchParams.set("next", pathname + url.search);
-  if (await banAfterGateFailures(env, request, ip)) {
-    return new Response("Forbidden", { status: 403 });
-  }
   return withLangCookie(request, new Response(null, {
     status: 302,
     headers: {

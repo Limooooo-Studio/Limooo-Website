@@ -151,6 +151,8 @@
     border-radius: 6px; padding: 10px 14px; font-size: 14px;
     margin-bottom: 18px; text-align: center;
   }
+  .error.blocked { font-size: 16px; font-weight: 700; }
+  .blocked-detail { margin: -8px 0 18px; text-align: center; font-size: 14px; color: var(--muted); }
   .divider { border: none; border-top: 1px solid var(--line); margin: 0 0 16px; }
   .diag {
     font-family: 'Maple Mono NF CN', ui-monospace, 'SF Mono', monospace;
@@ -163,6 +165,9 @@
   }
   .diag dt::after { content: ":"; }
   .diag dd { overflow-wrap: anywhere; margin: 0 0 4px; }
+  body[data-gate-error="blocked"] #diag-location-label,
+  body[data-gate-error="blocked"] #diag-country,
+  body[data-gate-error="blocked"] #gate { display: none; }
   .foot { text-align: center; font-size: 12px; color: var(--foot); }
   .foot .brand-word {
     font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;

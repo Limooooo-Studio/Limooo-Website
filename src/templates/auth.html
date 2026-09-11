@@ -43,6 +43,7 @@
   <img class="logo" src="/static/icons/Limooo-xtext.svg?v=2" alt="Limooo" width="220">
   <h1 data-i18n="heading">{{ heading }}</h1>
   <div id="gate-error" class="error" hidden></div>
+  <p id="gate-blocked-detail" class="blocked-detail" data-i18n="error_blocked_detail" hidden></p>
   <form id="gate" method="post" action="/__gate/verify">
     <input type="hidden" name="host" value="{{ host }}">
     <input type="hidden" name="next" value="{{ next }}">
@@ -50,7 +51,7 @@
   </form>
   <hr class="divider">
   <dl class="diag">
-    <dt data-i18n="location">{{ location }}</dt><dd id="diag-country">—</dd>
+    <dt id="diag-location-label" data-i18n="location">{{ location }}</dt><dd id="diag-country">—</dd>
     <dt data-i18n="ip">{{ ip }}</dt><dd id="diag-ip">—</dd>
     <dt data-i18n="ray">{{ ray }}</dt><dd id="diag-ray">—</dd>
   </dl>

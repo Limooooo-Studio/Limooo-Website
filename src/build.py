@@ -169,6 +169,8 @@ GATE_I18N_KEYS = (
     ("error_invalid", "gate_error_invalid"),
     ("error_unavailable", "gate_error_unavailable"),
     ("error_failed", "gate_error_failed"),
+    ("error_blocked", "gate_error_blocked"),
+    ("error_blocked_detail", "gate_error_blocked_detail"),
 )
 
 
@@ -290,7 +292,7 @@ def write_config_functions() -> None:
         "export const SERVICES_HOSTNAME = `services.${ROOT_DOMAIN}`;",
         "export const CONTACT_HOSTNAME = `contact.${ROOT_DOMAIN}`;",
         "export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;",
-        "export const APPLEID_HOSTNAME = `appleid.${ROOT_DOMAIN}`;",
+        "export const APPLEID_HOSTNAME = `apple.${ROOT_DOMAIN}`;",
         "export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;",
         "export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;",
         f"export const AUTHENTIK_HOSTNAME = {json.dumps(authentik_host)};",

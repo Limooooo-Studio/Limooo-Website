@@ -70,7 +70,7 @@ export function pageSlug(pathname: string): string {
   if (p.startsWith("/services")) return "services";
   if (p.startsWith("/contact")) return "contact";
   if (p.startsWith("/visitor")) return "visitor";
-  if (p.startsWith("/appleid")) return "appleid";
+  if (p.startsWith("/account")) return "appleid";
   if (p.startsWith("/login")) return "login";
   if (p.startsWith("/logout")) return "logout";
   const first = p.split("/").filter(Boolean)[0];

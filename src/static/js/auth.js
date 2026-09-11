@@ -69,14 +69,26 @@ function loadTurnstileScript() {
 
 function showError(key) {
   var el = document.getElementById('gate-error');
+  var blockedDetail = document.getElementById('gate-blocked-detail');
+  var locationLabel = document.getElementById('diag-location-label');
+  var country = document.getElementById('diag-country');
   if (!el) return;
   if (!key) {
     el.hidden = true;
     el.textContent = '';
+    el.classList.remove('blocked');
+    if (blockedDetail) blockedDetail.hidden = true;
+    if (locationLabel) locationLabel.hidden = false;
+    if (country) country.hidden = false;
     return;
   }
   el.hidden = false;
   el.textContent = t('error_' + key);
+  var blocked = key === 'blocked';
+  el.classList.toggle('blocked', blocked);
+  if (blockedDetail) blockedDetail.hidden = !blocked;
+  if (locationLabel) locationLabel.hidden = blocked;
+  if (country) country.hidden = blocked;
 }
 
 /* 把文案中的品牌词（如 "Limooo"）包成 Baloo 2 字体的 span，语言变体同样生效。 */
@@ -159,7 +171,8 @@ function fetchI18n(lang, cb) {
           lang_aria: 'gate_lang_aria', theme_aria: 'gate_theme_aria',
           footer_rights: 'footer_rights', footer_source: 'footer_source', footer_source_link: 'footer_source_link',
           error_sitekey: 'gate_error_sitekey', error_invalid: 'gate_error_invalid',
-          error_unavailable: 'gate_error_unavailable', error_failed: 'gate_error_failed'
+          error_unavailable: 'gate_error_unavailable', error_failed: 'gate_error_failed',
+          error_blocked: 'gate_error_blocked', error_blocked_detail: 'gate_error_blocked_detail'
         };
         var normalized = {};
         Object.keys(map).forEach(function (outKey) {
@@ -234,6 +247,11 @@ function initGateConfig(cfg) {
   renderI18n();
   var errorKey = document.body.getAttribute('data-gate-error') || '';
   if (errorKey) showError(errorKey);
+  if (errorKey === 'blocked') {
+    var form = document.getElementById('gate');
+    if (form) form.hidden = true;
+    return;
+  }
   if (TURNSTILE_SITEKEY === '') {
     showError('sitekey');
     return;

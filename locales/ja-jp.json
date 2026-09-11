@@ -13,6 +13,8 @@
   "gate_error_invalid": "リクエストが無効です。もう一度お試しください。",
   "gate_error_unavailable": "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
   "gate_error_failed": "認証に失敗しました。もう一度お試しください。",
+  "gate_error_blocked": "WAF ルールによりブロックされています",
+  "gate_error_blocked_detail": "VPN をオフにして、もう一度お試しください。",
   "lang_aria": "言語切替",
   "lang_zh": "简体中文",
   "lang_en": "English",

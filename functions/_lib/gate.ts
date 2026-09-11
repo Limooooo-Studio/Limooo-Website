@@ -1,8 +1,8 @@
 /** 人机验证门禁：cookie 校验/签发、Turnstile 验证、门禁页渲染、配置接口。 */
 
-import { execute, executeBatch, queryAll } from "./d1";
-import { networkAddress, normalizeIp, parseCidr } from "./cidr";
-import { ipHash, logEvent } from "./logging";
+import { queryAll } from "./d1";
+import { networkAddress, normalizeIp } from "./cidr";
+import { logEvent } from "./logging";
 import type { RequestContext } from "./routing";
 import {
   detectLang,
@@ -23,9 +23,6 @@ import { GATE_I18N } from "../_data/runtime";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 3000;
-const GATE_FAILURE_WINDOW_SECONDS = 24 * 60 * 60;
-const GATE_FAILURE_BAN_THRESHOLD = 3;
-
 const textEncoder = new TextEncoder();
 
 /** 门禁事件日志异步写入，不阻塞验证结果的返回。 */
@@ -195,11 +192,14 @@ interface BlockedRow {
  * 计数只保存 HMAC 后的 IP，封禁时才把规范化地址写入 blocked_ips。成功写入
  * blocked_ips 后删除计数器，避免被封来源继续占用表空间或反复触发封禁审计。
  */
-export async function banAfterGateFailures(
-  env: import("./env").Env,
-  request: Request,
-  ip: string,
+/* Automatic gate-failure threshold blocking has been removed. */
+async function removedBanAfterGateFailures(
+  _env: import("./env").Env,
+  _request: Request,
+  _ip: string,
 ): Promise<boolean> {
+  return false;
+/*
   if (!env.DB || !env.OBSERVABILITY_HMAC_KEY) return false;
   const normalized = normalizeIp(ip);
   if (!normalized) return false;
@@ -269,7 +269,7 @@ export async function banAfterGateFailures(
   } catch {
     // 封禁计数不可用时维持门禁原有行为，不能误封。
     return false;
-  }
+  }*/
 }
 
 /** 封禁检查：规范化请求 IP 后，按 blocked_ips(network, prefix) 精确查询（DB 异常时放行）。 */
