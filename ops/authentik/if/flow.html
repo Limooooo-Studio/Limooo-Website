@@ -1,0 +1,255 @@
+{% extends "base/skeleton.html" %}
+
+{% load i18n %}
+{% load static %}
+{% load authentik_core %}
+
+
+{% block head_before %}
+{{ block.super }}
+<link rel="prefetch" href="{{ flow_background_url }}" />
+{% if flow.compatibility_mode and not inspector %}
+{% comment %}
+    @see {@link web/types/webcomponents.d.ts} for type definitions.
+{% endcomment %}
+<script data-id="shady-dom">
+    "use strict";
+
+    window.ShadyDOM = window.ShadyDOM || {}
+    window.ShadyDOM.force = true
+</script>
+{% endif %}
+{% include "base/header_js.html" %}
+<script data-id="flow-config">
+    "use strict";
+
+    window.authentik.flow = {
+        "layout": "{{ flow.layout }}",
+        "background": "{{ flow.background }}",
+        "title": "{{ flow.title }}",
+    };
+</script>
+{% endblock %}
+
+{% block interface_stylesheet %}
+<link rel="stylesheet" type="text/css" href="{% versioned_script 'dist/styles/flow-%v.css' %}" />
+{% endblock %}
+
+{% block head %}
+<script src="{% versioned_script 'dist/flow/FlowInterface-%v.js' %}" type="module"></script>
+<style data-id="flow-css">
+  :root {
+      --ak-global--background-image: url("{{ flow_background_url|iriencode|safe }}");
+  }
+</style>
+<style data-id="flow-custom">
+/* 必填字段(label 带 data-required-label)右侧显示红色星号。
+   主文档样式对 shadow DOM 内元素不生效,同一规则由下方脚本注入各 shadow root */
+.pf-c-form__label-text[data-required-label]::after {
+    content: " *";
+    color: #ef4444;
+    margin-left: 2px;
+}
+.limooo-passkey-link {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.25;
+}
+.limooo-passkey-link:hover {
+    color: #05a5a6;
+    text-decoration: underline;
+}
+.limooo-auth-divider {
+    display: inline-block;
+    width: 1px;
+    height: 1.25rem;
+    background: currentColor;
+    opacity: .35;
+}
+</style>
+<script>
+/* 登录页自定义行为:
+   1) 失焦: 始终拦截"自动聚焦",只放行 用户直接点击输入框 或 Tab 键盘导航 导致的聚焦。
+      authentik 表单在 Shadow DOM 里,须用 composedPath()[0] 取真实元素。
+      旧实现用 interacted 标志位,导致用户点击页面任意处后 autofocus 被放行 —— 已废弃。
+      密码框的 grab-focus(10ms 轮询)会被拦掉,这里用 suppressUntil 降频避免高频 focus/blur 循环。
+   2) 必填红星: 把星号样式注入到每个组件的 shadowRoot(主文档 style 无法穿透 shadow DOM),
+      用 MutationObserver 持续监视新挂载的组件。 */
+(function () {
+    var FOCUS_SEL = "input, textarea, select";
+    var pendingPointer = null;
+    var lastKeydown = 0;
+    var suppressUntil = 0;
+    document.addEventListener("pointerdown", function (e) {
+        var p = e.composedPath();
+        pendingPointer = (p && p[0]) || null;
+    }, true);
+    document.addEventListener("keydown", function () {
+        lastKeydown = Date.now();
+    }, true);
+    document.addEventListener("focusin", function (e) {
+        var p = e.composedPath();
+        var el = p && p[0];
+        if (!el || !el.matches || !el.matches(FOCUS_SEL)) return;
+        var now = Date.now();
+        var byPointer = el === pendingPointer;
+        var byKeyboard = now - lastKeydown < 500;
+        pendingPointer = null;
+        if (byPointer || byKeyboard) { suppressUntil = 0; return; }
+        el.blur();
+        if (now >= suppressUntil) suppressUntil = now + 250;
+    }, true);
+
+    var STAR_CSS = '.pf-c-form__label-text[data-required-label]::after{content:" *";color:#ef4444;margin-left:2px}';
+    var STAR_ID = "ak-flow-required-star";
+    function injectStar(root) {
+        if (!root) return;
+        var all = root.querySelectorAll("*");
+        for (var i = 0; i < all.length; i++) {
+            var el = all[i];
+            if (el.shadowRoot) {
+                if (!el.shadowRoot.querySelector('style[data-id="' + STAR_ID + '"]')) {
+                    var s = document.createElement("style");
+                    s.setAttribute("data-id", STAR_ID);
+                    s.textContent = STAR_CSS;
+                    el.shadowRoot.appendChild(s);
+                }
+                injectStar(el.shadowRoot);
+            }
+        }
+    }
+    var FLOW_CSS = [
+        'fieldset[name="login-sources"]{align-items:center;flex-wrap:nowrap;}',
+        '.limooo-passkey-link{all:unset;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;font-weight:500;line-height:1.25;}',
+        '.source-button,.source-button *{font-family:inherit;font-weight:500!important;}',
+        '.limooo-passkey-link:hover{color:#05a5a6;text-decoration:underline;}',
+        '.limooo-auth-divider{display:inline-block;width:1px;height:1.25rem;background:currentColor;opacity:.35;}'
+    ].join("");
+    var FLOW_ID = "ak-flow-custom";
+    function injectFlowStyle(root) {
+        if (!root) return;
+        var all = root.querySelectorAll("*");
+        for (var i = 0; i < all.length; i++) {
+            var el = all[i];
+            if (el.shadowRoot) {
+                if (!el.shadowRoot.querySelector('style[data-id="' + FLOW_ID + '"]')) {
+                    var s = document.createElement("style");
+                    s.setAttribute("data-id", FLOW_ID);
+                    s.textContent = FLOW_CSS;
+                    el.shadowRoot.appendChild(s);
+                }
+                injectFlowStyle(el.shadowRoot);
+            }
+        }
+    }
+    /* 密码必填：authentik 的 ak-flow-input-password 默认 required=false，
+       这里统一改成必填，并让 label 带上 data-required-label 触发红星。 */
+    function markPasswordRequired(root) {
+        if (!root || !root.querySelectorAll) return;
+        var inputs = root.querySelectorAll("ak-flow-input-password");
+        for (var i = 0; i < inputs.length; i++) {
+            var input = inputs[i];
+            if (input.required !== true) input.required = true;
+            var labels = input.querySelectorAll(".pf-c-form__label-text");
+            for (var j = 0; j < labels.length; j++) {
+                labels[j].setAttribute("data-required-label", "");
+            }
+        }
+        var all = root.querySelectorAll("*");
+        for (var k = 0; k < all.length; k++) {
+            if (all[k].shadowRoot) markPasswordRequired(all[k].shadowRoot);
+        }
+    }
+    /* 登录页 passkey：authentik 默认 "Use a security key" 且是整行按钮，
+       这里改成纯文字链接文案，并移到 Login sources 的同一行，前面加细竖线分隔。 */
+    var PASSKEY_LABEL = "Limooo Passkey";
+    function layoutPasskey(root) {
+        if (!root || !root.querySelectorAll) return;
+        var links = root.querySelectorAll('[data-ouia-component-id="passwordless"]');
+        for (var i = 0; i < links.length; i++) {
+            var link = links[i];
+            if (link.textContent !== PASSKEY_LABEL) link.textContent = PASSKEY_LABEL;
+            link.classList.remove("pf-c-button", "pf-m-secondary", "pf-m-block");
+            link.classList.add("limooo-passkey-link");
+            var fieldset = root.querySelector('fieldset[name="login-sources"]');
+            if (fieldset) {
+                fieldset.style.alignItems = "center";
+                fieldset.style.flexWrap = "nowrap";
+                var source = fieldset.querySelector("button.source-button");
+                var oldLinks = fieldset.querySelectorAll(".limooo-passkey-link");
+                var oldDivider = fieldset.querySelector(".limooo-auth-divider");
+                for (var j = 0; j < oldLinks.length; j++) {
+                    if (oldLinks[j].parentNode) oldLinks[j].parentNode.removeChild(oldLinks[j]);
+                }
+                if (oldDivider && oldDivider.parentNode) oldDivider.parentNode.removeChild(oldDivider);
+                if (source) {
+                    var divider = document.createElement("span");
+                    divider.className = "limooo-auth-divider";
+                    divider.setAttribute("aria-hidden", "true");
+                    fieldset.insertBefore(divider, source);
+                    fieldset.insertBefore(link, divider);
+                } else {
+                    fieldset.appendChild(link);
+                }
+            }
+        }
+        var all = root.querySelectorAll("*");
+        for (var j = 0; j < all.length; j++) {
+            if (all[j].shadowRoot) layoutPasskey(all[j].shadowRoot);
+        }
+    }
+    function run() {
+        injectStar(document);
+        injectStar(document.documentElement);
+        injectFlowStyle(document);
+        injectFlowStyle(document.documentElement);
+        markPasswordRequired(document);
+        markPasswordRequired(document.documentElement);
+        layoutPasskey(document);
+        layoutPasskey(document.documentElement);
+    }
+    if (window.MutationObserver) {
+        new MutationObserver(run).observe(document.documentElement, { childList: true, subtree: true });
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", run);
+    }
+    run();
+    setInterval(function () {
+        markPasswordRequired(document);
+        markPasswordRequired(document.documentElement);
+        layoutPasskey(document);
+        layoutPasskey(document.documentElement);
+    }, 500);
+})();
+</script>
+{% endblock %}
+
+{% block body %}
+<ak-skip-to-content></ak-skip-to-content>
+<ak-message-container></ak-message-container>
+<ak-drawer id="flow-drawer">
+    <ak-flow-executor
+        slug="{{ flow.slug }}"
+        class="pf-c-login"
+        data-layout="{{ flow.layout|default:'stacked' }}"
+        loading
+    >
+        {% include "base/placeholder.html" %}
+
+        <ak-brand-links name="flow-links" slot="footer"></ak-brand-links>
+    </ak-flow-executor>
+
+    <ak-flow-inspector
+        slot="panel"
+        id="flow-inspector"
+        data-registration="lazy"
+        slug="{{ flow.slug }}"
+    ></ak-flow-inspector>
+</ak-drawer>
+{% endblock %}

@@ -5,7 +5,7 @@
 # 职责（幂等）：
 # 1. 把 Authentik 自身 URL 固定到 admin.limooo.cn；
 # 2. 把 Proxy Provider 切换为 forward_single，由 Nginx 做 auth_request；
-# 3. 同步自定义 if/admin.html（Authentik 管理页内嵌 Uptime Kuma）；
+# 3. 同步自定义 if/admin.html 与 if/flow.html（管理页及登录页）；
 # 4. 重启 Authentik server/worker，并在等待就绪后校验 Nginx。
 #
 # 不修改 Cloudflare DNS（单入口由 ops 外步骤/控制台负责）；Nginx 仅保留
@@ -17,6 +17,7 @@ REMOTE_HOST="${REMOTE_HOST:-limooo}"
 SSH_OPTS=(-o LogLevel=ERROR -o ConnectTimeout=10)
 LOCAL_OPS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOCAL_TEMPLATE="$LOCAL_OPS_DIR/authentik/if/admin.html"
+LOCAL_FLOW_TEMPLATE="$LOCAL_OPS_DIR/authentik/if/flow.html"
 REMOTE_AUTHENTIK_DIR="/opt/authentik"
 REMOTE_TEMPLATE_DIR="$REMOTE_AUTHENTIK_DIR/custom-templates/if"
 REMOTE_NGINX="/etc/nginx/conf.d/limooo.conf"
@@ -40,7 +41,7 @@ if [ "$DRY_RUN" = 1 ]; then
     echo "[authentik] will-run: 更新 AUTHENTIK_URL -> https://admin.limooo.cn"
     echo "[authentik] will-run: PATCH Proxy Provider -> forward_single"
     echo "[authentik] will-run: PATCH Embedded Outpost authentik_host -> https://admin.limooo.cn"
-    echo "[authentik] will-run: scp admin.html -> $REMOTE_TEMPLATE_DIR/admin.html"
+    echo "[authentik] will-run: scp admin.html/flow.html -> $REMOTE_TEMPLATE_DIR/"
     echo "[authentik] will-run: docker-compose up -d server worker"
     echo "[authentik] will-run: nginx -t && systemctl reload nginx"
     exit 0
@@ -48,6 +49,10 @@ fi
 
 if [ ! -f "$LOCAL_TEMPLATE" ]; then
     echo "FATAL: 找不到 Authentik 管理模板: $LOCAL_TEMPLATE" >&2
+    exit 2
+fi
+if [ ! -f "$LOCAL_FLOW_TEMPLATE" ]; then
+    echo "FATAL: 找不到 Authentik flow 模板: $LOCAL_FLOW_TEMPLATE" >&2
     exit 2
 fi
 
@@ -94,6 +99,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
 
 echo "[authentik] 4/6 同步管理模板"
 scp "${SSH_OPTS[@]}" "$LOCAL_TEMPLATE" "$REMOTE_HOST:$REMOTE_TEMPLATE_DIR/admin.html"
+scp "${SSH_OPTS[@]}" "$LOCAL_FLOW_TEMPLATE" "$REMOTE_HOST:$REMOTE_TEMPLATE_DIR/flow.html"
 
 echo "[authentik] 5/6 重启 Authentik"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
