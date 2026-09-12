@@ -5,6 +5,8 @@ import { networkAddress, normalizeIp } from "./cidr";
 import { logEvent } from "./logging";
 import type { RequestContext } from "./routing";
 import {
+  clientCountryForLogs,
+  clientIpForLogs,
   detectLang,
   getCookie,
   safeNextPath,
@@ -102,11 +104,10 @@ export function handleGateConfig(context: RequestContext): Response {
 /** GET /__gate/diag：动态诊断信息，页面其余部分可缓存。 */
 export function handleGateDiag(context: RequestContext): Response {
   const { request } = context;
-  const cf = (request as Request & { cf?: { country?: string } }).cf;
   return Response.json(
     {
-      country: cf?.country ?? "—",
-      ip: request.headers.get("CF-Connecting-IP") || "—",
+      country: clientCountryForLogs(request) || "—",
+      ip: clientIpForLogs(request) || "—",
       ray: request.headers.get("CF-Ray") || "—",
     },
     { headers: { "Cache-Control": "no-store" } },
@@ -135,6 +136,8 @@ export interface GateRenderOptions {
   host?: string;
   errorKey?: string;
   unavailable?: boolean;
+  /** 已通过门禁的访客仍要求看这张页（门禁主机原地渲染）时为 true，状态码用 200。 */
+  passed?: boolean;
 }
 
 /** 从生成好的 <lang>/auth.html 读取门禁页，只注入 host/next/error/lang。 */
@@ -146,7 +149,7 @@ export async function renderGatePage(
   const host = sanitizeHost(opts.host);
   const next = safeNextPath(opts.next ?? "/");
   const lang = detectLang(request);
-  const status = opts.unavailable ? 503 : 403;
+  const status = opts.unavailable ? 503 : opts.passed ? 200 : 403;
   if (!env.ASSETS) return new Response("Gate page unavailable", { status: 503 });
 
   const asset = await env.ASSETS.fetch(new URL(`/${lang}/auth.html`, BASE_URL));
@@ -384,7 +387,9 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
   const token = form.get("cf-turnstile-response")?.toString() ?? "";
   const next = safeNextPath(form.get("next")?.toString() ?? null);
   const host = sanitizeHost(form.get("host")?.toString() ?? null);
-  const remoteip = request.headers.get("CF-Connecting-IP") ?? "";
+  // 经 VPS 反代时用转发的真实访客 IP：Turnstile 会拿它跟解题来源比对，
+  // 传成 VPS 的地址会让校验依据失真。
+  const remoteip = clientIpForLogs(request);
 
   let success = false;
   let unavailable = false;

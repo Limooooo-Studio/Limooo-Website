@@ -25,6 +25,7 @@ import {
   APPLEID_HOSTNAME,
   BASE_URL,
   GATE_COOKIE,
+  GATE_HOSTNAME,
   IMAGES_HOSTNAME,
   LANG_COOKIE,
   VISITOR_HOSTNAME,
@@ -329,6 +330,15 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
       if (authRedirect) return withLangCookie(request, authRedirect);
       const resp = await cachedPageAsset(context, asset, lang);
       if (resp?.ok) return withLangCookie(request, resp);
+    }
+    // 门禁主机没有别的内容页：已验证访客也在原地渲染门禁页（200），
+    // 既不落到 404，也不把人送去主站。
+    if (hostname === GATE_HOSTNAME) {
+      return renderGatePage(context, {
+        host: hostname,
+        next: pathname + url.search,
+        passed: true,
+      });
     }
     return next();
   }

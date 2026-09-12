@@ -12,6 +12,7 @@ import type { Env } from "./env";
 import { ipHash } from "./logging";
 import { GATE_TRUST } from "../_data/gateTrust";
 import { IMAGES_HOSTNAME, REDIRECT_HOSTNAME } from "./config";
+import { clientCountryForLogs, clientIpForLogs } from "./routing";
 
 let trackingSchemaReady = false;
 
@@ -154,7 +155,6 @@ async function ensureTrackingSchema(env: Env): Promise<void> {
 export async function recordVisit(env: Env, request: Request, status: number): Promise<void> {
   if (!env.DB) return;
   const url = new URL(request.url);
-  const cf = (request as Request & { cf?: { country?: string } }).cf;
   try {
     await ensureTrackingSchema(env);
     await execute(
@@ -165,8 +165,8 @@ export async function recordVisit(env: Env, request: Request, status: number): P
        ON CONFLICT(bucket_hour, ip_hash, country, status, page_slug) DO UPDATE SET
          requests = visitor_rollups.requests + 1,
          last_ts = excluded.last_ts`,
-      await ipHash(request.headers.get("CF-Connecting-IP") ?? "", env),
-      cf?.country ?? "",
+      await ipHash(clientIpForLogs(request), env),
+      clientCountryForLogs(request),
       status,
       pageSlug(url.pathname),
     );
@@ -187,7 +187,6 @@ export async function recordRay(
   const url = new URL(request.url);
   const ray = request.headers.get("CF-Ray") ?? "";
   if (!ray) return;
-  const cf = (request as Request & { cf?: { country?: string } }).cf;
   try {
     await ensureTrackingSchema(env);
     await execute(
@@ -201,8 +200,8 @@ export async function recordRay(
       request.method,
       status,
       Math.max(0, Math.round(durationMs)),
-      await ipHash(request.headers.get("CF-Connecting-IP") ?? "", env),
-      cf?.country ?? "",
+      await ipHash(clientIpForLogs(request), env),
+      clientCountryForLogs(request),
       uaFamily(request.headers.get("User-Agent") ?? ""),
     );
   } catch (error) {

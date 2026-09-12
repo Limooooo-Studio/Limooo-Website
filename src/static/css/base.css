@@ -61,7 +61,7 @@
 
         * { -webkit-tap-highlight-color: transparent; }
 
-        /* 左上角品牌字：与页脚 LIMOOO 同用 Baloo 2 */
+        /* 左上角品牌字：与页脚 Limooo 同用 Baloo 2 */
         .nav-brand {
             font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
             font-weight: 700;
@@ -108,7 +108,7 @@
             font-size: 10px;
             font-size-adjust: 0.6552;
         }
-        /* 通用品牌词：让正文中的 Limooo / LIMOOO 统一使用 Baloo 2（可复用） */
+        /* 通用品牌词：让正文中的 Limooo 统一使用 Baloo 2（可复用） */
         .brand-word {
             font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
             font-weight: 700;

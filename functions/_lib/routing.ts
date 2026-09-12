@@ -103,6 +103,41 @@ export function sanitizeHost(raw: string | null | undefined): string {
   return raw && isPublicHost(raw) ? raw : ROOT_DOMAIN;
 }
 
+/**
+ * nginx 反代门禁页时（status.limooo.cn 等 VPS 站），由 VPS 带上的真实访客 IP/国家。
+ *
+ * 这些头只用于「展示、埋点、Turnstile remoteip」，**绝不能**喂给
+ * isGateTrustedIp / isBlocked 之类的信任判定：客户端可以自带同名头，
+ * 用它做放行等于把门禁白名单交给访客自己声明。
+ */
+const FORWARDED_CLIENT_IP = "X-Limooo-Client-IP";
+const FORWARDED_CLIENT_COUNTRY = "X-Limooo-Client-Country";
+
+/** 经 VPS 反代转发的访客 IP（已规范化），不合法或缺失时返回空串。 */
+export function forwardedClientIp(request: Request): string {
+  const raw = request.headers.get(FORWARDED_CLIENT_IP);
+  return raw ? (normalizeIp(raw) ?? "") : "";
+}
+
+/** 经 VPS 反代转发的访客国家码（ISO 3166-1 alpha-2，如 CN/JP/KR），不合法时返回空串。 */
+export function forwardedClientCountry(request: Request): string {
+  const raw = (request.headers.get(FORWARDED_CLIENT_COUNTRY) ?? "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(raw) ? raw : "";
+}
+
+/** 展示/日志用的访客 IP：优先 VPS 转发的真实访客，其次本连接来源。 */
+export function clientIpForLogs(request: Request): string {
+  return forwardedClientIp(request) || request.headers.get("CF-Connecting-IP") || "";
+}
+
+/** 展示/日志用的访客国家码：优先 VPS 转发的真实访客，其次 Cloudflare 判定。 */
+export function clientCountryForLogs(request: Request): string {
+  const forwarded = forwardedClientCountry(request);
+  if (forwarded) return forwarded;
+  const cf = (request as Request & { cf?: { country?: string } }).cf;
+  return cf?.country ?? "";
+}
+
 /** 语言检测：cookie > Accept-Language(zh/en/ja/ko) > CF 地区(CN/JP/KR) > default。 */
 export function detectLang(request: Request): (typeof SUPPORTED_LANGS)[number] {
   const host = (request.headers.get("Host") ?? new URL(request.url).hostname).split(":")[0];
@@ -126,13 +161,13 @@ export function detectLang(request: Request): (typeof SUPPORTED_LANGS)[number] {
     if (p.startsWith("ko")) return "ko-kr";
   }
 
-  const cf = (request as Request & { cf?: { country?: string } }).cf;
   const byCountry: Record<string, (typeof SUPPORTED_LANGS)[number]> = {
     CN: "zh-cn",
     JP: "ja-jp",
     KR: "ko-kr",
   };
-  if (cf?.country && byCountry[cf.country]) return byCountry[cf.country];
+  const country = clientCountryForLogs(request);
+  if (country && byCountry[country]) return byCountry[country];
   return SUPPORTED_LANGS.includes("en-us") ? "en-us" : SUPPORTED_LANGS[0];
 }
 

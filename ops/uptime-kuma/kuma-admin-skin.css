@@ -93,14 +93,13 @@ header .title {
 }
 
 header .title::before {
-  content: "LIMOOO";
+  content: "Limooo";
   display: inline-block;
   font-family: "Baloo 2", ui-rounded, system-ui, sans-serif;
   font-size: 20px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--text);
 }
 

@@ -7,6 +7,7 @@
 
 import { execute } from "./d1";
 import type { Env } from "./env";
+import { clientCountryForLogs, clientIpForLogs } from "./routing";
 
 const textEncoder = new TextEncoder();
 let eventSchemaReady = false;
@@ -129,8 +130,7 @@ export async function logEvent(
   fields: LogEventFields = {},
 ): Promise<void> {
   const url = new URL(request.url);
-  const cf = (request as Request & { cf?: { country?: string } }).cf;
-  const ip = fields.ip ?? request.headers.get("CF-Connecting-IP") ?? "";
+  const ip = fields.ip ?? clientIpForLogs(request);
   const payload = {
     event,
     ts: Math.floor(Date.now() / 1000),
@@ -141,7 +141,7 @@ export async function logEvent(
     status: fields.status ?? 0,
     outcome: fields.outcome ?? "",
     ip_hash: await ipHash(ip, env),
-    country: fields.country ?? cf?.country ?? "",
+    country: fields.country ?? clientCountryForLogs(request),
     duration_ms: fields.durationMs ?? 0,
     message: sanitizeLogMessage(fields.message ?? ""),
     account_id: fields.accountId !== undefined ? String(fields.accountId) : "",

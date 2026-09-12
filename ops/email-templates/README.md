@@ -41,7 +41,7 @@
 - 凭据：服务器 `secrets/smtp-relay.env`（不进代码库）；relay `/opt/smtp-relay/relay.py` 从该 env 读取。
 - 收件：收件人自定；BCC `lime@limooo.cn`；Reply-To `contact@limooo.cn`。
 - 轮换：`PER_ACCOUNT_LIMIT`（当前 100 封/账号/天），发满切下一个邮箱。
-- 页脚 `LIMOOO` 用 Baloo 2（`font-size:1.21em` 补偿偏小字形）；邮件内嵌 TTF 为 `cid` 附件。
+- 页脚 `Limooo` 用 Baloo 2（`font-size:1.21em` 补偿偏小字形）；邮件内嵌 TTF 为 `cid` 附件。
 - 顶部 logo 用 `images.limooo.cn`（保留透明通道）；`image.limooo.cn` 会丢失 alpha 导致黑底。
 
 ## 已知问题

@@ -1,7 +1,8 @@
 /** isBlocked 的 CIDR 精确匹配测试（docs/10）。 */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { handleVerify, isBlocked } from "./gate";
+import { handleGateDiag, handleVerify, isBlocked } from "./gate";
+import type { RequestContext } from "./routing";
 import { queryAll } from "./d1";
 import { logEvent } from "./logging";
 
@@ -16,6 +17,26 @@ beforeEach(() => {
 });
 
 describe("isBlocked", () => {
+  it("shows the visitor IP/country forwarded by the origin proxy", async () => {
+    const req = new Request("https://auth.limooo.cn/__gate/diag", {
+      headers: {
+        "CF-Connecting-IP": "43.108.57.161",
+        "X-Limooo-Client-IP": "203.0.113.9",
+        "X-Limooo-Client-Country": "jp",
+      },
+    });
+    const diag = handleGateDiag({ request: req } as RequestContext);
+    expect(await diag.json()).toMatchObject({ ip: "203.0.113.9", country: "JP" });
+  });
+
+  it("falls back to the connecting IP when no forwarded header is present", async () => {
+    const req = new Request("https://auth.limooo.cn/__gate/diag", {
+      headers: { "CF-Connecting-IP": "43.108.57.161", "X-Limooo-Client-IP": "not-an-ip" },
+    });
+    const diag = handleGateDiag({ request: req } as RequestContext);
+    expect(await diag.json()).toMatchObject({ ip: "43.108.57.161", country: "—" });
+  });
+
   it("matches IPv4 /24 with normalized network/prefix", async () => {
     vi.mocked(queryAll).mockResolvedValue([
       { cidr: "1.2.3.0/24", network: "1.2.3.0", prefix: 24 },

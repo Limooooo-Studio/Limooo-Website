@@ -95,6 +95,29 @@ describe("force theme challenge", () => {
     expect(resp.headers.get("Location")).toBeNull();
   });
 
+  it("ignores client-supplied X-Limooo-Client-IP when deciding trust", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/", {
+          headers: {
+            "CF-Connecting-IP": "203.0.113.9",
+            "X-Limooo-Client-IP": "97.64.18.11",
+            "X-Limooo-Client-Country": "CN",
+          },
+        }),
+        {
+          ASSETS: {
+            fetch: async () => new Response("{{host}} {{next}}", {
+              headers: { "Content-Type": "text/html" },
+            }),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(403);
+  });
+
   it("serves redirect static assets directly instead of rendering the redirect page", async () => {
     const resp = await handleOnRequest(
       context(
@@ -117,6 +140,28 @@ describe("force theme challenge", () => {
     expect(resp.status).toBe(200);
     expect(await resp.text()).toBe("ok\n");
     expect(resp.headers.get("Cache-Control")).toBe("no-store");
+  });
+
+  it("renders the gate page in place on the gate host for verified visitors", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://auth.limooo.cn/", {
+          headers: { "CF-Connecting-IP": "97.64.18.11" },
+        }),
+        {
+          ASSETS: {
+            fetch: async () =>
+              new Response("{{host}} {{next}}", {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+              }),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("Location")).toBeNull();
+    await expect(resp.text()).resolves.toContain("auth.limooo.cn /");
   });
 
   it("serves public pages with edge-cache headers", async () => {
