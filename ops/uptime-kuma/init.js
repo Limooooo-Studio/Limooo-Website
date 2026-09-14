@@ -202,9 +202,11 @@ function defaultMonitors(pushToken) {
       name: "Limooo D1 健康检查",
       url: "",
       method: "GET",
-      interval: 3600,
-      retryInterval: 3600,
-      timeout: 2880,
+      // check_health.py 每 5 分钟推一次心跳：窗口 15 分钟 = 容忍两次丢包，
+      // 同时又能在 cron 真的挂掉时 15 分钟内报 Down（旧值 3600 要等一小时）。
+      interval: 900,
+      retryInterval: 900,
+      timeout: 720,
       pushToken,
     }),
   ];

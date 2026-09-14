@@ -5,10 +5,15 @@
 # 读取 D1 events / visitors / ray_log 并在阈值超限时发送 SMTP 告警。
 # 只连接 Cloudflare API（使用服务器 secrets/webauthn.env 中的凭据），
 # 不读取或输出密钥/token 值；邮件走 SMTP 服务商，不使用本机 MTA。
+#
+# 节奏：cron 每 5 分钟跑一次；一旦这次检查判定为 down，就在同一进程里
+# 每 HEALTH_RETRY_INTERVAL（默认 10）秒复查一次，直到恢复正常或超出
+# HEALTH_RETRY_WINDOW（默认 280）秒，恢复瞬间立即推送 up 心跳。
 
 from __future__ import annotations
 
 import argparse
+import fcntl
 import html
 import json
 import os
@@ -17,6 +22,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
@@ -61,6 +67,21 @@ VISITOR_DROP_ALERTS_ENABLED = (
 ALERT_COOLDOWN_SECONDS = int(
     os.environ.get("HEALTH_ALERT_COOLDOWN_SECONDS", "3600")
 )
+
+# down 之后的快速复查：每 RETRY_INTERVAL_SECONDS 秒重新检查一次，直到恢复。
+# 窗口略短于 cron 周期（5 分钟），避免与下一轮 cron 重叠；窗口内没恢复，
+# 下一次 cron 会立刻接着按同样的节奏复查。
+RETRY_INTERVAL_SECONDS = float(
+    os.environ.get("HEALTH_RETRY_INTERVAL", "10")
+)
+RETRY_WINDOW_SECONDS = float(
+    os.environ.get("HEALTH_RETRY_WINDOW", "280")
+)
+LOCK_FILE = Path(
+    os.environ.get("HEALTH_LOCK_FILE", str(Path(DATA_DIR) / "health_check.lock"))
+)
+
+_LOCK_HANDLE: Any = None
 
 
 def _schema_statements() -> list[str]:
@@ -523,6 +544,133 @@ def notify_kuma(env: dict[str, str], status: str, message: str) -> str:
         return "failed"
 
 
+def acquire_lock() -> bool:
+    """获取单实例锁；已有检查在运行时返回 False（避免复查循环重叠）。"""
+    global _LOCK_HANDLE
+    try:
+        LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        # 用追加模式打开，避免拿不到锁的实例把锁文件内容截断成空。
+        handle = LOCK_FILE.open("a+", encoding="utf-8")
+    except OSError:
+        # 锁文件不可写时不阻塞检查。
+        return True
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return False
+    try:
+        handle.seek(0)
+        handle.truncate()
+        handle.write(str(os.getpid()))
+        handle.flush()
+    except OSError:
+        pass
+    _LOCK_HANDLE = handle
+    return True
+
+
+def perform_check(cfg: dict[str, str], *, with_schema: bool = True) -> dict[str, Any]:
+    """执行一次完整检查，返回 status / metrics / alerts / message。
+
+    with_schema=False 用于 down 后的快速复查：幂等 DDL 只在每轮第一次执行，
+    避免每 10 秒重复 10 条建表语句打满 Cloudflare API 配额。
+    """
+    if not cfg["token"] or not cfg["account_id"] or not cfg["database_id"]:
+        return {
+            "status": "config_error",
+            "message": "Cloudflare/D1 配置缺失",
+            "alerts": [],
+        }
+    try:
+        if with_schema:
+            ensure_schema(cfg)
+        queries = load_queries()
+        data = {name: d1_query(cfg, sql) for name, sql in queries.items()}
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "query_error", "message": str(exc), "alerts": []}
+    metrics = evaluate_metrics(data)
+    alerts = metrics["alerts"]
+    return {
+        "status": "alert" if alerts else "ok",
+        "message": (
+            "; ".join(item["message"] for item in alerts) if alerts else "healthy"
+        ),
+        "metrics": metrics,
+        "alerts": alerts,
+    }
+
+
+def run_health_loop(
+    check: Callable[[], dict[str, Any]],
+    push: Callable[[str, str], str],
+    *,
+    retry_interval: float,
+    retry_window: float,
+    monotonic: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    """健康即收工；一旦 down 就每 retry_interval 秒复查直到恢复。
+
+    - check() 返回 perform_check() 结构；push() 返回 ok/failed/skipped；
+    - 只在状态变化或上次推送失败时推送心跳，避免刷屏与通知风暴；
+    - retry_interval <= 0 或 retry_window <= 0 时只检查一次（旧行为）。
+    """
+    started = monotonic()
+    deadline = started + max(0.0, retry_window)
+    attempts = 0
+    pushes: list[dict[str, Any]] = []
+    last_state: str | None = None
+    last_push_ok = False
+    first_down: dict[str, Any] | None = None
+    alert_result: dict[str, Any] | None = None
+    result: dict[str, Any] = {"status": "unknown"}
+
+    while True:
+        if attempts and monotonic() >= deadline:
+            break
+        attempts += 1
+        result = check()
+        status = str(result.get("status") or "unknown")
+        state = "up" if status == "ok" else "down"
+        message = str(
+            result.get("message") or ("healthy" if state == "up" else status)
+        )
+        if state == "down":
+            if first_down is None:
+                first_down = result
+            if alert_result is None and result.get("alerts"):
+                alert_result = result
+        if state != last_state or not last_push_ok:
+            pushed = push(state, message)
+            pushes.append({
+                "attempt": attempts,
+                "state": state,
+                "message": message,
+                "result": pushed,
+            })
+            last_push_ok = pushed in ("ok", "skipped")
+            last_state = state
+        if state == "up" and last_push_ok:
+            break
+        if retry_interval <= 0:
+            break
+        sleep(retry_interval)
+
+    return {
+        "attempts": attempts,
+        "recovered": result.get("status") == "ok" and last_push_ok,
+        "final_status": str(result.get("status") or "unknown"),
+        "elapsed_s": round(monotonic() - started, 1),
+        "pushes": pushes,
+        "metrics": result.get("metrics"),
+        "message": str(result.get("message") or ""),
+        "alerts": result.get("alerts") or [],
+        "first_down": first_down,
+        "alert_result": alert_result,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Limooo 健康检查与告警")
     parser.add_argument(
@@ -535,7 +683,35 @@ def main() -> int:
         action="store_true",
         help="命中阈值时只记录健康日志，不发送 SMTP 邮件",
     )
+    parser.add_argument(
+        "--retry-interval",
+        type=float,
+        default=None,
+        help=f"down 之后的复查间隔秒数（默认 {RETRY_INTERVAL_SECONDS:g}）",
+    )
+    parser.add_argument(
+        "--retry-window",
+        type=float,
+        default=None,
+        help=f"down 之后持续复查的窗口秒数（默认 {RETRY_WINDOW_SECONDS:g}）",
+    )
+    parser.add_argument(
+        "--no-retry",
+        action="store_true",
+        help="检查失败只推送一次 down，不做复查",
+    )
     args = parser.parse_args()
+
+    retry_interval = (
+        RETRY_INTERVAL_SECONDS
+        if args.retry_interval is None
+        else args.retry_interval
+    )
+    retry_window = (
+        RETRY_WINDOW_SECONDS if args.retry_window is None else args.retry_window
+    )
+    if args.no_retry:
+        retry_window = 0.0
 
     if args.dry_run:
         # dry-run 不读取 secrets 文件，只检查当前 shell 环境是否已显式注入。
@@ -551,6 +727,11 @@ def main() -> int:
                 "d1_write_errors": D1_WRITE_ERROR_THRESHOLD,
                 "visitor_drop": VISITOR_DROP_THRESHOLD,
                 "visitor_drop_alerts_enabled": VISITOR_DROP_ALERTS_ENABLED,
+            },
+            "retry": {
+                "interval_s": retry_interval,
+                "window_s": retry_window,
+                "lock_file": str(LOCK_FILE),
             },
             "smtp_configured": bool(
                 env_value(env, "SMTP_HOST", "ALERT_SMTP_HOST", "UPSTREAM_HOST")
@@ -577,60 +758,71 @@ def main() -> int:
     env = load_env(ENV_FILE, SMTP_ENV_FILE, KUMA_ENV_FILE)
     cfg = cloudflare_config(env)
 
-    if not cfg["token"] or not cfg["account_id"] or not cfg["database_id"]:
-        record = {"status": "config_error", "message": "Cloudflare/D1 配置缺失"}
-        record["kuma_push"] = notify_kuma(env, "down", "config_error")
-        write_health_log(record)
+    if not acquire_lock():
+        record = {
+            "status": "skipped",
+            "ts": int(time.time()),
+            "message": "已有 check_health.py 在运行",
+        }
         print(json.dumps(record, ensure_ascii=False))
-        return 2
+        return 0
 
-    try:
-        ensure_schema(cfg)
-        queries = load_queries()
-        data = {name: d1_query(cfg, sql) for name, sql in queries.items()}
-    except Exception as exc:  # noqa: BLE001
-        record = {"status": "query_error", "message": str(exc)}
-        record["kuma_push"] = notify_kuma(env, "down", "query_error")
-        write_health_log(record)
-        print(json.dumps(record, ensure_ascii=False))
-        return 2
+    schema_checked = False
 
-    metrics = evaluate_metrics(data)
-    alerts = metrics["alerts"]
-    push_message = (
-        "; ".join(item["message"] for item in alerts)
-        if alerts
-        else "healthy"
+    def check_once() -> dict[str, Any]:
+        nonlocal schema_checked
+        result = perform_check(cfg, with_schema=not schema_checked)
+        schema_checked = True
+        return result
+
+    summary = run_health_loop(
+        check_once,
+        lambda state, message: notify_kuma(env, state, message),
+        retry_interval=retry_interval,
+        retry_window=retry_window,
     )
-    record = {
-        "status": "alert" if alerts else "ok",
+    recovered = bool(summary["recovered"])
+    final_status = summary["final_status"]
+    last_push = summary["pushes"][-1]["result"] if summary["pushes"] else "skipped"
+    record: dict[str, Any] = {
+        "status": "ok" if recovered else final_status,
         "ts": int(time.time()),
-        "metrics": metrics,
-        "kuma_push": notify_kuma(env, "down" if alerts else "up", push_message),
+        "kuma_push": last_push,
     }
+    if summary["attempts"] > 1:
+        record["attempts"] = summary["attempts"]
+        record["elapsed_s"] = summary["elapsed_s"]
+        record["retried"] = not recovered
+    if summary["metrics"]:
+        record["metrics"] = summary["metrics"]
+    if not recovered and summary["message"]:
+        record["message"] = summary["message"]
     write_health_log(record)
     print(json.dumps(record, ensure_ascii=False, default=str))
 
-    if not alerts:
+    alert_result = summary["alert_result"]
+    alerts = (alert_result or {}).get("alerts") or []
+    if alerts and not args.no_email:
+        keys = [item["key"] for item in alerts]
+        if alert_allowed(keys):
+            subject, plain_body, html_body = render_health_alert_email(
+                env, alert_result["metrics"], alerts
+            )
+            if send_alert(env, subject, plain_body, html_body):
+                mark_alert(keys)
+            else:
+                write_health_log({
+                    "status": "alert_email_failed",
+                    "ts": int(time.time()),
+                    "keys": keys,
+                })
+                return 3
+
+    if recovered:
         return 0
-    if args.no_email:
-        return 0
-    if not alert_allowed([item["key"] for item in alerts]):
-        return 0
-    subject, plain_body, html_body = render_health_alert_email(
-        env, metrics, alerts
-    )
-    if send_alert(
-        env,
-        subject,
-        plain_body,
-        html_body,
-    ):
-        mark_alert([item["key"] for item in alerts])
-        return 0
-    record["status"] = "alert_email_failed"
-    write_health_log(record)
-    return 3
+    if final_status in ("config_error", "query_error"):
+        return 2
+    return 0
 
 
 if __name__ == "__main__":
