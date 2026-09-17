@@ -210,10 +210,12 @@ function esc(value) {
 // 自动刷新：页面不可见时暂停，避免后台挂机持续请求；重新可见且数据过期时
 // 再补一次刷新。无论何时刷新，都不会改变 currentStatus 或发送 status 参数。
 //
-// 节奏为什么是 5 分钟而不是 1 分钟：/api/visitors 需要聚合 30 天窗口，
-// 60 秒轮询会把它放大成每天数百万行的 D1 读取（已实测撞上免费版 5M 行/天的
-// 每日上限）。页面可见时 5 分钟一次，足够运维使用。
-const REFRESH_INTERVAL_MS = 300000;
+// 节奏为什么是 10 分钟：/api/visitors 要聚合 30 天窗口，是本站最重的 D1 查询。
+// 60 秒轮询会把它放大成每天数百万行读取（2026-09-17 实测撞上免费版 5M 行/天
+// 上限，全站 D1 接口停摆一整天）。5 分钟仍留下 288 次/天的余量，10 分钟减半到
+// 144 次/天，而访客统计本身是按天看的运维数据，10 分钟延迟没有实际影响。
+// 需要立刻看最新数据时用页面上的刷新按钮，不依赖这个定时器。
+const REFRESH_INTERVAL_MS = 600000;
 let refreshTimer = null;
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
