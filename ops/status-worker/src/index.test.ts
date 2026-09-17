@@ -10,6 +10,7 @@ import {
   sendAlert,
   statusKey,
   statusPayload,
+  STATUS_HTML_CACHE_CONTROL,
   type Env,
 } from "./index";
 
@@ -210,6 +211,22 @@ describe("statusPayload", () => {
     const payload = await statusPayload({ DB: db } as Env);
     expect(payload.probes[0].uptime).toBeNull();
     expect(payload.overall).toBe("all");
+  });
+});
+
+describe("状态页边缘缓存", () => {
+  it("HTML 可被边缘缓存，且 TTL 与探针节奏对齐", () => {
+    // 状态页 SSR 每次都要读 D1；退回 no-store 会让每次刷新/抓取都打库。
+    expect(STATUS_HTML_CACHE_CONTROL).not.toContain("no-store");
+    expect(STATUS_HTML_CACHE_CONTROL).toContain("s-maxage=60");
+    // 允许短暂陈旧，避免上游抖动时全站回源。
+    expect(STATUS_HTML_CACHE_CONTROL).toContain("stale-while-revalidate");
+  });
+
+  it("浏览器 TTL 短于边缘 TTL（避免本地长时间看到旧状态）", () => {
+    const maxAge = Number(/max-age=(\d+)/.exec(STATUS_HTML_CACHE_CONTROL)?.[1]);
+    const sMaxAge = Number(/s-maxage=(\d+)/.exec(STATUS_HTML_CACHE_CONTROL)?.[1]);
+    expect(maxAge).toBeLessThan(sMaxAge);
   });
 });
 

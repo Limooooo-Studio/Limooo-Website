@@ -631,6 +631,19 @@ footer{display:flex;justify-content:space-between;color:var(--muted);font-size:1
 // 5 分钟足够反映探针状态。
 export const STATUS_JS = `(function(){var n=300;var el=document.getElementById('refresh-count');var t=document.getElementById('updated-at');if(t){var e=t.getAttribute('data-epoch');if(e){t.textContent=new Date(Number(e)*1000).toLocaleString();}}setInterval(function(){n=n-1;if(el){el.textContent=String(n>0?n:0);}if(n<=0){location.reload();}},1000);})();`;
 
+/**
+ * 状态页 HTML 的边缘缓存策略。
+ *
+ * 探针每分钟才写一次数据，但状态页每次 SSR 都要读 D1（probes + probe_state +
+ * latency + 按天在线率）。不给缓存时，页面自动重载、监控工具抓取、爬虫扫描
+ * 都会变成一次真实的库读取——这是 2026-09-17 撞到每日读取上限的成因之一。
+ *
+ * 取 60s：与 cron 探针节奏对齐，最坏情况状态显示滞后一分钟，对状态页完全可接受；
+ * 同时把重复请求从「每次都读库」压到「每分钟最多一次」。
+ */
+export const STATUS_HTML_CACHE_CONTROL =
+  "public, max-age=30, s-maxage=60, stale-while-revalidate=300";
+
 export function statusKey(status: number | null): string {
   return status === UP ? "up" : status === DOWN ? "down" : "pending";
 }
@@ -717,7 +730,12 @@ export default {
       return new Response(html, {
         headers: {
           "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-store",
+          // 边缘缓存：状态数据每分钟才变一次，SSR 每次都要读 D1。
+          // 无缓存时每个请求（含 5 分钟自动重载、外部抓取、爬虫）都直接打库，
+          // 是 D1 每日读取配额的放大器。s-maxage 让 Cloudflare 边缘吸收重复请求，
+          // max-age 让浏览器短时间内复用（配合下方 Vary，四语言各自缓存）。
+          "Cache-Control": STATUS_HTML_CACHE_CONTROL,
+          "Vary": "Accept-Language",
           "X-Content-Type-Options": "nosniff",
           "Referrer-Policy": "no-referrer",
           "Content-Security-Policy":
