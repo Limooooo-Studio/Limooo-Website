@@ -50,8 +50,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <link rel="preload" href="/static/fonts/baloo2/baloo2-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/static/fonts-round75.css?v=2">
 
+<!-- 设计令牌（颜色/圆角/缓动，全站单一事实源；独立页面 auth/redirect 也引用它） -->
+    <link rel="stylesheet" href="/static/css/tokens.css?v=1">
+
 <!-- 站点基础样式（由模板内联样式轻量化后抽出的统一 CSS） -->
-    <link rel="stylesheet" href="/static/css/base.css?v=17">
+    <link rel="stylesheet" href="/static/css/base.css?v=18">
 
     {% block head_links %}{% endblock %}
 </head>
@@ -141,11 +144,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     <!-- ═══ 底部版权（页脚“源码在此”可点击直达源码仓库） ═══ -->
     {% block footer %}
     {% block footer_markup %}
-    <footer class="global-footer" id="global-footer">
-        <div class="footer-link">
-        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights">{% if _('footer_rights') %}{{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source">{% if _('footer_source') %}{{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
-        </div>
-    </footer>
+    {% include "_footer.html" %}
     {% endblock %}
     {% endblock %}
 

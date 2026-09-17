@@ -14,7 +14,10 @@
 <title data-i18n="title">{{ title }}</title>
 <link rel="stylesheet" href="/static/fonts-round75.css?v=2">
 <script src="/static/js/theme-preload.js?v=2"></script>
-<link rel="stylesheet" href="/static/css/auth.css?v=14">
+<link rel="stylesheet" href="/static/css/tokens.css?v=1">
+<link rel="stylesheet" href="/static/css/auth.css?v=15">
+<!-- 站点基础样式：页脚 .global-footer 等结构样式复用主站 base.css -->
+<link rel="stylesheet" href="/static/css/base.css?v=18">
 </head>
 <body data-lang="{{ lang }}" data-gate-error="{{ error_html }}">
 <div class="gate-controls">
@@ -57,11 +60,7 @@
   </dl>
   <p class="foot" data-i18n="foot" data-brandify="Limooo">{{ foot }}</p>
 </main>
-<footer class="global-footer" id="global-footer">
-  <div class="footer-link">
-  <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights">{% if _('footer_rights') %}{{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source">{% if _('footer_source') %}{{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
-  </div>
-</footer>
+{% include "_footer.html" %}
     <script id="gate-i18n" type="application/json">{{ gate_i18n_json | safe }}</script>
     <script src="/static/js/actions.js?v=1" defer></script>
     <script src="/static/js/auth.js?v=6" defer></script>

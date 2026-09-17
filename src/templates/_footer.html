@@ -1,0 +1,8 @@
+{# 全站统一页脚（单一事实源）。
+   base.html / auth.html / redirect.html 都 include 本文件，
+   曾经三处各写一份相同标记，改一处会漏另外两处。 #}
+<footer class="global-footer" id="global-footer">
+    <div class="footer-link">
+    <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights">{% if _('footer_rights') %}{{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source">{% if _('footer_source') %}{{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
+    </div>
+</footer>

@@ -9,31 +9,23 @@
 
 /* 页面其余字体继续沿用模板中的字体配置。 */
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* 颜色/圆角/缓动等基础令牌统一来自 tokens.css（全站单一事实源），
+     本页只补充门禁页独有、主站没有的几个变量。
+     曾经这里复制了一整份色板，改主站主题时会漏改本页导致漂移。 */
   :root {
     color-scheme: dark;
+    /* 门禁页专属：页面渐变背景与诊断区配色 */
     --bg-a: #17181c; --bg-b: #101114;
-    --text: #e2e2e3; --muted: #9ca3af;
-    --line: #2e2e32; --panel: #202127; --highlight: #2a2a2f;
-    --accent: #05A5A6;
+    --muted: #9ca3af;
+    --panel: #202127;
     --foot: #E7EBCE;
-    /* 主站同款控件变量 */
-    --bg: #1b1b1f; --panel-bg: #202127;
-    --radius-sm: 6px; --radius-md: 10px;
-    --switch-icon: #dfdfd6; --switch-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-    --footer-border: #2e2e32;
-    --ls-scale: 0.65;
-    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   }
-  html[lang^="en"] { --ls-scale: 0.3; }
   .light-mode {
     color-scheme: light;
     --bg-a: #f3f4f6; --bg-b: #e5e7eb;
-    --text: #1f2328; --muted: #6b7280;
-    --line: #e2e2e3; --panel: #ffffff; --highlight: #f2f2f3;
+    --muted: #6b7280;
+    --panel: #ffffff;
     --foot: #9ca3af;
-    --bg: #ffffff; --panel-bg: #f6f6f7;
-    --switch-icon: #67676c; --switch-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    --footer-border: #e2e2e3;
   }
   body {
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
