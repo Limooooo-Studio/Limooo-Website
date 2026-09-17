@@ -41,6 +41,7 @@ export const CONTRACT = {
     "image.limooo.cn",
     "images.limooo.cn",
     "status.limooo.cn",
+    "identity.limooo.cn",
     "*.limooo.cn"
   ],
   "managed_hosts": [
@@ -53,7 +54,8 @@ export const CONTRACT = {
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "images.limooo.cn",
-    "image.limooo.cn"
+    "image.limooo.cn",
+    "identity.limooo.cn"
   ],
   "page_routes": {
     "limooo.cn": {
@@ -111,7 +113,7 @@ export const CONTRACT = {
   },
   "observability_hmac_env": "OBSERVABILITY_HMAC_KEY",
   "whitelist_file": "data/whitelist.txt",
-  "authentik_host": "admin.limooo.cn",
+  "authentik_host": "identity.limooo.cn",
   "authentik_provider_slug": "visitor",
   "authentik_admin_groups": [
     "authentik Admins"
@@ -127,7 +129,7 @@ export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;
 export const APPLEID_HOSTNAME = `apple.${ROOT_DOMAIN}`;
 export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;
 export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;
-export const AUTHENTIK_HOSTNAME = "admin.limooo.cn";
+export const AUTHENTIK_HOSTNAME = "identity.limooo.cn";
 export const IDENTITY_HOSTNAME = AUTHENTIK_HOSTNAME;
 export const IMAGES_HOSTNAME = `images.${ROOT_DOMAIN}`;
 export const GATE_HOST = GATE_HOSTNAME;

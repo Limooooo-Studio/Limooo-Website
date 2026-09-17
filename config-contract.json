@@ -40,6 +40,7 @@
     "image.limooo.cn",
     "images.limooo.cn",
     "status.limooo.cn",
+    "identity.limooo.cn",
     "*.limooo.cn"
   ],
   "managed_hosts": [
@@ -52,7 +53,8 @@
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "images.limooo.cn",
-    "image.limooo.cn"
+    "image.limooo.cn",
+    "identity.limooo.cn"
   ],
   "page_routes": {
     "limooo.cn": {
@@ -110,7 +112,7 @@
   },
   "observability_hmac_env": "OBSERVABILITY_HMAC_KEY",
   "whitelist_file": "data/whitelist.txt",
-  "authentik_host": "admin.limooo.cn",
+  "authentik_host": "identity.limooo.cn",
   "authentik_provider_slug": "visitor",
   "authentik_admin_groups": [
     "authentik Admins"

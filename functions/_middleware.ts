@@ -128,6 +128,14 @@ export function withSecurityHeaders(request: Request, resp: Response): Response 
   });
 }
 
+/**
+ * 受保护子域未登录 → 落到本域的 /login 建立会话（docs/17 §11.10）。
+ *
+ * Access 已经在本域之前完成了身份认证（请求头带 `Cf-Access-Jwt-Assertion`），
+ * 这里只是把 Access 身份换成我们的签名会话 cookie。回到**本域**的 /login
+ * 而不是跨域跳 identity：会话 cookie 是 `.limooo.cn` 域级 cookie，
+ * 同域往返少一跳，也不会在 Safari 上丢 cookie。
+ */
 async function adminAuthRedirect(
   env: RequestContext["env"],
   request: Request,
@@ -137,10 +145,11 @@ async function adminAuthRedirect(
   try {
     if (await requireAuth(env, request)) return null;
     const url = new URL(request.url);
+    const next = `${url.pathname}${url.search}`;
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `/login?next=${encodeURIComponent(`https://${hostname}${url.pathname}${url.search}`)}`,
+        Location: `/login?next=${encodeURIComponent(next)}`,
       },
     });
   } catch {
@@ -189,8 +198,6 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   if (pathname === "/__gate/verify") return handleVerify(context);
   if (pathname === "/__gate/config") return handleGateConfig(context);
   if (pathname === "/__gate/diag") return handleGateDiag(context);
-  // authentik backchannel logout 是服务端回调用，不能被人机门禁重定向。
-  if (pathname === "/logout/backchannel") return next();
 
   // 门禁页：任意主机（对应域名）都能渲染/回跳，做到同域名完成 challenge。
   if (pathname === "/__gate") {

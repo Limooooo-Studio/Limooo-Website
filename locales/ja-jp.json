@@ -105,6 +105,8 @@
   "stat_statuses": "ステータス種別",
   "refresh": "更新",
   "logout": "ログアウト",
+  "login_or_password": "または緊急パスワードを使用",
+  "login_entra": "Microsoft アカウントでサインイン",
   "filter_all": "すべて",
   "ip_count": "({count} IP)",
   "times": "{count}回",
@@ -172,15 +174,11 @@
   "status_refresh": "自動更新",
   "group_public": "公開サービス",
   "group_internal": "内部サービス",
-  "provider_status_claude": "Claude サービスステータス",
-  "provider_status_cloudflare": "Cloudflare サービスステータス",
   "page_title_home": "ホーム",
   "page_title_services": "サービス",
   "page_title_contact": "お問い合わせ",
   "page_title_appleid": "Apple ID",
   "page_title_visitor": "訪問者",
   "page_title_status": "ステータス",
-  "provider_tab_title_claude": "Claude ステータス",
-  "provider_tab_title_cloudflare": "Cloudflare ステータス",
-  "provider_data_source": "データ提供："
+  "page_title_login": "ログイン"
 }

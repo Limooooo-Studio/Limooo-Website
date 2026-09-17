@@ -105,6 +105,8 @@
   "stat_statuses": "Status Types",
   "refresh": "Refresh",
   "logout": "Logout",
+  "login_or_password": "Or use the emergency password",
+  "login_entra": "Sign in with Microsoft",
   "filter_all": "All",
   "ip_count": "({count} IPs)",
   "times": "{count}×",
@@ -172,15 +174,11 @@
   "status_refresh": "Auto refresh in",
   "group_public": "Public Services",
   "group_internal": "Internal Services",
-  "provider_status_claude": "Claude Service Status",
-  "provider_status_cloudflare": "Cloudflare Service Status",
   "page_title_home": "Home",
   "page_title_services": "Services",
   "page_title_contact": "Contact",
   "page_title_appleid": "Apple ID",
   "page_title_visitor": "Visitor",
   "page_title_status": "Status",
-  "provider_tab_title_claude": "Claude Status",
-  "provider_tab_title_cloudflare": "Cloudflare Status",
-  "provider_data_source": "Data provided by"
+  "page_title_login": "Login"
 }

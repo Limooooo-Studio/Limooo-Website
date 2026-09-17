@@ -1,3 +1,9 @@
+> **2026-09-17 起：已全部迁至 Cloudflare 边缘并退租 VPS。**
+> VPS 上曾运行的 Flask/nginx/authentik/Uptime Kuma 均已停用；
+> 登录改为 Worker + D1 自建密码登录；状态页与探针见 `ops/status-worker`。
+> 迁移过程、决策与踩坑见 `../docs/17-zero-vps-migration.md` 与 `../docs/18-resume.md`。
+> 本文下方关于 VPS / authentik / Kuma / rsync 部署的描述属**迁移前历史**，仅供追溯。
+
 # Limooo
 
 A Cloudflare Pages + Flask personal website and admin system running at [limooo.cn](https://limooo.cn). Public pages, the human-verification gate, visitor panel, and Apple ID manager run at the edge; Flask remains responsible for the VPS admin/status runtime. The project also provides visitor geolocation analysis, automatic IP blocking, self-hosted authentik authentication, and Cloudflare CDN + HTTP/3 acceleration.

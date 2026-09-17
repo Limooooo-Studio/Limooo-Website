@@ -1,0 +1,833 @@
+import { sendViaSmtp, type SmtpConfig } from "./smtp";
+import { runRetention } from "./retention";
+
+/**
+ * limooo 状态探针 Worker（docs/17 阶段 2）
+ *
+ * 取代 Uptime Kuma：
+ *   - scheduled() 每分钟跑一轮探针，写 D1 heartbeats / probe_state
+ *   - 判 down 后交给 ProbeState（Durable Object）每 10 秒复查，恢复即记录
+ *   - GET /api/status 供状态页取数；GET /_health 存活探针
+ *
+ * 告警邮件（阶段 3）在 maybeAlert() 处落地，现在只记录日志、不发送。
+ */
+
+export interface Env {
+  DB: D1Database;
+  PROBE_STATE: DurableObjectNamespace;
+  EMAIL?: { send: (msg: unknown) => Promise<unknown> };
+  ALERT_TO?: string;
+  ALERT_FROM?: string;
+  ALERT_LANG?: string;
+  ALERT_COOLDOWN_S?: string;
+  SMTP_HOST?: string;
+  SMTP_PORT?: string;
+  SMTP_USER?: string;
+  SMTP_PASS?: string;
+  SMTP_FROM?: string;
+  FAIL_THRESHOLD?: string;
+  RETRY_INTERVAL_S?: string;
+  RETRY_WINDOW_S?: string;
+}
+
+const UP = 1;
+const DOWN = 0;
+const PENDING = 2;
+const HTTP_TIMEOUT_MS = 10_000;
+
+interface Probe {
+  id: number;
+  name: string;
+  type: string;
+  target: string | null;
+  group_key: string;
+  interval_s: number;
+}
+
+export interface ProbeResult {
+  status: number;
+  latency_ms: number | null;
+  msg: string;
+}
+
+export interface RecordOutcome {
+  status: number;
+  consecutiveFail: number;
+  downSince: number | null;
+  becameDown: boolean;
+  recovered: boolean;
+}
+
+const num = (v: string | undefined, fallback: number): number => {
+  const n = Number.parseInt(v ?? "", 10);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+/** 跑一次探针，只负责测量，不写库。 */
+export async function runProbe(env: Env, probe: Probe): Promise<ProbeResult> {
+  if (probe.type === "d1") {
+    const started = Date.now();
+    try {
+      const row = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+      const ok = row?.ok === 1;
+      return {
+        status: ok ? UP : DOWN,
+        latency_ms: Date.now() - started,
+        msg: ok ? "ok" : "unexpected_result",
+      };
+    } catch (err) {
+      return { status: DOWN, latency_ms: null, msg: `d1_error: ${String(err)}` };
+    }
+  }
+
+  if (!probe.target) {
+    return { status: PENDING, latency_ms: null, msg: "missing_target" };
+  }
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
+  try {
+    const res = await fetch(probe.target, {
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+      headers: { "User-Agent": "Limooo-Status/2.0" },
+    });
+    // 门禁页以 403 原地渲染，视为服务可达；5xx 才判失败
+    return {
+      status: res.status < 500 ? UP : DOWN,
+      latency_ms: Date.now() - started,
+      msg: `http_${res.status}`,
+    };
+  } catch (err) {
+    return { status: DOWN, latency_ms: null, msg: `fetch_error: ${String(err)}` };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 写入心跳并推进 probe_state。 */
+export async function record(
+  env: Env,
+  probeId: number,
+  result: ProbeResult,
+): Promise<RecordOutcome> {
+  const now = Math.floor(Date.now() / 1000);
+  const threshold = num(env.FAIL_THRESHOLD, 2);
+  const prev = await env.DB
+    .prepare(
+      "SELECT last_status, consecutive_fail, down_since FROM probe_state WHERE probe_id = ?1",
+    )
+    .bind(probeId)
+    .first<{
+      last_status: number | null;
+      consecutive_fail: number;
+      down_since: number | null;
+    }>();
+
+  let consecutiveFail = prev?.consecutive_fail ?? 0;
+  let status: number;
+  let downSince: number | null = prev?.down_since ?? null;
+  let becameDown = false;
+  let recovered = false;
+
+  if (result.status === UP) {
+    status = UP;
+    consecutiveFail = 0;
+    if (downSince !== null) {
+      recovered = true;
+      downSince = null;
+    }
+  } else {
+    consecutiveFail += 1;
+    if (consecutiveFail >= threshold) {
+      status = DOWN;
+      if (downSince === null) {
+        downSince = now;
+        becameDown = true;
+      }
+    } else {
+      status = PENDING;
+    }
+  }
+
+  await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO heartbeats (probe_id, ts, status, latency_ms, msg) VALUES (?1, ?2, ?3, ?4, ?5)",
+    ).bind(probeId, now, result.status, result.latency_ms, result.msg),
+    env.DB.prepare(
+      `INSERT INTO probe_state (probe_id, last_status, consecutive_fail, down_since, checked_at)
+       VALUES (?1, ?2, ?3, ?4, ?5)
+       ON CONFLICT (probe_id) DO UPDATE SET
+         last_status = excluded.last_status,
+         consecutive_fail = excluded.consecutive_fail,
+         down_since = excluded.down_since,
+         checked_at = excluded.checked_at`,
+    ).bind(probeId, status, consecutiveFail, downSince, now),
+    // 7 天在线率按天累加，状态页只读这一张表（每探针最多 7 行）。
+    // 旧实现每次渲染都要 COUNT 7 天 heartbeats：页面每 60 秒自动重载一次，
+    // 单次约 6 万行读取，是 D1 每日读取上限的定时炸弹。
+    env.DB.prepare(
+      `INSERT INTO probe_uptime_daily (probe_id, day, total, up)
+       VALUES (?1, ?2 - (?2 % 86400), 1, ?3)
+       ON CONFLICT (probe_id, day) DO UPDATE SET
+         total = total + 1,
+         up = up + excluded.up`,
+    ).bind(probeId, now, result.status === UP ? 1 : 0),
+  ]);
+
+  return { status, consecutiveFail, downSince, becameDown, recovered };
+}
+
+/** 判 down 时安排 DO 复查；恢复时取消。 */
+export async function scheduleRetry(
+  env: Env,
+  probeId: number,
+  active: boolean,
+): Promise<void> {
+  const id = env.PROBE_STATE.idFromName(`probe-${probeId}`);
+  const stub = env.PROBE_STATE.get(id);
+  await stub.fetch(
+    new Request(`https://probe.internal/${active ? "arm" : "disarm"}`, {
+      headers: { "X-Probe-Id": String(probeId) },
+    }),
+  );
+}
+
+// ── 告警邮件（docs/17 阶段 3） ───────────────────────────────────
+//
+// 通过 Cloudflare Email Service 的 `send_email` binding（env.EMAIL）发送。
+// 未配置 binding / 收件人时只记日志、不报错，保证探针本身不受影响。
+// 文案与 ops/email-templates/health-alert.i18n.json 对齐。
+
+const ALERT_I18N: Record<string, Record<string, string>> = {
+  "zh-cn": {
+    subject_down: "[Limooo] 健康检查告警",
+    subject_up: "[Limooo] 服务已恢复",
+    title_down: "发现服务异常",
+    title_up: "服务已恢复",
+    intro_down: "Limooo 自动监控检测到以下异常，请尽快处理：",
+    intro_up: "以下服务已恢复正常：",
+    view: "查看状态页",
+    hint: "本邮件由 Limooo 自动监控发送。若持续收到，请检查对应服务，并在状态页确认恢复状态。",
+  },
+  "en-us": {
+    subject_down: "[Limooo] Health check alert",
+    subject_up: "[Limooo] Service recovered",
+    title_down: "Service issue detected",
+    title_up: "Service recovered",
+    intro_down: "Limooo monitoring detected the following issue(s):",
+    intro_up: "The following service(s) recovered:",
+    view: "View status page",
+    hint: "Sent automatically by Limooo monitoring. If this keeps arriving, check the service and confirm recovery on the status page.",
+  },
+  "ja-jp": {
+    subject_down: "[Limooo] ヘルスチェック警告",
+    subject_up: "[Limooo] サービス復旧",
+    title_down: "サービス異常を検出",
+    title_up: "サービスが復旧しました",
+    intro_down: "Limooo の自動監視が以下の異常を検出しました：",
+    intro_up: "以下のサービスが復旧しました：",
+    view: "ステータスページを表示",
+    hint: "本メールは Limooo の自動監視から送信されています。",
+  },
+  "ko-kr": {
+    subject_down: "[Limooo] 상태 점검 경고",
+    subject_up: "[Limooo] 서비스 복구됨",
+    title_down: "서비스 이상 감지",
+    title_up: "서비스가 복구되었습니다",
+    intro_down: "Limooo 자동 모니터링이 다음 이상을 감지했습니다:",
+    intro_up: "다음 서비스가 복구되었습니다:",
+    view: "상태 페이지 보기",
+    hint: "이 메일은 Limooo 자동 모니터링에서 발송되었습니다.",
+  },
+};
+
+export interface AlertEmail {
+  subject: string;
+  text: string;
+  html: string;
+}
+
+/** 构造告警邮件（纯函数，便于测试与预览）。 */
+export function buildAlertEmail(
+  lang: string,
+  kind: "down" | "up",
+  probeName: string,
+  msg: string,
+  at: number,
+): AlertEmail {
+  const t = ALERT_I18N[lang] ?? ALERT_I18N["zh-cn"];
+  const subject = `${kind === "down" ? t.subject_down : t.subject_up} · ${probeName}`;
+  const title = kind === "down" ? t.title_down : t.title_up;
+  const intro = kind === "down" ? t.intro_down : t.intro_up;
+  const color = kind === "down" ? "#dc2626" : "#05A5A6";
+  const when = new Date(at * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const text = `${title}\n\n${intro}\n\n- ${probeName}: ${msg}\n\n${t.view}: https://status.limooo.cn/\n\n${t.hint}\n`;
+  const html =
+    `<div style="font-family:Inter,system-ui,-apple-system,sans-serif;max-width:560px">` +
+    `<h1 style="font-size:19px;margin:0 0 8px;color:#11181c">${esc(title)}</h1>` +
+    `<p style="color:#52525b;font-size:14px;margin:0 0 16px">${esc(intro)}</p>` +
+    `<table style="width:100%;border-collapse:collapse"><tr>` +
+    `<td style="padding:10px 12px;border:1px solid #e4e4e7;border-left:3px solid ${color};font-size:14px">` +
+    `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px"></span>` +
+    `${esc(probeName)} — ${esc(msg)}</td></tr></table>` +
+    `<p style="font-size:13px;color:#52525b;margin:14px 0 0">${esc(when)}</p>` +
+    `<p style="margin:16px 0 0"><a href="https://status.limooo.cn/" style="color:${color};font-size:14px">${esc(t.view)}</a></p>` +
+    `<p style="color:#71717a;font-size:12px;margin:18px 0 0;border-top:1px solid #e4e4e7;padding-top:12px">${esc(t.hint)}</p>` +
+    `</div>`;
+  return { subject, text, html };
+}
+
+export interface DeliverResult {
+  sent: boolean;
+  via?: "webhook" | "email";
+  reason?: string;
+}
+
+/**
+ * 投递告警。通道优先级：HTTP webhook（免费，默认飞书机器人）→ Email binding。
+ * 未配置任何通道时返回 reason，不抛错。
+ */
+export async function deliverAlert(env: Env, mail: AlertEmail): Promise<DeliverResult> {
+  // 1) 邮箱服务商 SMTP（AGENTS.md 指定路径）
+  if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.ALERT_TO) {
+    const cfg: SmtpConfig = {
+      host: env.SMTP_HOST,
+      port: Number.parseInt(env.SMTP_PORT ?? "465", 10) || 465,
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+      from: env.SMTP_FROM ?? "no-reply@limooo.cn",
+    };
+    const r = await sendViaSmtp(cfg, {
+      to: env.ALERT_TO,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+    if (r.sent) return { sent: true, via: "email" };
+    console.log(JSON.stringify({ event: "smtp_failed", reason: r.reason }));
+    return { sent: false, via: "email", reason: r.reason };
+  }
+
+  const url = env.ALERT_WEBHOOK_URL;
+  if (url) {
+    const kind = (env.ALERT_WEBHOOK_KIND ?? "feishu").toLowerCase();
+    const text = `${mail.subject}\n${mail.text}`;
+    const body =
+      kind === "slack"
+        ? { text }
+        : kind === "generic"
+          ? mail
+          : { msg_type: "text", content: { text } }; // feishu 自定义机器人
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        return { sent: false, via: "webhook", reason: `webhook_http_${res.status}` };
+      }
+      return { sent: true, via: "webhook" };
+    } catch (err) {
+      return { sent: false, via: "webhook", reason: `webhook_error: ${String(err)}` };
+    }
+  }
+
+  if (env.EMAIL) {
+    if (!env.ALERT_TO) return { sent: false, via: "email", reason: "alert_to_missing" };
+    try {
+      await env.EMAIL.send({
+        to: env.ALERT_TO,
+        from: { email: env.ALERT_FROM ?? "no-reply@limooo.cn", name: "Limooo Monitor" },
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+      });
+      return { sent: true, via: "email" };
+    } catch (err) {
+      return { sent: false, via: "email", reason: `send_failed: ${String(err)}` };
+    }
+  }
+
+  return { sent: false, reason: "no_alert_channel" };
+}
+
+/** 发送探针告警；任何失败都只返回原因，绝不抛出。 */
+export async function sendAlert(
+  env: Env,
+  kind: "down" | "up",
+  probeName: string,
+  msg: string,
+): Promise<DeliverResult> {
+  const mail = buildAlertEmail(
+    env.ALERT_LANG ?? "zh-cn",
+    kind,
+    probeName,
+    msg,
+    Math.floor(Date.now() / 1000),
+  );
+  const result = await deliverAlert(env, mail);
+  console.log(
+    JSON.stringify({
+      event: result.sent ? "probe_alert_sent" : "probe_alert_skipped",
+      probe: probeName,
+      kind,
+      via: result.via,
+      reason: result.reason,
+    }),
+  );
+  return result;
+}
+
+/**
+ * 告警钩子：down 有冷却时间（避免抖动刷屏），恢复必发。
+ * 任何失败都不影响探针本身。
+ */
+export async function maybeAlert(
+  env: Env,
+  probe: Probe,
+  kind: "down" | "up",
+  msg: string,
+): Promise<void> {
+  try {
+    if (kind === "down") {
+      const cooldown = num(env.ALERT_COOLDOWN_S, 1800);
+      const now = Math.floor(Date.now() / 1000);
+      const row = await env.DB.prepare(
+        "SELECT last_alert_at FROM probe_state WHERE probe_id = ?1",
+      )
+        .bind(probe.id)
+        .first<{ last_alert_at: number | null }>();
+      if (row?.last_alert_at && now - row.last_alert_at < cooldown) return;
+      await env.DB.prepare("UPDATE probe_state SET last_alert_at = ?2 WHERE probe_id = ?1")
+        .bind(probe.id, now)
+        .run();
+    }
+    await sendAlert(env, kind, probe.name, msg);
+  } catch (err) {
+    console.error(JSON.stringify({ event: "probe_alert_failed", message: String(err) }));
+  }
+}
+
+export async function runAll(env: Env): Promise<number> {
+  const { results } = await env.DB.prepare(
+    "SELECT id, name, type, target, group_key, interval_s FROM probes WHERE active = 1 ORDER BY id",
+  ).all<Probe>();
+  const probes = results ?? [];
+
+  for (const probe of probes) {
+    const result = await runProbe(env, probe);
+    const state = await record(env, probe.id, result);
+    if (state.becameDown) {
+      await maybeAlert(env, probe, "down", result.msg);
+      await scheduleRetry(env, probe.id, true);
+    } else if (state.recovered) {
+      await maybeAlert(env, probe, "up", result.msg);
+      await scheduleRetry(env, probe.id, false);
+    }
+  }
+  return probes.length;
+}
+
+interface StatusRow {
+  id: number;
+  name: string;
+  type: string;
+  target: string | null;
+  group_key: string;
+  active: number;
+  label_key: string | null;
+  status: number | null;
+  latency_ms: number | null;
+  checked_at: number | null;
+  total: number | null;
+  up: number | null;
+}
+
+export async function statusPayload(env: Env) {
+  const now = Math.floor(Date.now() / 1000);
+  // 7 天窗口按「天」取整，才能命中 probe_uptime_daily 的按天汇总。
+  const sinceDay = now - 7 * 24 * 3600 - 86400;
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, p.name, p.type, p.target, p.group_key, p.active, p.label_key,
+            s.last_status AS status, s.checked_at,
+            (SELECT h.latency_ms FROM heartbeats h
+              WHERE h.probe_id = p.id ORDER BY h.ts DESC LIMIT 1) AS latency_ms,
+            COALESCE((SELECT SUM(d.total) FROM probe_uptime_daily d
+              WHERE d.probe_id = p.id AND d.day >= ?1), 0) AS total,
+            COALESCE((SELECT SUM(d.up) FROM probe_uptime_daily d
+              WHERE d.probe_id = p.id AND d.day >= ?1), 0) AS up
+       FROM probes p
+       LEFT JOIN probe_state s ON s.probe_id = p.id
+      WHERE p.active = 1
+      ORDER BY p.id`,
+  )
+    .bind(sinceDay)
+    .all<StatusRow>();
+
+  const probes = (results ?? []).map((row) => {
+    const total = row.total ?? 0;
+    const up = row.up ?? 0;
+    return {
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      group: row.group_key,
+      label_key: row.label_key,
+      status: row.status ?? PENDING,
+      latency_ms: row.latency_ms,
+      uptime: total > 0 ? (up / total) * 100 : null,
+      checked_at: row.checked_at,
+    };
+  });
+
+  const down = probes.filter((p) => p.status === DOWN).length;
+  return {
+    updated_at: now,
+    total: probes.length,
+    down,
+    overall: down === 0 ? "all" : down < probes.length ? "partial" : "down",
+    probes,
+  };
+}
+
+// ── 状态页（服务端渲染；docs/17 阶段 2） ─────────────────────────
+//
+// 由本 Worker 直接出 HTML，因此没有客户端取数、也没有内联 script/style
+// （遵守 docs/14 的 CSP 约束）。status.js 只负责倒计时与自动刷新。
+//
+// 文案与 locales/*.json 的同名 key 保持一致；改文案时两边都要改。
+
+const STATUS_I18N: Record<string, Record<string, string>> = {
+  "zh-cn": {
+    title: "系统状态",
+    sub: "Limooo 各项服务的实时可用性。",
+    overall_all: "全部系统运行正常",
+    overall_partial: "部分系统异常",
+    overall_down: "系统中断",
+    up: "运行正常",
+    down: "服务中断",
+    pending: "检测中",
+    group_public: "公开服务",
+    group_internal: "内部服务",
+    uptime: "7 天在线率",
+    updated: "最后更新",
+    refresh: "自动刷新",
+    note: "数据来源：limooo-status Worker · Cloudflare D1",
+    card_website: "Limooo 网站",
+    card_d1: "Limooo D1 健康检查",
+    card_admin: "管理入口",
+  },
+  "en-us": {
+    title: "System Status",
+    sub: "Live availability for Limooo services.",
+    overall_all: "All Systems Operational",
+    overall_partial: "Partially Operational",
+    overall_down: "Systems Down",
+    up: "Operational",
+    down: "Downtime",
+    pending: "Pending",
+    group_public: "Public Services",
+    group_internal: "Internal Services",
+    uptime: "7-day uptime",
+    updated: "Last updated",
+    refresh: "Auto refresh in",
+    note: "Data source: limooo-status Worker · Cloudflare D1",
+    card_website: "Limooo Website",
+    card_d1: "Limooo D1 Health Check",
+    card_admin: "Admin Entry",
+  },
+  "ja-jp": {
+    title: "システムステータス",
+    sub: "Limooo 各サービスのリアルタイム稼働状況。",
+    overall_all: "すべてのシステム正常稼働",
+    overall_partial: "一部システムに問題",
+    overall_down: "システム停止中",
+    up: "稼働中",
+    down: "停止中",
+    pending: "確認中",
+    group_public: "公開サービス",
+    group_internal: "内部サービス",
+    uptime: "7 日間の稼働率",
+    updated: "最終更新",
+    refresh: "自動更新",
+    note: "データソース：limooo-status Worker · Cloudflare D1",
+    card_website: "Limooo ウェブサイト",
+    card_d1: "Limooo D1 ヘルスチェック",
+    card_admin: "管理エントリー",
+  },
+  "ko-kr": {
+    title: "시스템 상태",
+    sub: "Limooo 서비스의 실시간 가용성.",
+    overall_all: "모든 시스템 정상 작동",
+    overall_partial: "일부 시스템 문제",
+    overall_down: "시스템 중단",
+    up: "정상 운영",
+    down: "중단",
+    pending: "확인 중",
+    group_public: "공개 서비스",
+    group_internal: "내부 서비스",
+    uptime: "7일 가동률",
+    updated: "마지막 업데이트",
+    refresh: "자동 새로고침",
+    note: "데이터 출처: limooo-status Worker · Cloudflare D1",
+    card_website: "Limooo 웹사이트",
+    card_d1: "Limooo D1 상태 확인",
+    card_admin: "관리 포털",
+  },
+};
+
+/** 语言检测：Accept-Language 前缀 > zh-cn 默认。 */
+export function pageLang(request: Request): string {
+  const accept = (request.headers.get("Accept-Language") ?? "").toLowerCase();
+  for (const part of accept.split(",")) {
+    const p = part.trim().split(";")[0];
+    if (p.startsWith("zh")) return "zh-cn";
+    if (p.startsWith("ja")) return "ja-jp";
+    if (p.startsWith("ko")) return "ko-kr";
+    if (p.startsWith("en")) return "en-us";
+  }
+  return "zh-cn";
+}
+
+export function esc(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export const STATUS_CSS = `:root{--bg:#fff;--fg:#1b1b1f;--muted:#6b7280;--card:#fff;--line:#e5e7eb;--up:#05A5A6;--down:#dc2626;--pending:#d97706}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1b1f;--fg:#f4f4f5;--muted:#a1a1aa;--card:#242429;--line:#333338}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 Inter,system-ui,-apple-system,"Noto Sans SC",sans-serif}
+main{max-width:880px;margin:0 auto;padding:48px 20px 64px}
+h1{font-size:28px;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 28px}
+.overall{display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.overall.all{border-color:var(--up)}.overall.partial{border-color:var(--pending)}.overall.down{border-color:var(--down)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.dot.all{background:var(--up)}.dot.partial{background:var(--pending)}.dot.down{background:var(--down)}
+.overall h2{font-size:17px;margin:0}
+.count{color:var(--muted);font-size:14px}
+section{margin-top:32px}
+.sec-title{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.card-top{display:flex;align-items:center;gap:8px}
+.card h3{font-size:15px;font-weight:600;margin:0}
+.card-bottom{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.state{font-size:13px}
+.state.up{color:var(--up)}.state.down{color:var(--down)}.state.pending{color:var(--pending)}
+.uptime{color:var(--muted);font-size:13px}
+footer{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:28px;border-top:1px solid var(--line);padding-top:14px}
+.note{color:var(--muted);font-size:12px;margin-top:10px}`;
+
+// 自动重载节奏：整页重载会重新走一次 D1 聚合，60 秒太激进（D1 读取配额），
+// 5 分钟足够反映探针状态。
+export const STATUS_JS = `(function(){var n=300;var el=document.getElementById('refresh-count');var t=document.getElementById('updated-at');if(t){var e=t.getAttribute('data-epoch');if(e){t.textContent=new Date(Number(e)*1000).toLocaleString();}}setInterval(function(){n=n-1;if(el){el.textContent=String(n>0?n:0);}if(n<=0){location.reload();}},1000);})();`;
+
+export function statusKey(status: number | null): string {
+  return status === UP ? "up" : status === DOWN ? "down" : "pending";
+}
+
+/** 服务端渲染状态页；数据来自 D1，无客户端取数。 */
+export async function renderStatusPage(env: Env, lang: string): Promise<string> {
+  const t = STATUS_I18N[lang] ?? STATUS_I18N["zh-cn"];
+  const payload = await statusPayload(env);
+
+  const groups: Array<{ key: string; label: string; probes: typeof payload.probes }> = [
+    { key: "public", label: t.group_public, probes: [] },
+    { key: "internal", label: t.group_internal, probes: [] },
+  ];
+  for (const p of payload.probes) {
+    const bucket = groups.find((g) => g.key === p.group) ?? groups[1];
+    bucket.probes.push(p);
+  }
+
+  const card = (p: (typeof payload.probes)[number]) => {
+    const sk = statusKey(p.status);
+    const label = (p.label_key && t[p.label_key]) || p.name;
+    const uptime = p.uptime === null ? "—" : `${p.uptime.toFixed(2)}%`;
+    return (
+      `<div class="card"><div class="card-top"><span class="dot ${sk}"></span><h3>${esc(label)}</h3></div>` +
+      `<div class="card-bottom"><span class="state ${sk}">${esc(t[sk])}</span>` +
+      `<span class="uptime">${esc(uptime)} <span>${esc(t.uptime)}</span></span></div></div>`
+    );
+  };
+
+  const sections = groups
+    .filter((g) => g.probes.length > 0)
+    .map(
+      (g) =>
+        `<section><h2 class="sec-title">${esc(g.label)}</h2><div class="grid">` +
+        g.probes.map(card).join("") +
+        `</div></section>`,
+    )
+    .join("");
+
+  const overallKey = payload.down === 0 ? "all" : payload.down < payload.total ? "partial" : "down";
+
+  return (
+    `<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<title>${esc(t.title)} · limooo.cn</title><meta name="robots" content="noindex">` +
+    `<link rel="stylesheet" href="/status.css">` +
+    `</head><body><main>` +
+    `<h1>${esc(t.title)}</h1><p class="sub">${esc(t.sub)}</p>` +
+    `<div class="overall ${overallKey}"><div class="dot ${overallKey}"></div>` +
+    `<div><h2>${esc(t[`overall_${overallKey}`] ?? t.overall_down)}</h2>` +
+    `<span class="count">(${payload.down}/${payload.total})</span></div></div>` +
+    sections +
+    `<footer><span>${esc(t.updated)} <time id="updated-at" data-epoch="${payload.updated_at}">—</time></span>` +
+    `<span>${esc(t.refresh)} <span id="refresh-count">60</span>s</span></footer>` +
+    `<p class="note">${esc(t.note)}</p>` +
+    `</main><script src="/status.js" defer></script></body></html>`
+  );
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/_health") {
+      return Response.json({ ok: true, service: "limooo-status" });
+    }
+    if (url.pathname === "/status.css") {
+      return new Response(STATUS_CSS, {
+        headers: {
+          "Content-Type": "text/css; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    }
+    if (url.pathname === "/status.js") {
+      return new Response(STATUS_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    }
+    if (url.pathname === "/" || url.pathname === "/status") {
+      const html = await renderStatusPage(env, pageLang(request));
+      return new Response(html, {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "no-referrer",
+          "Content-Security-Policy":
+            "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        },
+      });
+    }
+    if (url.pathname === "/api/status") {
+      const payload = await statusPayload(env);
+      return Response.json(payload, { headers: { "Cache-Control": "no-store" } });
+    }
+    // 手动触发一轮探针（运维/排障用；只返回公开的状态数据）
+    if (url.pathname === "/run" && request.method === "POST") {
+      const ran = await runAll(env);
+      return Response.json({ ran, status: await statusPayload(env) });
+    }
+
+    // 告警邮件预览（不发信，用于核对文案与排样）
+    if (url.pathname === "/alert-preview") {
+      const kind = url.searchParams.get("kind") === "up" ? "up" : "down";
+      const name = url.searchParams.get("probe") ?? "Website";
+      const lang = url.searchParams.get("lang") ?? "zh-cn";
+      const mail = buildAlertEmail(lang, kind, name, kind === "down" ? "http_503" : "http_200", Math.floor(Date.now() / 1000));
+      if (url.searchParams.get("format") === "json") return Response.json(mail);
+      return new Response(mail.html, {
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    // 告警发送自检：真实调用 binding，返回是否配置成功（不泄密）
+    if (url.pathname === "/alert-test" && request.method === "POST") {
+      const result = await sendAlert(env, "down", url.searchParams.get("probe") ?? "Website", "selftest");
+      return Response.json({
+        configured: Boolean(env.EMAIL),
+        recipient_set: Boolean(env.ALERT_TO),
+        ...result,
+      });
+    }
+    return new Response("Not Found", { status: 404 });
+  },
+
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    // 每分钟：探针；每日 03:47：D1 保留清理（迁移自 VPS 的 prune_d1.py）
+    if (event.cron === "47 3 * * *") {
+      await runRetention(env);
+      return;
+    }
+    await runAll(env);
+  },
+};
+
+/**
+ * 单探针的复查状态机。
+ *
+ * Cron 每分钟跑一轮；一旦判 down，本对象用 alarm 每 RETRY_INTERVAL_S 秒
+ * 复查一次，直到恢复或超出 RETRY_WINDOW_S 窗口（之后交回 Cron 节奏）。
+ */
+export class ProbeState implements DurableObject {
+  private readonly state: DurableObjectState;
+  private readonly env: Env;
+
+  constructor(state: DurableObjectState, env: Env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const pid = Number.parseInt(request.headers.get("X-Probe-Id") ?? "0", 10);
+
+    if (url.pathname === "/arm") {
+      if (Number.isFinite(pid) && pid > 0) {
+        await this.state.storage.put("probe_id", pid);
+      }
+      const interval = num(this.env.RETRY_INTERVAL_S, 10);
+      await this.state.storage.setAlarm(Date.now() + interval * 1000);
+      return Response.json({ armed: true, probe_id: pid });
+    }
+    if (url.pathname === "/disarm") {
+      await this.state.storage.deleteAlarm();
+      return Response.json({ armed: false });
+    }
+    return new Response("Not Found", { status: 404 });
+  }
+
+  async alarm(): Promise<void> {
+    const probeId = (await this.state.storage.get<number>("probe_id")) ?? 0;
+    if (!probeId) return;
+
+    const probe = await this.env.DB.prepare(
+      "SELECT id, name, type, target, group_key, interval_s FROM probes WHERE id = ?1 AND active = 1",
+    )
+      .bind(probeId)
+      .first<Probe>();
+    if (!probe) return;
+
+    const result = await runProbe(this.env, probe);
+    const state = await record(this.env, probeId, result);
+
+    if (state.status === DOWN) {
+      const window = num(this.env.RETRY_WINDOW_S, 280);
+      const elapsed = Math.floor(Date.now() / 1000) - (state.downSince ?? 0);
+      if (elapsed < window) {
+        const interval = num(this.env.RETRY_INTERVAL_S, 10);
+        await this.state.storage.setAlarm(Date.now() + interval * 1000);
+      }
+      return;
+    }
+    if (state.recovered) {
+      await maybeAlert(this.env, probe, "up", result.msg);
+    }
+    await this.state.storage.deleteAlarm();
+  }
+}

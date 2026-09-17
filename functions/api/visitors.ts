@@ -125,6 +125,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   // 查询 1：全局统计 + 全量状态分布。用同一 30 天窗口，避免状态分布与
   // 顶部统计口径不一致。
+  //
+  // 性能约束（D1 免费版 5M 行/天）：四个指标合并成「一次外层聚合 + 一次状态
+  // 分布」两趟扫描。旧写法把 COUNT(DISTINCT)/SUM/COUNT(DISTINCT) 各写成一个
+  // 子查询，等于把 30 天窗口扫了 5 遍——这正是 2026-09 撞到每日读取上限的主因。
   const statsRows = await queryAll<StatsRow>(
     context.env.DB,
     `WITH scoped AS (
@@ -137,12 +141,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         WHERE last_ts >= ?
      )
      SELECT
-       (SELECT COUNT(DISTINCT ip_hash) FROM scoped) AS ips,
-       (SELECT COALESCE(SUM(requests), 0) FROM scoped) AS requests,
-       (SELECT COUNT(DISTINCT country) FROM scoped) AS countries,
+       COUNT(DISTINCT ip_hash) AS ips,
+       COALESCE(SUM(requests), 0) AS requests,
+       COUNT(DISTINCT country) AS countries,
        (SELECT GROUP_CONCAT(status || ':' || n, ',') FROM (
           SELECT status, SUM(requests) AS n FROM scoped GROUP BY status ORDER BY status
-       )) AS status_series`,
+       )) AS status_series
+     FROM scoped`,
     cutoff,
     cutoff,
   );

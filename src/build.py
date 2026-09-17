@@ -158,6 +158,9 @@ PAGES = (
     ("appleid.html", "appleid.html", "/appleid", None),
     # 统一跳转页（redirect.limooo.cn）：预渲染默认目标（主站首页），实际跳转参数由中间件拼接
     ("redirect.html", "redirect.html", "/r", "redirect"),
+    # 自建登录页已随 Cloudflare Access 接管下线（docs/17 §11.10）。
+    # 模板与样式保留在 src/templates/login.html / src/static/css/login.css 作为
+    # 备份（不参与构建、不发布），万一要切回自建登录可直接恢复这一行。
 )
 
 GATE_I18N_KEYS = (

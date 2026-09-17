@@ -105,6 +105,8 @@
   "stat_statuses": "상태 유형",
   "refresh": "새로고침",
   "logout": "로그아웃",
+  "login_or_password": "또는 비상 비밀번호 사용",
+  "login_entra": "Microsoft 계정으로 로그인",
   "filter_all": "전체",
   "ip_count": "({count}개 IP)",
   "times": "{count}회",
@@ -172,15 +174,11 @@
   "status_refresh": "자동 새로고침",
   "group_public": "공개 서비스",
   "group_internal": "내부 서비스",
-  "provider_status_claude": "Claude 서비스 상태",
-  "provider_status_cloudflare": "Cloudflare 서비스 상태",
   "page_title_home": "홈",
   "page_title_services": "서비스",
   "page_title_contact": "문의",
   "page_title_appleid": "Apple ID",
   "page_title_visitor": "방문자",
   "page_title_status": "상태",
-  "provider_tab_title_claude": "Claude 상태",
-  "provider_tab_title_cloudflare": "Cloudflare 상태",
-  "provider_data_source": "데이터 제공:"
+  "page_title_login": "로그인"
 }

@@ -1,6 +1,13 @@
-/** GET /logout → 撤销 D1 会话，清 cookie，跳 authentik 登出 */
+/**
+ * GET /logout → 撤销 D1 会话、清 cookie，再跳 Access 登出端点（docs/17 §11.6）。
+ *
+ * 两步缺一不可：
+ * - 撤销 D1 `auth_sessions`：本系统侧的会话立即失效（requireAuth fail-closed）；
+ * - 跳 Access 登出：清 Cloudflare 侧的 `CF_Authorization`，否则下一个请求会
+ *   被 Access 用残留会话自动重新认证，「退出」看起来没生效。
+ */
 
-import { buildLogoutUrl } from "./_lib/oidc";
+import { accessLogoutUrl, accessTeamDomain } from "./_lib/access";
 import {
   clearPendingCookie,
   clearSessionCookie,
@@ -38,7 +45,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     status: 302,
     message: session ? `sid=${session.sid.slice(0, 8)}` : "no_session",
   });
-  const resp = new Response(null, { status: 302, headers: { Location: buildLogoutUrl(env, next) } });
+
+  // Access 未配置时退化为只跳 next，本地会话已经撤销，不影响安全性。
+  const target = accessTeamDomain(env) ? accessLogoutUrl(env, next) : next;
+  const resp = new Response(null, { status: 302, headers: { Location: target } });
   resp.headers.append("Set-Cookie", clearSessionCookie());
   resp.headers.append("Set-Cookie", clearPendingCookie());
   return resp;

@@ -105,6 +105,8 @@
   "stat_statuses": "状态类型",
   "refresh": "刷新",
   "logout": "退出",
+  "login_or_password": "或使用应急密码",
+  "login_entra": "使用 Microsoft 账号登录",
   "filter_all": "全部",
   "ip_count": "({count} 个 IP)",
   "times": "{count}次",
@@ -172,15 +174,11 @@
   "status_refresh": "自动刷新",
   "group_public": "公开服务",
   "group_internal": "内部服务",
-  "provider_status_claude": "Claude 服务状态",
-  "provider_status_cloudflare": "Cloudflare 服务状态",
   "page_title_home": "主页",
   "page_title_services": "服务",
   "page_title_contact": "联系方式",
   "page_title_appleid": "Apple ID",
   "page_title_visitor": "访客",
   "page_title_status": "状态",
-  "provider_tab_title_claude": "Claude 服务状态",
-  "provider_tab_title_cloudflare": "Cloudflare 服务状态",
-  "provider_data_source": "数据来源："
+  "page_title_login": "登录"
 }

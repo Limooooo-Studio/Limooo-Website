@@ -29,6 +29,10 @@ export const SKIP_PATHS = new Set<string>([
   "/__gate/config",
   "/Limooo-xtext.svg",
   "/favicon.svg",
+  // 登录链路：Entra 回调是来自 login.microsoftonline.com 的顶层跳转，
+  // 不能因为 __gate cookie 恰好过期就被门禁页接管（否则登录直接断掉）。
+  "/login/entra",
+  "/login/callback",
 ]);
 
 /** 门禁/封禁白名单：只认 data/whitelist.txt 生成的门禁信任配置。 */

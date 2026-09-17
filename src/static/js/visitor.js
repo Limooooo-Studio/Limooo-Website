@@ -209,10 +209,15 @@ function esc(value) {
 
 // 自动刷新：页面不可见时暂停，避免后台挂机持续请求；重新可见且数据过期时
 // 再补一次刷新。无论何时刷新，都不会改变 currentStatus 或发送 status 参数。
+//
+// 节奏为什么是 5 分钟而不是 1 分钟：/api/visitors 需要聚合 30 天窗口，
+// 60 秒轮询会把它放大成每天数百万行的 D1 读取（已实测撞上免费版 5M 行/天的
+// 每日上限）。页面可见时 5 分钟一次，足够运维使用。
+const REFRESH_INTERVAL_MS = 300000;
 let refreshTimer = null;
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => { refresh(); }, 60000);
+  refreshTimer = setInterval(() => { refresh(); }, REFRESH_INTERVAL_MS);
 }
 function stopAutoRefresh() {
   if (refreshTimer) {
@@ -226,7 +231,7 @@ document.addEventListener('visibilitychange', () => {
     stopAutoRefresh();
   } else {
     startAutoRefresh();
-    if (dataLoaded && Date.now() - lastLoadedAt > 60000) refresh();
+    if (dataLoaded && Date.now() - lastLoadedAt > REFRESH_INTERVAL_MS) refresh();
   }
 });
 

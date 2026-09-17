@@ -1,0 +1,49 @@
+# limooo 状态探针（docs/17 阶段 2）
+#
+# 取代 Uptime Kuma：
+#   - Cron Trigger 每分钟跑一轮 HTTP/D1 探针，写 D1
+#   - Durable Object alarm 在判定 down 后每 10 秒复查，恢复即记录
+#   - GET /api/status 给状态页取数；GET /_health 给外部/自身探针
+#
+# 部署：bash ops/workers_deploy.sh status-worker
+name = "limooo-status"
+main = "src/index.ts"
+compatibility_date = "2026-08-15"
+account_id = "4a7fd8c8f1a59a265981a73e631b9e3f"
+
+[triggers]
+crons = ["* * * * *", "47 3 * * *"]
+
+# 与 Pages 项目共用同一个 D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "limooo"
+database_id = "e2f29d54-29c0-46af-938d-e13995a11d7f"
+
+[[durable_objects.bindings]]
+name = "PROBE_STATE"
+class_name = "ProbeState"
+
+# SQLite 后端：Workers 免费版仅支持 SQLite-backed Durable Objects
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ProbeState"]
+
+[vars]
+# down 后复查节奏（秒）；与 Kuma 时代的 10 秒保持一致
+RETRY_INTERVAL_S = "10"
+# 单次复查窗口（秒），窗口结束后交回 Cron 的 1 分钟节奏
+RETRY_WINDOW_S = "280"
+# 连续失败多少次才判 down（避免单次抖动误报）
+FAIL_THRESHOLD = "2"
+# 告警邮件（阶段 3）：发件人 / 语言 / down 告警冷却（秒）
+ALERT_FROM = "no-reply@limooo.cn"
+ALERT_LANG = "zh-cn"
+ALERT_COOLDOWN_S = "1800"
+# 收件人**不入库**：部署时用 `wrangler secret put ALERT_TO`（或 Dashboard
+# 环境变量）注入；未设置时告警只记日志、不发信。
+
+# Email Service 发信 binding（需 Workers Paid 且已 onboard Email Sending）。
+# 启用后取消注释即可；未绑定时代码自动降级为「只记日志」。
+# [[send_email]]
+# name = "EMAIL"

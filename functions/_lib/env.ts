@@ -7,13 +7,13 @@ export interface Env {
   GATE_HMAC_KEY: string;
   // 可观测性：独立于 GATE_HMAC_KEY 的 IP 哈希密钥；缺失时记录为空串，不降级复用
   OBSERVABILITY_HMAC_KEY?: string;
-  // 登录（authentik OIDC）
-  AUTHENTIK_URL?: string;
-  AUTHENTIK_JWKS_URL?: string;
-  AUTHENTIK_PKCE_ENABLED?: string;
-  AUTHENTIK_CLIENT_ID?: string;
-  AUTHENTIK_CLIENT_SECRET?: string;
-  AUTHENTIK_ADMIN_GROUPS?: string;
+  // 登录（Cloudflare Access，唯一身份来源；docs/17 §11.10）
+  /** Zero Trust team domain，如 https://limooo.cloudflareaccess.com */
+  ACCESS_TEAM_DOMAIN?: string;
+  /** 逗号分隔的 AUD 列表：命中即 admin。 */
+  ACCESS_ADMIN_AUDS?: string;
+  /** 逗号分隔的 AUD 列表：命中即 viewer（admin 优先）。 */
+  ACCESS_VIEWER_AUDS?: string;
   SESSION_HMAC_KEY?: string;
   // Apple ID 密码加密（Fernet 密钥，与现有 Flask 部署共用）
   APPLEID_ENCRYPTION_KEY?: string;
