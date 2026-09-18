@@ -27,7 +27,7 @@ export const CONTRACT = {
   "pending_cookie": "limooo_pending_v2",
   "csrf_cookie": "limooo_csrf",
   "gate_ttl_seconds": 3600,
-  "session_ttl_seconds": 604800,
+  "session_ttl_seconds": 2592000,
   "pending_ttl_seconds": 600,
   "public_hosts": [
     "limooo.cn",
