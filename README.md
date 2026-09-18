@@ -143,17 +143,24 @@ and generates `public/manifest.json` (build-artifact hash evidence).
 Deploy only the Pages output with:
 
 ```bash
-bash ops/pages_deploy.sh --verbose
+# 只构建 + 校验，不碰 Cloudflare
+bash ops/pages_deploy.sh --build-only
+
+# 构建 + 校验 + 部署 Pages + 冒烟（/_health 必须 200）
+bash ops/pages_deploy.sh
+
+# 完整部署：① commit ② push ③ Pages（AGENTS.md 的"完整部署"语义）
+bash ops/deploy.sh --all
 ```
 
-Build-only (no deploy): `bash ops/pages_deploy.sh --build-only`; preview commands:
-`bash ops/pages_deploy.sh --dry-run` and `bash ops/deploy.sh --dry-run`.
-`ops/deploy.sh` no longer commits/pushes automatically by default; pass `--commit` / `--push` explicitly when needed.
-`ops/migrate_d1.sh` and `ops/workers_deploy.sh` also support `--dry-run`.
+**零 VPS 版脚本（2026-09-17 重写）**：`ops/deploy.sh` 是完整部署入口，
+`ops/pages_deploy.sh` 负责构建与 Pages，`ops/upload.sh` 只是 `deploy.sh` 的
+兼容转发入口（不再各存一份逻辑）。所有脚本的 `--dry-run` 只打印计划、不写任何远端。
 
-Full VPS + Pages deployment is `bash ops/deploy.sh`; `ops/upload.sh` forwards
-to it. Per current workspace rules, do not run deployment without explicit
-confirmation.
+凭据从本机 `secrets/webauthn.env` 读取（不入库、不回显），已无 ssh / rsync / 远端
+systemd 步骤。`ops/migrate_d1.sh` 与 `ops/workers_deploy.sh` 同样支持 `--dry-run`。
+
+Per current workspace rules, do not run deployment without explicit confirmation.
 
 Automated test entry points are provided (see docs/03):
 

@@ -49,7 +49,7 @@ if [ -n "$SELECTED" ]; then
         image-watermark) WORKERS=("$ROOT/ops/image-watermark") ;;
         d1-archive) WORKERS=("$ROOT/ops/d1-archive") ;;
         status-worker) WORKERS=("$ROOT/ops/status-worker") ;;
-        *) echo "FATAL: 未知 Worker $SELECTED（可选 sync-worker / image-watermark / d1-archive / status-worker）" >&2; exit 2 ;;
+        *) echo "FATAL: 未知 Worker ${SELECTED}（可选 sync-worker / image-watermark / d1-archive / status-worker）" >&2; exit 2 ;;
     esac
 fi
 
