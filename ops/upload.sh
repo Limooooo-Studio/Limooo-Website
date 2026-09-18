@@ -21,8 +21,8 @@
 #
 # 与 ops/deploy.sh 做同样的事（commit / push / Pages / Worker），
 # **唯一区别是输出**：成功时只打印一行行程式状态（Git: / Pages: / Deploy:），
-# 构建与 wrangler 的冗长日志被吞掉；只有出错时才把完整日志吐出来。
-# 需要看全过程请用 ops/deploy.sh。
+# 构建清单、产物数量、wrangler 上传进度全部吞掉；只有出错时才把完整日志
+# 吐到 stderr。需要看全过程请用 ops/deploy.sh。
 #
 #   bash ops/upload.sh                     # 部署 Pages
 #   bash ops/upload.sh --commit --push     # 提交并推送
@@ -109,13 +109,14 @@ if [ "$DO_PUSH" = 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; th
     fi
 fi
 
-# ── ③ Pages：吞掉冗长日志，只在失败时吐出来 ─────────────────────────
+# ── ③ Pages：只在失败时吐出日志，成功时只留一行状态 ─────────────────
 if [ "$DO_PAGES" = 1 ]; then
     log="$(mktemp -t limooo-upload-XXXXXX.log)"
     trap 'rm -f "$log"' EXIT
     if bash ops/pages_deploy.sh >"$log" 2>&1; then
-        # 只透传关键状态行，其余（构建清单、wrangler 上传进度）丢弃
-        grep -E '^\[pages\] (产物|/_health|完成)' "$log" || true
+        # 成功路径刻意不打印任何中间信息：构建清单、产物数量、wrangler 上传
+        # 进度、Functions bundle 提示全部丢弃。pages_deploy.sh 自己会在结束前
+        # 校验 /_health = 200，失败即非 0 退出，所以这里不需要复述。
         echo "Pages: done"
     else
         echo "Pages: FAILED — 完整日志如下" >&2
