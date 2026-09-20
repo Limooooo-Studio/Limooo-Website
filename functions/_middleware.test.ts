@@ -189,3 +189,55 @@ describe("force theme challenge", () => {
     expect(resp.headers.get("Vary")).toContain("Accept-Language");
   });
 });
+
+describe("public /files", () => {
+  const assetsEnv = (env: Partial<Env> = {}) => ({
+    ASSETS: {
+      fetch: async (input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        if (url.endsWith("/static/files/after_sign_in.png")) {
+          return new Response("png-bytes", {
+            headers: { "Content-Type": "image/png", ETag: '"abc"' },
+          });
+        }
+        return new Response("missing", { status: 404 });
+      },
+    },
+    ...env,
+  });
+
+  it("serves /files/<name> without the gate, even for an unverified visitor", async () => {
+    const resp = await handleOnRequest(
+      context(new Request("https://limooo.cn/files/after_sign_in.png"), assetsEnv()),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("Content-Type")).toBe("image/png");
+    expect(resp.headers.get("Cache-Control")).toContain("max-age=86400");
+    await expect(resp.text()).resolves.toBe("png-bytes");
+  });
+
+  it("also maps the clean URL on the images subdomain", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://images.limooo.cn/files/after_sign_in.png"),
+        assetsEnv(),
+      ),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("Content-Type")).toBe("image/png");
+  });
+
+  it("404s unknown names and path traversal without touching the gate", async () => {
+    const unknown = await handleOnRequest(
+      context(new Request("https://limooo.cn/files/nope.png"), assetsEnv()),
+    );
+    expect(unknown.status).toBe(404);
+
+    const traversal = await handleOnRequest(
+      context(new Request("https://limooo.cn/files/..%2Fsecrets"), assetsEnv()),
+    );
+    expect(traversal.status).toBe(404);
+  });
+});

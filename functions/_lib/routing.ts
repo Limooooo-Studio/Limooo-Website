@@ -217,11 +217,19 @@ export function pageAsset(host: string, pathname: string, lang: string): string 
   return file ? `/${lang}/${file}` : null;
 }
 
+/**
+ * 免人机验证的公开文件目录：`src/static/files/` 随构建镜像到
+ * `public/static/files/`，这里额外暴露成干净 URL `/files/<文件名>`
+ * （limooo.cn 与 images.limooo.cn 都可用），供站外直接引用，不进门禁。
+ */
+export const PUBLIC_FILES_PREFIX = "/files/";
+
 /** 是否属于公开静态资源/内部路径，避免门禁死循环和重复埋点。 */
 export function isPublicAssetPath(pathname: string): boolean {
   return (
     SKIP_PATHS.has(pathname) ||
     pathname.startsWith("/static/") ||
+    pathname.startsWith(PUBLIC_FILES_PREFIX) ||
     pathname === "/favicon.svg" ||
     pathname === "/Limooo-xtext.svg"
   );

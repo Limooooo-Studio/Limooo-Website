@@ -1,7 +1,7 @@
 /**
  * GET /login → Cloudflare Access 身份落地（docs/17 §11.6 / §11.10）
  *
- * Access 前置在 `visitor.limooo.cn` / `apple.limooo.cn` / `admin.limooo.cn` 之前，
+ * Access 前置在 `visitor.limooo.cn` / `account.limooo.cn/apple` 之前，
  * 已认证用户到达这里时请求头带 `Cf-Access-Jwt-Assertion`。本端点负责：
  *
  *   1. 验签 Access JWT（**必须自验**，否则伪造请求头即可冒充管理员）；

@@ -391,7 +391,7 @@ function closeModal() {
 }
 
 async function saveAccount() {
-    const email = document.getElementById('field-email').value.trim().split('@')[0] + '@apple.limooo.cn';
+    const email = document.getElementById('field-email').value.trim().split('@')[0] + '@account.limooo.cn';
     const password = (document.getElementById('field-password').dataset.real || '').trim();
     const notes = document.getElementById('field-notes').value.trim();
     if (!password) { toast(t('toast_enter_pw')); return; }

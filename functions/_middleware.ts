@@ -14,6 +14,7 @@ import {
   isGateTrustedIp,
   isApiPath,
   isPublicAssetPath,
+  PUBLIC_FILES_PREFIX,
   pageAsset,
   preserveSetCookie,
   safeNextPath,
@@ -50,6 +51,39 @@ import {
 } from "./_lib/tracking";
 
 type PagesFunction = (context: RequestContext) => Promise<Response>;
+
+/**
+ * 把 `/files/<名>` 映射到构建产物 `/static/files/<名>`，公开直出。
+ *
+ * 只接受单层、无点号跳转的文件名，避免 `/files/../secrets` 之类的越权读取；
+ * 目录本身不列目录，不存在就 404。
+ */
+async function servePublicFile(
+  context: RequestContext,
+  pathname: string,
+): Promise<Response> {
+  const name = pathname.slice(PUBLIC_FILES_PREFIX.length);
+  if (!name || name.includes("/") || name.includes("..") || name.startsWith(".")) {
+    return new Response("Not Found", { status: 404 });
+  }
+  if (!context.env.ASSETS) return new Response("Not Found", { status: 404 });
+
+  const asset = await context.env.ASSETS.fetch(
+    new URL(`/static/files/${name}`, BASE_URL),
+  );
+  if (!asset.ok) return new Response("Not Found", { status: 404 });
+
+  return new Response(asset.body, {
+    status: 200,
+    headers: {
+      "Content-Type":
+        asset.headers.get("Content-Type") ?? "application/octet-stream",
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=86400",
+      "X-Content-Type-Options": "nosniff",
+      ...(asset.headers.get("ETag") ? { ETag: asset.headers.get("ETag")! } : {}),
+    },
+  });
+}
 
 /** 非业务日志必须在响应返回后写入，不能阻塞页面/跳转。 */
 function defer(context: RequestContext, promise: Promise<unknown>): void {
@@ -189,7 +223,14 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
 
   // 公开静态资源与 API 必须先放行：跳转子域也共享 /static 资源，
   // 不能把 redirect.limooo.cn/static/css/... 也渲染成 Redirecting HTML。
-  if (isPublicAssetPath(pathname) || isApiPath(pathname)) return next();
+  if (isPublicAssetPath(pathname) || isApiPath(pathname)) {
+    // 干净文件 URL `/files/<名>` → 构建产物 `/static/files/<名>`，
+    // 公开、不经过人机门禁（images.limooo.cn 下也走这条）。
+    if (pathname.startsWith(PUBLIC_FILES_PREFIX)) {
+      return servePublicFile(context, pathname);
+    }
+    return next();
+  }
 
   // 跳转子域：纯中转页，豁免人机验证。
   if (isRedirectHost(hostname)) return renderRedirectPage(context);

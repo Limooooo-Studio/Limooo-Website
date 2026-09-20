@@ -35,7 +35,7 @@ export const CONTRACT = {
     "services.limooo.cn",
     "contact.limooo.cn",
     "visitor.limooo.cn",
-    "apple.limooo.cn",
+    "account.limooo.cn",
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "image.limooo.cn",
@@ -50,7 +50,7 @@ export const CONTRACT = {
     "services.limooo.cn",
     "contact.limooo.cn",
     "visitor.limooo.cn",
-    "apple.limooo.cn",
+    "account.limooo.cn",
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "images.limooo.cn",
@@ -85,10 +85,10 @@ export const CONTRACT = {
       "/index.html": "visitor.html",
       "/visitor": "visitor.html"
     },
-    "apple.limooo.cn": {
+    "account.limooo.cn": {
       "/": "appleid.html",
       "/index.html": "appleid.html",
-      "/account": "appleid.html"
+      "/apple": "appleid.html"
     },
     "auth.limooo.cn": {
       "/__gate": "auth.html"
@@ -126,7 +126,7 @@ export const WWW_HOSTNAME = `www.${ROOT_DOMAIN}`;
 export const SERVICES_HOSTNAME = `services.${ROOT_DOMAIN}`;
 export const CONTACT_HOSTNAME = `contact.${ROOT_DOMAIN}`;
 export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;
-export const APPLEID_HOSTNAME = `apple.${ROOT_DOMAIN}`;
+export const APPLEID_HOSTNAME = `account.${ROOT_DOMAIN}`;
 export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;
 export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;
 export const AUTHENTIK_HOSTNAME = "identity.limooo.cn";

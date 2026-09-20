@@ -34,7 +34,7 @@
     "services.limooo.cn",
     "contact.limooo.cn",
     "visitor.limooo.cn",
-    "apple.limooo.cn",
+    "account.limooo.cn",
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "image.limooo.cn",
@@ -49,7 +49,7 @@
     "services.limooo.cn",
     "contact.limooo.cn",
     "visitor.limooo.cn",
-    "apple.limooo.cn",
+    "account.limooo.cn",
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "images.limooo.cn",
@@ -84,10 +84,10 @@
       "/index.html": "visitor.html",
       "/visitor": "visitor.html"
     },
-    "apple.limooo.cn": {
+    "account.limooo.cn": {
       "/": "appleid.html",
       "/index.html": "appleid.html",
-      "/account": "appleid.html"
+      "/apple": "appleid.html"
     },
     "auth.limooo.cn": {
       "/__gate": "auth.html"

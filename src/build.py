@@ -153,7 +153,7 @@ PAGES = (
     ("contact.html", "contact.html", "/contact", None),
     # images.limooo.cn 门面页（继承 base.html），由中间件按主机名吐出到 / 与三个前端路径
     ("images.html", "images.html", "/images", None),
-    # 子域专属管理页（visitor.limooo.cn / appleid.limooo.cn），由中间件按主机名吐出
+    # 子域专属管理页（visitor.limooo.cn / account.limooo.cn/apple），由中间件按主机名吐出
     ("visitor.html", "visitor.html", "/visitor", None),
     ("appleid.html", "appleid.html", "/appleid", None),
     # 统一跳转页（redirect.limooo.cn）：预渲染默认目标（主站首页），实际跳转参数由中间件拼接
@@ -302,7 +302,7 @@ def write_config_functions() -> None:
         "export const SERVICES_HOSTNAME = `services.${ROOT_DOMAIN}`;",
         "export const CONTACT_HOSTNAME = `contact.${ROOT_DOMAIN}`;",
         "export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;",
-        "export const APPLEID_HOSTNAME = `apple.${ROOT_DOMAIN}`;",
+        "export const APPLEID_HOSTNAME = `account.${ROOT_DOMAIN}`;",
         "export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;",
         "export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;",
         f"export const AUTHENTIK_HOSTNAME = {json.dumps(authentik_host)};",
