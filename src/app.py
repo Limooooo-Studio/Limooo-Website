@@ -360,7 +360,7 @@ def _gate_cookie_valid(value: str | None, key: str) -> bool:
     return int(payload) > int(time.time())
 
 
-type IpNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
+IpNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 
 _gate_whitelist_cache: tuple[int, tuple[IpNetwork, ...], frozenset[int]] | None = None

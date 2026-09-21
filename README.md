@@ -85,7 +85,6 @@ A Cloudflare Pages + Flask personal website and admin system running at [limooo.
 │   ├── upload_originals.sh        # private R2 backup of portfolio originals
 │   ├── uptime-kuma/       # Uptime Kuma compose/bootstrap/init scripts
 │   ├── image-watermark/   # Worker: image.limooo.cn watermark normalizer
-│   ├── claude-webhook/    # status.limooo.cn Claude / Cloudflare notification receivers
 │   ├── d1-archive/        # D1 snapshot/archive Worker
 │   ├── sync-worker/       # Worker: D1 blocked_ips → Cloudflare IP List (cron 03:30)
 │   └── requirements.txt   # Python dependencies

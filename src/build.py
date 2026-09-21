@@ -584,9 +584,16 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
         print("[build] 没有可水印化的作品集文件，跳过 Pillow 检查", flush=True)
         return 0
 
-    wm_path = os.path.join(STATIC_DIR, "icons", "Limooo-watermark.svg")
+    # 按实际文件名解析，避免大小写敏感文件系统（Linux CI）上找不到素材
+    icons_dir = os.path.join(STATIC_DIR, "icons")
+    wm_path = os.path.join(icons_dir, "limooo-watermark.svg")
     if not os.path.exists(wm_path):
-        raise FileNotFoundError("缺少水印素材：src/static/icons/Limooo-watermark.svg")
+        for _name in sorted(os.listdir(icons_dir)) if os.path.isdir(icons_dir) else []:
+            if _name.lower() == "limooo-watermark.svg":
+                wm_path = os.path.join(icons_dir, _name)
+                break
+    if not os.path.exists(wm_path):
+        raise FileNotFoundError("缺少水印素材：src/static/icons/limooo-watermark.svg")
     os.makedirs(out_root, exist_ok=True)
 
     if cairosvg is None:
