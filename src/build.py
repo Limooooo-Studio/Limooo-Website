@@ -28,7 +28,10 @@ except ImportError:
 
 try:
     import cairosvg
-except ImportError:
+except (ImportError, OSError):
+    # cairosvg 依赖本地 libcairo；缺失时 cairocffi 抛的是 OSError 而非
+    # ImportError（Linux/无 Homebrew 环境常见），这里一并降级为"不可用"，
+    # 由 generate_watermarks 判断是否真的需要水印。
     cairosvg = None
 
 
@@ -571,17 +574,21 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
     source_root = source_root or STATIC_DIR
     out_root = out_root or os.path.join(PUBLIC_DIR, "static", "wm")
 
+    # CI runner 不含 gitignore 的 src/static/portfolio：没有源图时无需水印，
+    # 跳过而不是失败；只有确实要水印却缺素材/缺依赖时才报错。
+    portfolio_dir = os.path.join(source_root, "portfolio")
+    has_portfolio = os.path.isdir(portfolio_dir) and any(
+        name.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+        for name in os.listdir(portfolio_dir)
+    )
+
     if Image is None or ImageDraw is None:
-        portfolio_dir = os.path.join(source_root, "portfolio")
-        if os.path.isdir(portfolio_dir) and any(
-            name.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
-            for name in os.listdir(portfolio_dir)
-        ):
+        if has_portfolio:
             raise RuntimeError(
                 "Pillow 未安装，无法生成作品集水印。请先执行 "
                 "`pip install -r ops/requirements.txt` 再运行 build.py。"
             )
-        print("[build] 没有可水印化的作品集文件，跳过 Pillow 检查", flush=True)
+        print("[build] 无可水印作品集文件，跳过水印生成", flush=True)
         return 0
 
     # 按实际文件名解析，避免大小写敏感文件系统（Linux CI）上找不到素材
@@ -592,12 +599,23 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
             if _name.lower() == "limooo-watermark.svg":
                 wm_path = os.path.join(icons_dir, _name)
                 break
-    if not os.path.exists(wm_path):
-        raise FileNotFoundError("缺少水印素材：src/static/icons/limooo-watermark.svg")
-    os.makedirs(out_root, exist_ok=True)
 
     if cairosvg is None:
-        raise RuntimeError("使用 SVG 水印时需要安装 cairosvg")
+        if has_portfolio:
+            raise RuntimeError(
+                "使用 SVG 水印时需要安装 cairosvg（及其本地 libcairo）"
+            )
+        print("[build] 无可水印作品集文件，跳过水印生成", flush=True)
+        return 0
+    if not os.path.exists(wm_path):
+        if has_portfolio:
+            raise FileNotFoundError(
+                "缺少水印素材：src/static/icons/limooo-watermark.svg"
+            )
+        print("[build] 无可水印作品集文件，跳过水印生成", flush=True)
+        return 0
+    os.makedirs(out_root, exist_ok=True)
+
     wm = Image.open(io.BytesIO(cairosvg.svg2png(url=wm_path))).convert("RGBA")
     wm_w0, wm_h0 = wm.size
     count = 0
