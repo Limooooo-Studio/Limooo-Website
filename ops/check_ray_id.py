@@ -1,22 +1,35 @@
 #!/usr/bin/env python3
 
-"""按 Cloudflare Ray ID 直接反查 D1，供管理员终端排障。
+"""按 Cloudflare Ray ID 反查请求记录（边缘 + D1 双源），供管理员终端排障。
 
-该脚本只在 VPS 上运行，读取服务器 `secrets/webauthn.env` 中的 Cloudflare
-凭据，不走公开的 `/api/ray/:id`（该接口要求登录且仅 admin）。
+数据源：
+    1. Cloudflare GraphQL Analytics API —— 边缘侧记录，能给出**真实客户端 IP**。
+       注意：逐请求数据集 httpRequestsAdaptive（唯一含 rayName 的数据集）需要
+       Logpush/Enterprise 级别的字段授权；当前 zone 无权访问 `rayname`，脚本
+       会自动降级到聚合数据集 httpRequestsAdaptiveGroups（免费版可用），
+       按「时间窗 + host + path + 状态码 + 客户端 IP」交叉定位同一请求。
+    2. D1 ray_log_v2 / ray_log / events —— 站点自己按 CF-Ray 记录的明细。
+       只在 Pages 侧产生，且受保留策略清理，故仅作补充。
 
 用法：
-    RAYID=a334352fe9806564-AMS python3 ops/check_ray_id.py
-  或：
     python3 ops/check_ray_id.py a334352fe9806564-AMS
+    RAYID=a334352fe9806564-AMS python3 ops/check_ray_id.py
+    python3 ops/check_ray_id.py <rayid> --minutes 60   # 扩大边缘检索时间窗
+
+退出码：0 有命中；1 无命中或查询失败；2 Ray ID 非法。
 """
 
 from __future__ import annotations
 
+import argparse
 import datetime as dt
+import json
 import os
 import re
 import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(os.environ.get("LIMOOO_ROOT") or Path(__file__).resolve().parents[1])
@@ -24,47 +37,68 @@ sys.path.insert(0, str(ROOT))
 
 from ops import d1_client  # noqa: E402
 
+GRAPHQL_URL = "https://api.cloudflare.com/client/v4/graphql"
+ZONE_NAME = "limooo.cn"
+DEFAULT_WINDOW_MINUTES = 30
 
-def normalize_ray(raw: str) -> str:
-    value = raw.split("-", 1)[0].lower()
-    value = "".join(ch for ch in value if ch in "0123456789abcdef")
-    if not re.fullmatch(r"[0-9a-f]{16}", value):
+
+def normalize_ray(raw: str) -> tuple[str, str]:
+    """返回 (16 位小写 hex, colo 后缀大写或空)。"""
+    value = (raw or "").strip()
+    if not value:
         raise ValueError("invalid Ray ID")
-    return value
+    parts = value.split("-", 1)
+    hexpart = parts[0].lower()
+    colo = parts[1].upper() if len(parts) > 1 else ""
+    hexpart = "".join(ch for ch in hexpart if ch in "0123456789abcdef")
+    if not re.fullmatch(r"[0-9a-f]{16}", hexpart):
+        raise ValueError("invalid Ray ID")
+    return hexpart, colo
 
 
-def render_row(source: str, row: dict[str, object]) -> str:
-    ts = row.get("ts")
-    if isinstance(ts, (int, float)):
-        stamp = dt.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        stamp = ""
-    host = row.get("host", "")
-    method = row.get("method", "")
-    path = row.get("path") or row.get("normalized_path") or ""
-    status = row.get("status", "")
-    identifier = row.get("ip_hash") or row.get("ip") or "-"
-    country = row.get("country", "")
-    return f"{stamp} {host} {method} {path} {status} ip={identifier} country={country} [{source}]"
+def cf_request(cfg: dict[str, str], url: str, body: object | None = None) -> dict:
+    """带退避重试的 Cloudflare API 调用（本机到 CF 偶发连接重置）。"""
+    headers = {"Authorization": f"Bearer {cfg['token']}"}
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    last: Exception | None = None
+    for attempt in range(4):
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST" if data else "GET")
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:  # noqa: BLE001 - 网络抖动统一重试
+            last = exc
+            time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f"Cloudflare API 请求失败: {last}")
 
 
-def main() -> int:
-    raw = os.environ.get("RAYID") or (sys.argv[1] if len(sys.argv) > 1 else "")
-    try:
-        ray = normalize_ray(raw)
-    except ValueError:
-        print("invalid Ray ID", file=sys.stderr)
-        return 2
+def gql(cfg: dict[str, str], query: str) -> dict:
+    payload = cf_request(cfg, GRAPHQL_URL, {"query": query})
+    if payload.get("errors"):
+        message = "; ".join(str(e.get("message")) for e in payload["errors"])
+        raise RuntimeError(message)
+    return payload.get("data") or {}
 
-    env = d1_client.load_env(ROOT / "secrets" / "webauthn.env")
-    cfg = d1_client.cloudflare_config(env)
+
+def zone_id(cfg: dict[str, str]) -> str | None:
+    data = cf_request(cfg, f"https://api.cloudflare.com/client/v4/zones?name={ZONE_NAME}")
+    for zone in data.get("result") or []:
+        if zone.get("name") == ZONE_NAME:
+            return zone.get("id")
+    return None
+
+
+def d1_lookup(cfg: dict[str, str], ray: str) -> tuple[list[str], str | None]:
+    """D1 三表反查；返回 (格式化行, 错误信息)。"""
     like = f"{ray}%"
     queries = (
         (
             "ray_log_v2",
             "SELECT ray, ts, host, normalized_path AS path, method, status, "
-            "ip_hash, country FROM ray_log_v2 WHERE ray LIKE "
-            f"'{like}' ORDER BY ts DESC LIMIT 100",
+            f"ip_hash, country FROM ray_log_v2 WHERE ray LIKE '{like}' ORDER BY ts DESC LIMIT 100",
         ),
         (
             "ray_log",
@@ -74,25 +108,213 @@ def main() -> int:
         (
             "events",
             "SELECT event, ts, request_id AS ray, host, path, method, status, "
-            "outcome, ip_hash, country FROM events WHERE request_id LIKE "
-            f"'{like}' ORDER BY ts DESC LIMIT 100",
+            f"outcome, ip_hash, country FROM events WHERE request_id LIKE '{like}' ORDER BY ts DESC LIMIT 100",
         ),
     )
+    lines: list[str] = []
+    errors: list[str] = []
+    for source, sql in queries:
+        rows = d1_query_retry(cfg, sql)
+        if rows is None:
+            # 网络/API 抖动与“确实没有记录”必须区分开，否则会把查不到
+            # 误报成不存在。
+            errors.append(source)
+            continue
+        for row in rows:
+            lines.append(render_d1_row(source, row))
+    error = f"以下表查询失败（网络/API 抖动，不代表无记录）：{', '.join(errors)}" if errors else None
+    return lines, error
 
-    found = False
+
+def d1_query_retry(cfg: dict[str, str], sql: str, tries: int = 4) -> list[dict] | None:
+    """D1 查询带退避重试；持续失败返回 None。"""
+    for attempt in range(tries):
+        try:
+            return d1_client.d1_query(cfg, sql)
+        except Exception:  # noqa: BLE001 - 本机到 CF 偶发连接重置
+            if attempt == tries - 1:
+                return None
+            time.sleep(1.5 * (attempt + 1))
+    return None
+
+
+def render_d1_row(source: str, row: dict[str, object]) -> str:
+    ts = row.get("ts")
+    stamp = dt.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S") if isinstance(ts, (int, float)) else ""
+    host = row.get("host", "")
+    method = row.get("method", "")
+    path = row.get("path") or row.get("normalized_path") or ""
+    status = row.get("status", "")
+    identifier = row.get("ip_hash") or row.get("ip") or "-"
+    country = row.get("country", "")
+    return f"{stamp} {host} {method} {path} {status} ip={identifier} country={country} [{source}]"
+
+
+def edge_lookup(
+    cfg: dict[str, str],
+    zone: str,
+    ray: str,
+    colo: str,
+    minutes: int,
+) -> tuple[list[str], str | None]:
+    """边缘侧反查。
+
+    逐请求数据集含 rayName 但当前 zone 无权访问；这里先尝试，失败则退回聚合
+    数据集，用时间窗 + colo 交叉定位。返回 (格式化行, 降级说明)。
+    """
+    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=minutes)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    exact = f'''{{
+      viewer {{ zones(filter: {{zoneTag: "{zone}"}}) {{
+        httpRequestsAdaptive(limit: 10, filter: {{rayName: "{ray}", datetime_geq: "{since}"}}) {{
+          rayName datetime clientRequestHTTPHost clientRequestHTTPMethodName clientRequestPath
+          edgeResponseStatus clientIP clientCountryName clientASNDescription userAgent
+        }}
+      }} }}
+    }}'''
     try:
-        for source, sql in queries:
-            rows = d1_client.d1_query(cfg, sql)
-            for row in rows:
-                print(render_row(source, row))
-                found = True
-        if not found:
-            print("D1: 0 records", file=sys.stderr)
-            return 1
-        return 0
+        data = gql(cfg, exact)
+        groups = (data.get("viewer", {}).get("zones") or [{}])[0].get("httpRequestsAdaptive") or []
+        if groups:
+            return [render_edge_row(r) for r in groups], None
+        return [], None
+    except RuntimeError as exc:
+        note = f"边缘逐请求数据集不可用（{exc}），已退回聚合数据集。"
+        if "rayname" not in str(exc).lower() and "access to the field" not in str(exc).lower():
+            return [], note
+
+    # 聚合降级：没有 Ray ID，只能按时间窗 + colo 给出候选。
+    agg = f'''{{
+      viewer {{ zones(filter: {{zoneTag: "{zone}"}}) {{
+        httpRequestsAdaptiveGroups(
+          limit: 20,
+          filter: {{datetime_geq: "{since}"}},
+          orderBy: [datetime_DESC]
+        ) {{
+          count
+          dimensions {{
+            datetime clientIP clientRequestHTTPHost clientRequestPath clientRequestHTTPMethodName
+            edgeResponseStatus clientCountryName coloCode
+          }}
+        }}
+      }} }}
+    }}'''
+    data = gql(cfg, agg)
+    groups = (data.get("viewer", {}).get("zones") or [{}])[0].get("httpRequestsAdaptiveGroups") or []
+    # 注意：Ray ID 后缀 colo 只对**该请求**成立，而候选来自别的请求，
+    # 因此不能按 colo 过滤（否则几乎必然空结果），colo 仅作展示参考。
+    rows = [
+        render_edge_row(item.get("dimensions") or {}, aggregated=True, count=item.get("count"))
+        for item in groups
+    ]
+    note = (
+        f"当前账户无权读取逐请求数据集 httpRequestsAdaptive.rayName，无法按 Ray ID 精确定位；"
+        f"以下为最近 {minutes} 分钟内的边缘请求候选（时间倒序，供交叉比对，非该 Ray ID 的记录）。"
+    )
+    return rows, note
+
+
+def render_edge_row(row: dict[str, object], aggregated: bool = False, count: object = None) -> str:
+    raw_ts = row.get("datetime")
+    stamp = str(raw_ts).replace("T", " ").replace("Z", "")[:19] if raw_ts else ""
+    host = row.get("clientRequestHTTPHost", "")
+    method = row.get("clientRequestHTTPMethodName", "")
+    path = row.get("clientRequestPath", "")
+    status = row.get("edgeResponseStatus", "")
+    ip = row.get("clientIP", "-")
+    country = row.get("clientCountryName", "")
+    asn = row.get("clientASNDescription", "")
+    colo = row.get("coloCode", "")
+    suffix = f" colo={colo}" if colo else ""
+    count_part = f" count={count}" if aggregated and count else ""
+    asn_part = f" asn={asn}" if asn else ""
+    return f"{stamp} {host} {method} {path} {status} ip={ip} country={country}{asn_part}{suffix}{count_part} [edge]"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="按 Cloudflare Ray ID 反查请求记录")
+    parser.add_argument("rayid", nargs="?", help="Cloudflare Ray ID，如 a334352fe9806564-AMS")
+    parser.add_argument("--minutes", type=int, default=DEFAULT_WINDOW_MINUTES, help="边缘检索时间窗（分钟）")
+    parser.add_argument(
+        "--edge-candidates",
+        action="store_true",
+        help="即使 D1 命中，也打印降级后的边缘候选（默认仅在未命中时展示）",
+    )
+    args = parser.parse_args()
+
+    raw = args.rayid or os.environ.get("RAYID") or ""
+    try:
+        ray, colo = normalize_ray(raw)
+    except ValueError:
+        print("invalid Ray ID", file=sys.stderr)
+        return 2
+
+    cfg = d1_client.cloudflare_config(d1_client.load_env(ROOT / "secrets" / "webauthn.env"))
+    found = False
+
+    # stderr 未缓冲会与 stdout 交错；每次切到 stderr 前先 flush。
+    def warn(message: str) -> None:
+        sys.stdout.flush()
+        print(message, file=sys.stderr)
+        sys.stderr.flush()
+
+    # 1) 边缘
+    print("== Cloudflare 边缘 ==", flush=True)
+    degraded = False
+    try:
+        zone = zone_id(cfg)
+        if not zone:
+            warn(f"  未能解析 zone：{ZONE_NAME}")
+        else:
+            rows, note = edge_lookup(cfg, zone, ray, colo, args.minutes)
+            if note:
+                degraded = True
+                edge_note, edge_rows = note, rows
+                print(f"  {note}")
+                # 候选不是该 Ray ID 的记录，不计入 found；默认不刷屏，
+                # 只有 D1 也没命中时才展开（或用 --edge-candidates 强制）。
+                if args.edge_candidates:
+                    for line in rows:
+                        print("  " + line)
+                    edge_rows = []
+            else:
+                edge_note, edge_rows = "", rows
+                for line in rows:
+                    print("  " + line)
+                found = found or bool(rows)
     except Exception as exc:  # noqa: BLE001 - 运维脚本统一收口
-        print(f"D1 query failed: {exc}", file=sys.stderr)
+        warn(f"  边缘查询失败: {exc}")
+        degraded, edge_note, edge_rows = False, "", []
+
+    # 2) D1（补充）
+    print("== D1 站点日志 ==", flush=True)
+    d1_error = False
+    try:
+        rows, err = d1_lookup(cfg, ray)
+        for line in rows:
+            print("  " + line)
+        found = found or bool(rows)
+        if err:
+            d1_error = True
+            warn(f"  {err}")
+    except Exception as exc:  # noqa: BLE001
+        d1_error = True
+        warn(f"  D1 查询失败: {exc}")
+
+    # 两个精确源都没命中、但存在降级候选时，展开候选供人工比对。
+    if degraded and not found and edge_rows:
+        print("== 边缘候选（降级，非精确匹配）==", flush=True)
+        for line in edge_rows:
+            print("  " + line)
+
+    if not found:
+        if d1_error:
+            # 查询失败 != 记录不存在，明确区分，避免误判为“没记录”。
+            warn(f"\n查询未完成：{ray}（D1 查询失败，请重试）")
+            return 1
+        hint = "（边缘无精确匹配权限，已列出候选供比对）" if degraded else ""
+        warn(f"\n未找到记录：{ray}" + (f"-{colo}" if colo else "") + hint)
         return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -81,6 +81,8 @@ function showError(key) {
     if (blockedDetail) blockedDetail.hidden = true;
     if (locationLabel) locationLabel.hidden = false;
     if (country) country.hidden = false;
+    var retryBtn = document.getElementById('gate-retry');
+    if (retryBtn) retryBtn.hidden = true;
     return;
   }
   el.hidden = false;
@@ -112,12 +114,31 @@ function resetTurnstile() {
     window.turnstile.remove(turnstileWidget);
     turnstileWidget = null;
   }
+  /* 失败后绝不自动 reset：Turnstile 重置后会立即自行重新求解并再次触发
+     callback，形成"失败→reset→自动求解→再失败"的无人值守死循环（表现为
+     一直卡在人机验证）。重新求解只由用户主动重试或切换语言/主题触发。 */
   turnstileWidget = window.turnstile.render(wrap, {
     sitekey: TURNSTILE_SITEKEY,
     callback: submitGateVerification,
+    'error-callback': function () {
+      showError('failed');
+      return true; /* 阻止 Turnstile 自行重试，交给用户手动重试 */
+    },
+    'expired-callback': function () { showError('failed'); },
     theme: effectiveTheme() === 'light' ? 'light' : 'dark',
     language: turnstileLang(CURRENT_LANG)
   });
+}
+
+/* 用户显式重试：清空上一次的错误并按需重新求解。 */
+function retryGateVerification() {
+  if (gateVerificationInFlight) return;
+  showError('');
+  if (window.turnstile && turnstileWidget) {
+    window.turnstile.reset(turnstileWidget);
+    return;
+  }
+  resetTurnstile();
 }
 
 /* 验证在当前门禁页完成：接口只返回 Set-Cookie，不再跳转到 redirect 子域。 */
@@ -144,13 +165,32 @@ function submitGateVerification() {
     .then(function (result) {
       if (!result) return;
       showError(result.error || 'failed');
-      if (turnstileWidget && window.turnstile) window.turnstile.reset(turnstileWidget);
+      showRetry();
+      /* 关键：这里不 reset()。Turnstile 重置后会立即自行重新求解并再次触发
+         callback，形成"失败→reset→自动求解→再失败"的无声死循环。 */
     })
     .catch(function () {
       showError('unavailable');
-      if (turnstileWidget && window.turnstile) window.turnstile.reset(turnstileWidget);
+      showRetry();
     })
     .then(function () { gateVerificationInFlight = false; });
+}
+
+/* 失败后给出显式的"重试"入口，用户点了才重新求解，避免自动死循环。 */
+function showRetry() {
+  var form = document.getElementById('gate');
+  if (!form) return;
+  var btn = document.getElementById('gate-retry');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'gate-retry';
+    btn.type = 'button';
+    btn.className = 'gate-retry';
+    btn.setAttribute('data-action', 'retryGateVerification');
+    form.appendChild(btn);
+  }
+  btn.textContent = t('retry');
+  btn.hidden = false;
 }
 
 document.addEventListener('submit', function (event) {

@@ -13,6 +13,7 @@
   "gate_error_invalid": "Invalid request. Please try again.",
   "gate_error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
   "gate_error_failed": "Verification failed. Please try again.",
+  "gate_retry": "Try again",
   "gate_error_blocked": "You have been blocked by WAF Rules",
   "gate_error_blocked_detail": "Please turn off your VPN and try again.",
   "lang_aria": "Switch language",

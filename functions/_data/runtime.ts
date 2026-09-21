@@ -17,7 +17,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_unavailable": "验证服务暂时不可用，请稍后重试。",
     "error_failed": "验证未通过，请重试。",
     "error_blocked": "你已被 WAF 规则拦截",
-    "error_blocked_detail": "请关闭 VPN 后重试。"
+    "error_blocked_detail": "请关闭 VPN 后重试。",
+    "retry": "重试"
   },
   "en-us": {
     "title": "Verifying you are human…",
@@ -36,7 +37,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
     "error_failed": "Verification failed. Please try again.",
     "error_blocked": "You have been blocked by WAF Rules",
-    "error_blocked_detail": "Please turn off your VPN and try again."
+    "error_blocked_detail": "Please turn off your VPN and try again.",
+    "retry": "Try again"
   },
   "ja-jp": {
     "title": "人間であることを確認しています…",
@@ -55,7 +57,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_unavailable": "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
     "error_failed": "認証に失敗しました。もう一度お試しください。",
     "error_blocked": "WAF ルールによりブロックされています",
-    "error_blocked_detail": "VPN をオフにして、もう一度お試しください。"
+    "error_blocked_detail": "VPN をオフにして、もう一度お試しください。",
+    "retry": "再試行"
   },
   "ko-kr": {
     "title": "사람인지 확인하는 중…",
@@ -74,7 +77,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "error_unavailable": "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
     "error_failed": "인증에 실패했습니다. 다시 시도해 주세요.",
     "error_blocked": "WAF 규칙에 의해 차단되었습니다",
-    "error_blocked_detail": "VPN을 끈 뒤 다시 시도해 주세요."
+    "error_blocked_detail": "VPN을 끈 뒤 다시 시도해 주세요.",
+    "retry": "다시 시도"
   }
 };
 export const REDIRECT_I18N: Record<string, { title: string; text: string; footer_rights: string; footer_source: string; footer_source_link: string }> = {

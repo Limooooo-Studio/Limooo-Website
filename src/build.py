@@ -181,6 +181,7 @@ GATE_I18N_KEYS = (
     ("error_failed", "gate_error_failed"),
     ("error_blocked", "gate_error_blocked"),
     ("error_blocked_detail", "gate_error_blocked_detail"),
+    ("retry", "gate_retry"),
 )
 
 

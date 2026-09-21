@@ -21,23 +21,46 @@ interface Env {
   DB: D1Database;
   CLOUDFLARE_API_TOKEN: string;
   CLOUDFLARE_ACCOUNT_ID: string;
+  SYNC_TOKEN: string;
 }
 
 const LIST_NAME = "limooo_blocklist";
 const API = "https://api.cloudflare.com/client/v4";
 const BATCH = 200;
+// 列表项接口的 per_page 上限是 500；传 1000 会返回 400
+// （code 10027 "invalid or expired cursor"），导致整次同步失败。
+const PAGE_SIZE = 500;
 
 export interface SyncResult {
   toAdd: string[];
   toRemove: string[];
 }
 
+/**
+ * Cloudflare IP List 会把 IPv4 /32 归一化成裸 IP（写入 1.2.3.4/32 读回 1.2.3.4），
+ * IPv6 /128 同理。若两侧都用原始字符串比较，同一条记录会被判成
+ * “既该加又该删”，每次同步都反复删除重加。这里统一成可比形式。
+ */
+export function normalizeListItem(value: string): string {
+  const raw = (value ?? "").trim();
+  const slash = raw.lastIndexOf("/");
+  if (slash < 0) return raw;
+  const prefix = Number(raw.slice(slash + 1));
+  const addr = raw.slice(0, slash);
+  if (prefix === 32 && !addr.includes(":")) return addr;
+  if (prefix === 128 && addr.includes(":")) return addr;
+  return raw;
+}
+
 export function diffSync(
   desired: Set<string>,
   existing: Map<string, string>,
 ): SyncResult {
-  const toAdd = [...desired].filter((cidr) => !existing.has(cidr));
-  const toRemove = [...existing.keys()].filter((cidr) => !desired.has(cidr));
+  // 两侧都归一化后再比较，避免 /32 与裸 IP 的不一致。
+  const desiredNorm = new Set([...desired].map(normalizeListItem));
+  const existingNorm = new Set([...existing.keys()].map(normalizeListItem));
+  const toAdd = [...desiredNorm].filter((cidr) => !existingNorm.has(cidr));
+  const toRemove = [...existingNorm].filter((cidr) => !desiredNorm.has(cidr));
   return { toAdd, toRemove };
 }
 
@@ -75,11 +98,11 @@ async function listItems(token: string, accountId: string, listId: string): Prom
     const resp = await cf(
       token,
       "GET",
-      `${API}/accounts/${accountId}/rules/lists/${listId}/items?per_page=1000&page=${page}`,
+      `${API}/accounts/${accountId}/rules/lists/${listId}/items?per_page=${PAGE_SIZE}&page=${page}`,
     );
     const result: Array<{ ip: string; id: string }> = resp?.result ?? [];
     for (const item of result) items.set(item.ip, item.id);
-    if (result.length < 1000) break;
+    if (result.length < PAGE_SIZE) break;
     page++;
   }
   return items;
@@ -126,11 +149,15 @@ export async function sync(
     const resp = await cf(token, "POST", `${API}/accounts/${accountId}/rules/lists/${list.id}/items`, chunk);
     await waitOperation(token, accountId, resp?.result?.operation_id);
   }
+  // toRemove 是归一化后的值，不能直接拿来 existing.get()：
+  // /32 与裸 IP 形式不一致时取不到列表项 id，删除会被静默跳过。
+  const idByNormalized = new Map<string, string>();
+  for (const [rawIp, id] of existing) idByNormalized.set(normalizeListItem(rawIp), id);
   for (let i = 0; i < toRemove.length; i += BATCH) {
     const chunk = toRemove
       .slice(i, i + BATCH)
-      .map((ip) => ({ id: existing.get(ip) }))
-      .filter((x) => x.id);
+      .map((ip) => ({ id: idByNormalized.get(ip) }))
+      .filter((x): x is { id: string } => Boolean(x.id));
     if (!chunk.length) continue;
     const resp = await cf(token, "DELETE", `${API}/accounts/${accountId}/rules/lists/${list.id}/items`, {
       items: chunk,
@@ -139,6 +166,32 @@ export async function sync(
   }
   console.log(`[cf] synced: +${toAdd.length} -${toRemove.length}`);
   return { toAdd, toRemove };
+}
+
+/**
+ * 手动触发端点的鉴权：比对 Authorization: Bearer <SYNC_TOKEN>。
+ *
+ * 这个 worker 只在 *.workers.dev 上可达，而 workers.dev 不属于本账户，
+ * 无法用 zone 级 mTLS/Client Certificate 保护，因此用共享密钥。
+ * 定时任务（scheduled）走内部调用，不经过这里。
+ *
+ * 未配置 SYNC_TOKEN 时 fail-closed（拒绝所有 HTTP 调用），避免"忘了设
+ * secret 就等于开放"。
+ */
+export function authorized(request: Request, env: Env): boolean {
+  const expected = (env.SYNC_TOKEN ?? "").trim();
+  if (!expected) return false;
+  const header = request.headers.get("Authorization") ?? "";
+  const prefix = "Bearer ";
+  if (!header.startsWith(prefix)) return false;
+  const provided = header.slice(prefix.length).trim();
+  if (!provided || provided.length !== expected.length) return false;
+  // 长度相等时逐字符比较，避免提前返回泄露前缀信息。
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 export default {
@@ -152,6 +205,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== "GET") {
       return new Response("Method Not Allowed", { status: 405 });
+    }
+    if (!authorized(request, env)) {
+      return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }
     const dryRun = new URL(request.url).searchParams.get("dry-run") === "1";
     const result = await sync(env, { dryRun });
