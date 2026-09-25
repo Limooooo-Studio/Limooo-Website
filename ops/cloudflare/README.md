@@ -9,10 +9,11 @@ token、secret 与可复现的 ID **不写在这里**，统一从以下来源读
 | Pages Functions | `functions/**` | Git 仓库代码 | 门禁、登录、Apple Account、访客统计、Ray 查询 |
 | D1 数据库 | `DB` binding | `Flask/wrangler.toml` 的 `database_id` | Pages 与 `sync-worker` 共用 |
 | D1 迁移 | `ops/migrations/*.sql` | Git 仓库代码 | 执行入口 `ops/migrate_d1.sh` |
+| Worker：探针/状态页 | `limooo-status` | `ops/status-worker/wrangler.toml` | 每分钟探针 + down 后 10 秒复查；`status.limooo.cn` 状态页；每日 03:47 D1 保留清理 |
 | Worker：封禁同步 | `limooo-blocklist-sync` | `ops/sync-worker/wrangler.toml` | 每日 03:30，D1 active 行 → Cloudflare IP List |
 | Worker：图片水印 | `image-watermark` | `ops/image-watermark/wrangler.toml` | `image.limooo.cn/*` 归一化代理，/portfolio/* 永远返水印（A2） |
 | R2 私有桶（原图备份） | `limooo-originals` | `ops/upload_originals.sh` | A2 后作品集原图只存本地 + 私有 R2，不随 Pages 发布 |
-| WAF IP List | `limooo_blocklist` | `ops/sync-worker` | Cloudflare List，供 WAF 规则引用；`auto_block.py cf` 仅维护用 |
+| WAF IP List | `limooo_blocklist` | `ops/sync-worker` | Cloudflare List，供 WAF 规则引用 |
 | DNS 区域 | `limooo.cn` | Cloudflare 控制台 | CNAME 到 `limooo.pages.dev`，详见 AGENTS.md |
 | WAF 规则 | 自定义规则 | Cloudflare 控制台 | `ip.src in $limooo_blocklist`、低风险 `js_challenge` |
 | Cache Rules | `Limooo public cache` | Cloudflare API / 控制台 | 公开 HTML 缓存 300 秒；`/static` 及 favicon 缓存 1 年 |
@@ -23,13 +24,12 @@ token、secret 与可复现的 ID **不写在这里**，统一从以下来源读
 
 - `TURNSTILE_SITEKEY` / `TURNSTILE_SECRET`
 - `GATE_HMAC_KEY`、`SESSION_HMAC_KEY`
-- `AUTHENTIK_URL`、`AUTHENTIK_CLIENT_ID`、`AUTHENTIK_CLIENT_SECRET`
-- `AUTHENTIK_ADMIN_GROUPS`
-- `APPLE_ACCOUNT_ENCRYPTION_KEY`
+- `ACCESS_TEAM_DOMAIN`、`ACCESS_ADMIN_AUDS`、`ACCESS_VIEWER_AUDS`
+- `APPLE_ACCOUNT_ENCRYPTION_KEY`、`VISITOR_IP_KEY`
 - `OBSERVABILITY_HMAC_KEY`
 
-本地开发复制 `.dev.vars.example`；生产值放在服务器
-`/var/www/limooo/secrets/webauthn.env`（只被 `pages_deploy.sh` 读取，不回显）。
+本地开发复制 `.dev.vars.example`；生产值只从本机 `secrets/webauthn.env` 与 Pages
+项目 Secret 读取（不入库、不回显），已无服务器端凭据来源。
 
 ## 迁移与回滚
 
@@ -81,13 +81,14 @@ Cloudflare 控制台 `Rules → Cache Rules` 操作，避免与当前 Pages 代�
 
 - `ray_log_v2` 保留 7 天，`visitors_v2` 保留 30 天，`events` 保留 90 天。
 - `visitors_daily` 为永久聚合表，由 `ops/prune_d1.py --mode aggregate --apply` 写入。
-- 生产 cron 由 `ops/install_retention_cron.sh` 安装：聚合每小时 23 分，
-  清理每天 03:47，避开 `auto_block`（03:00）与 sync-worker（03:30）。
+- 生产定时任务全部是 Worker Cron Trigger：状态探针每分钟、清理每天 03:47
+  （`ops/status-worker`），封禁同步每天 03:30（`ops/sync-worker`）。
+  已无 VPS crontab，`install_retention_cron.sh` 随 VPS 一并删除。
 
 ## 待办 / 外部确认
 
 - 用户已决定不恢复历史 1255 条快照；备份仅作归档，不导入 D1 / CF List。
-- Pages 新代码尚未部署；部署后重新执行 `migrate_d1.sh --check-schema --remote`。
+- 登录已改为 Cloudflare Access；authentik / Uptime Kuma 相关条目随 VPS 退租作废。
 - WAF 自定义规则、DNS record 的变更应通过 Cloudflare API 或控制台执行，
   本文件只负责让这些状态可追溯。
 - A2 图片归属已落地：原图私有（`limooo-originals`），公开只发水印变体与缩略图。

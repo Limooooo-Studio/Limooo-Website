@@ -1,4 +1,18 @@
-# Uptime Kuma 管理后台（admin.limooo.cn 单入口）
+# Uptime Kuma 管理后台（已停用）
+
+> **2026-09-17 起：本目录已作废。** Uptime Kuma 随 VPS 一起退租，其能力已由
+> `ops/status-worker` 取代：
+>
+> | Kuma 时代 | 现在 |
+> | --- | --- |
+> | Kuma monitor（每分钟 HTTP/D1 探测） | `status-worker` Cron Trigger（每分钟）+ Durable Object alarm（down 后 10 秒复查） |
+> | Kuma heartbeat / 状态页 | D1 `heartbeats` / `probe_uptime_daily` + `status.limooo.cn` 服务端渲染 |
+> | Kuma 通知渠道 | `status-worker` 的 `ALERT_WEBHOOK_URL`（飞书格式）优先，Email binding 兜底 |
+>
+> Nginx / Docker / `admin.limooo.cn` 均已不存在（该域名随 VPS 退租，已无 DNS 记录）。
+> 下文为迁移前历史记录，仅供追溯；**不要再执行 `deploy.sh` 或 `bootstrap.sh`**。
+
+## 历史记录（迁移前）
 
 - 软件：<https://github.com/louislam/uptime-kuma>
 - 版本：`2.5.3`（固定版本升级，升级前备份 `data/`）

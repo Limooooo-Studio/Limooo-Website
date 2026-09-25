@@ -519,7 +519,7 @@ const STATUS_I18N: Record<string, Record<string, string>> = {
     note: "数据来源：limooo-status Worker · Cloudflare D1",
     card_website: "Limooo 网站",
     card_d1: "Limooo D1 健康检查",
-    card_admin: "管理入口",
+    card_status: "状态页 Worker",
   },
   "en-us": {
     title: "System Status",
@@ -538,7 +538,7 @@ const STATUS_I18N: Record<string, Record<string, string>> = {
     note: "Data source: limooo-status Worker · Cloudflare D1",
     card_website: "Limooo Website",
     card_d1: "Limooo D1 Health Check",
-    card_admin: "Admin Entry",
+    card_status: "Status Worker",
   },
   "ja-jp": {
     title: "システムステータス",
@@ -557,7 +557,7 @@ const STATUS_I18N: Record<string, Record<string, string>> = {
     note: "データソース：limooo-status Worker · Cloudflare D1",
     card_website: "Limooo ウェブサイト",
     card_d1: "Limooo D1 ヘルスチェック",
-    card_admin: "管理エントリー",
+    card_status: "ステータス Worker",
   },
   "ko-kr": {
     title: "시스템 상태",
@@ -576,7 +576,7 @@ const STATUS_I18N: Record<string, Record<string, string>> = {
     note: "데이터 출처: limooo-status Worker · Cloudflare D1",
     card_website: "Limooo 웹사이트",
     card_d1: "Limooo D1 상태 확인",
-    card_admin: "관리 포털",
+    card_status: "상태 Worker",
   },
 };
 

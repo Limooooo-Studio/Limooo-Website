@@ -39,7 +39,13 @@ CREATE TABLE IF NOT EXISTS probe_state (
 );
 
 -- 种子数据：对应 docs/17 §1.3 实测的 Kuma 监控项（去掉重复条目）
+--
+-- 注意：id=2 原先探的是 `admin.limooo.cn/_health`（authentik + Kuma 时代）。
+-- VPS 退租后该域名已无 DNS 记录，探针每分钟固定拿到 http_530，状态页永远显示
+-- 一项 down——这是过时配置，不是真实故障。零 VPS 后「内部」这一组的有意义目标
+-- 是状态探针 Worker 自身，故改为 `status.limooo.cn/_health`。
+-- 已有库请用 015 迁移同步（INSERT OR IGNORE 不会更新已存在的行）。
 INSERT OR IGNORE INTO probes (id, name, type, target, group_key, interval_s) VALUES
-    (1, 'Website',      'http', 'https://limooo.cn/_health',       'public',   60),
-    (2, 'Admin',        'http', 'https://admin.limooo.cn/_health', 'internal', 60),
-    (3, 'D1 Health',    'd1',   NULL,                              'internal', 900);
+    (1, 'Website',      'http', 'https://limooo.cn/_health',        'public',   60),
+    (2, 'Status API',   'http', 'https://status.limooo.cn/_health', 'internal', 60),
+    (3, 'D1 Health',    'd1',   NULL,                               'internal', 900);

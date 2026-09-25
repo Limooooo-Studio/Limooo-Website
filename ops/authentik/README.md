@@ -1,6 +1,11 @@
-# Authentik 单入口管理后台（admin.limooo.cn）
+# Authentik 单入口管理后台（已停用）
 
-本目录只保存 Authentik 相关的可重复部署配置：
+> **2026-09-17 起：本目录已作废。** Authentik 随 VPS 一起退租，登录已改为
+> **Cloudflare Access**（见根目录 `README.md` 与 `../status-worker/`）。
+> Nginx 也没了，本节描述的 `admin.limooo.cn` 反代、`/kuma` 挂载与
+> Embedded Outpost 均不再存在。文件仅作历史留存，**不要再执行 `deploy.sh`**。
+
+历史记录（迁移前）：
 
 - `if/admin.html`：覆盖为 Authentik 官方管理界面模板，不含自定义壳；
   Uptime Kuma 作为独立应用挂在 `https://admin.limooo.cn/kuma`。
@@ -8,24 +13,8 @@
   `https://admin.limooo.cn`、将 Proxy Provider 设为 `forward_single`、
   更新 Embedded Outpost 的 `authentik_host`，然后重启 server/worker。
 
-与 Uptime Kuma 的边界：
+当前的身份与登录方式：
 
-- Nginx 在 `admin.limooo.cn` 下把 `/if/`、`/static/`、`/api/v3/`、
-  `/ws/`、`/outpost.goauthentik.io/` 交给 Authentik；
-- `/kuma/dashboard`、`/kuma/socket.io/`、`/kuma/assets/`、
-  `/kuma/api/entry-page` 等 Kuma 资源由 Nginx 反代到
-  `127.0.0.1:3001`，并先经 Authentik `auth_request` 校验；
-- `identity.limooo.cn` 只返回 301 到 `admin.limooo.cn`，不承载后端。
-
-部署命令：
-
-```bash
-cd /Users/lime/Documents/Project/Limooo/Flask
-bash ops/authentik/deploy.sh
-```
-
-只查看计划：
-
-```bash
-bash ops/authentik/deploy.sh --dry-run
-```
+- `visitor.limooo.cn` / `account.limooo.cn` / `admin.limooo.cn` 前置 Cloudflare Access；
+- Worker 自行验签 `Cf-Access-Jwt-Assertion`，再按 AUD 映射 admin / viewer 角色；
+- 会话撤销仍走 D1 `auth_sessions`，`requireAuth` 保持 fail-closed。

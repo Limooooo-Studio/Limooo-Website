@@ -7,5 +7,6 @@ compatibility_date = "2026-08-15"
 account_id = "4a7fd8c8f1a59a265981a73e631b9e3f"
 
 # 说明：水印变体由构建时生成（src/build.py → public/static/wm/），
-# Worker 只按 Referer 在「原图」与「水印变体」之间做选择，CPU 开销接近零，
-# 适配 Workers Free 套餐 10ms CPU 限制（运行时 Canvas/图片重编码不可行）。
+# Worker 只做路径归一化与代理，不按 Referer 判定（原图已不在任何公开地址），
+# CPU 开销接近零，适配 Workers Free 套餐 10ms CPU 限制
+# （运行时 Canvas/图片重编码不可行）。

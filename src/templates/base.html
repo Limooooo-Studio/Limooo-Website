@@ -68,6 +68,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
     {% set home_url = 'https://limooo.cn' if is_prod else '/' %}
     {% set services_url = 'https://services.limooo.cn' if is_prod else '/services' %}
     {% set contact_url = 'https://contact.limooo.cn' if is_prod else '/contact' %}
+    {% set status_url = 'https://status.limooo.cn' if is_prod else '/status' %}
     {% set page = 'home' if request.path == '/' else ('services' if request.path == '/services' else ('contact' if request.path == '/contact' else '')) %}
     {% block nav %}
     <nav class="site-nav fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl z-[100] flex items-center px-5 md:px-8 h-[70px] md:h-[100px]">

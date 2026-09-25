@@ -32,17 +32,23 @@
 ## 健康检查告警
 
 - `health-alert.i18n.json`：告警邮件四语种文案（subject / title / intro / alerts / metrics / CTA / hint）。
-- `check_health.py` 通过 `render_email()` 渲染 HTML，同时保留纯文本备用；
-  邮件主题和正文均无需重复维护版式。
+- 告警渲染现在由 `ops/status-worker` 负责（零 VPS 后 `check_health.py` 已随 VPS 退役）；
+  仍是同一套 `render_email()` 版式，邮件主题和正文无需重复维护。
 
 ## 发送要点
 
-- SMTP：`smtp.feishu.cn:465`（SSL），账号 `no-reply-<N>@limooo.cn` / `Limooo-no-reply-N`。
-- 凭据：服务器 `secrets/smtp-relay.env`（不进代码库）；relay `/opt/smtp-relay/relay.py` 从该 env 读取。
-- 收件：收件人自定；BCC `lime@limooo.cn`；Reply-To `contact@limooo.cn`。
-- 轮换：`PER_ACCOUNT_LIMIT`（当前 100 封/账号/天），发满切下一个邮箱。
+- **零 VPS 后的首选通道**：`status-worker` 的 `ALERT_WEBHOOK_URL`（HTTP webhook，默认飞书机器人格式）。
+- **兜底**：Workers `send_email` binding（需开通 Email Sending）；发件域 `limooo.cn`，
+  DNS 改动只落在 `cf-bounce` 子域，根域 SPF 不动。
+- 收件：收件人通过 `wrangler secret put ALERT_TO` 注入，不入库；未配置时告警只记日志、不报错。
 - 页脚 `Limooo` 用 Baloo 2（`font-size:1.21em` 补偿偏小字形）；邮件内嵌 TTF 为 `cid` 附件。
 - 顶部 logo 用 `images.limooo.cn`（保留透明通道）；`image.limooo.cn` 会丢失 alpha 导致黑底。
+
+## 历史记录（迁移前，已停用）
+
+- SMTP：`smtp.feishu.cn:465`（SSL），账号 `no-reply-<N>@limooo.cn` / `Limooo-no-reply-N`。
+- 凭据：服务器 `secrets/smtp-relay.env`；relay `/opt/smtp-relay/relay.py` 从该 env 读取。
+- 随 VPS 退租一并失效；服务器端 relay 已不存在。
 
 ## 已知问题
 

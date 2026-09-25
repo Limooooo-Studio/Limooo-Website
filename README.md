@@ -1,100 +1,87 @@
 > **2026-09-17 起：已全部迁至 Cloudflare 边缘并退租 VPS。**
 > VPS 上曾运行的 Flask/nginx/authentik/Uptime Kuma 均已停用；
-> 登录改为 Worker + D1 自建密码登录；状态页与探针见 `ops/status-worker`。
+> 登录改为 Cloudflare Access；状态页与探针见 `ops/status-worker`。
 > 迁移过程、决策与踩坑见 `../docs/17-zero-vps-migration.md` 与 `../docs/18-resume.md`。
-> 本文下方关于 VPS / authentik / Kuma / rsync 部署的描述属**迁移前历史**，仅供追溯。
 
 # Limooo
 
-A Cloudflare Pages + Flask personal website and admin system running at [limooo.cn](https://limooo.cn). Public pages, the human-verification gate, visitor panel, and Apple Account manager run at the edge; Flask remains responsible for the VPS admin/status runtime. The project also provides visitor geolocation analysis, automatic IP blocking, self-hosted authentik authentication, and Cloudflare CDN + HTTP/3 acceleration.
+A fully serverless personal website and admin system running at [limooo.cn](https://limooo.cn). Public pages, the human-verification gate, the visitor panel, the Apple Account manager, monitoring and the status page all run on Cloudflare (Pages Functions, Workers, D1, R2).
 
 ## Features
 
 - **Public pages**: Home, Services, Contact, Portfolio — pre-rendered in 4 languages with dark/light theme switching
 - **Human verification**: the Turnstile gate page is rendered **in place** at the requested URL (no cross-domain hop) on every host — see [Gate behavior](#gate-behavior)
-- **Visitor panel** (`visitor.limooo.cn`): Pages Function + D1 analytics; shows a hashed visitor identifier (no raw IP), country, ISP/ASN where available, status-code distribution, and is login-protected
+- **Visitor panel** (`visitor.limooo.cn`): Pages Function + D1 analytics; shows a hashed visitor identifier (no raw IP in list APIs), country, ISP/ASN where available, status-code distribution, and is login-protected
 - After the first load, visitor status chips filter locally with no new `/api/visitors` request; the API still accepts `?status=<3-digit>` for deep links.
-- **Apple Account manager** (`apple.limooo.cn/account`): Pages Function + D1 CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
-- **Auth & roles**: self-hosted [authentik](https://goauthentik.io) OIDC single sign-on, with admin (read-write) / viewer (read-only) roles split by group
-- **Uptime Kuma monitoring**: embedded in the Authentik admin interface at the single entry `admin.limooo.cn`; MIT-licensed, free, multi-language i18n and dark mode; it probes `/_health` and receives D1 health status via Push heartbeat every 5 minutes — while a check is down, `check_health.py` re-probes every 10 seconds and pushes `up` the moment it recovers
-- **Health alert email**: `check_health.py` sends branded HTML email (logo, alert list, key metrics, CTA to `admin.limooo.cn`) with plain-text fallback; template is shared via `ops/email-templates/`
-- **Kuma brand skin**: the embedded Kuma frontend uses the main-site design tokens (`#1b1b1f`/white, `#05A5A6`, Inter + Baloo 2) via the `Kuma-Fork` build; no separate admin subdomain is published
-- **Kuma fork frontend**: the deployed admin UI is built from a 2.5.3 front-end fork (`Kuma-Fork/`, branch `limooo-ui`) and mounted into the existing container; monitor names and push alerts are translated based on the current user language without storing a default
+- **Apple Account manager** (`account.limooo.cn/apple`): Pages Function + D1 CRUD with drag-and-drop ordering; passwords are stored encrypted with Fernet, the list shows only masked passwords, with temporary plaintext reveal
+- **Auth & roles**: Cloudflare Access is the sole identity source; the Worker self-verifies the Access JWT and maps AUD → admin (read-write) / viewer (read-only)
+- **Monitoring**: the `limooo-status` Worker probes HTTP/D1 targets every minute, re-checks every 10s while a probe is down, and stores results in D1; alerts go out over a webhook (Email binding as fallback)
+- **Status page** (`status.limooo.cn`): server-rendered from D1 by the same Worker, with per-day uptime taken from the `probe_uptime_daily` rollup
 - **Automatic IP blocking**:
-  - Scans Nginx logs for malicious scan signatures (`/.env`, `/wp-admin`, `/actuator/`, etc.) and zero-tolerance bans the offending /24 subnet
-  - Syncs to kernel-level `ipset` + `iptables` for network-layer drop
-  - D1 `blocked_ips` is the authority; `sync-worker` mirrors active rows to a Cloudflare IP List for edge interception
+  - D1 `blocked_ips` is the authority; `sync-worker` mirrors active rows to a Cloudflare IP List for edge interception (no origin, so no ipset/iptables)
   - Application-layer global filter as a fallback — banned IPs get a direct 403
-- **GeoIP geolocation**: GeoLite2 database (city + ASN); place names shown in English
-- **Unified redirect page** (`redirect.limooo.cn/?to=<https-url>`, `/r` also accepted): shows an interstitial before redirecting to any HTTPS destination; when the target is limooo.cn it prefetches the homepage portfolio thumbnails (served via the `images.limooo.cn` static edge cache) during the brief hold (~0.8s max) so they render instantly after the jump
+- **Unified redirect page** (`redirect.limooo.cn/?to=<https-url>`, `/r` also accepted): shows an interstitial before redirecting to any HTTPS destination
+- **Portfolio image handling**: originals are never published; only watermarked full images (`image.limooo.cn/portfolio/*`) and clean thumbnails are public
 
 ## Tech stack
 
 | Layer | Technology | Runs on |
 | --- | --- | --- |
-| Public pages, gate, visitor panel, Apple Account manager | Pages Functions (`functions/`) + pre-rendered static HTML | Cloudflare edge |
-| Edge data | D1 (visitor analytics, blocklist, Apple Account accounts, auth sessions) | Cloudflare |
+| Public pages, gate, visitor panel, Apple Account manager, status page | Pages Functions (`functions/`) + pre-rendered static HTML | Cloudflare edge |
+| Data | D1 (visitor analytics, blocklist, Apple Account accounts, auth sessions, probes/heartbeats) | Cloudflare |
 | Human verification | Cloudflare Turnstile, gate page rendered in place | Cloudflare + browser |
-| Admin UI, status page, authentik IdP | Flask + Jinja2 + Tailwind CSS, Gunicorn (3 workers) | VPS `limooo` |
-| Reverse proxy | Nginx (HTTP/3 / QUIC) | VPS `limooo` |
-| CDN | Cloudflare (Origin CA cert, WAF rules, IP List blocking) | Cloudflare |
-| Auth | authentik (OIDC, self-hosted, Docker) | VPS `limooo` |
-| VPS database | SQLite (WAL mode, concurrency-safe across workers) | VPS `limooo` |
-| Geolocation | MaxMind GeoLite2 (city + ASN) | VPS `limooo` |
-| Encryption | cryptography (Fernet) for Apple Account passwords | VPS + edge |
-| Deployment | `ops/deploy.sh` (rsync + systemd + Nginx) → `ops/pages_deploy.sh` (Wrangler) | local |
+| Auth | Cloudflare Access (Zero Trust JWT, self-verified by the Worker) | Cloudflare |
+| Monitoring & retention | `ops/status-worker` (Cron Triggers + Durable Object alarms) | Cloudflare Workers |
+| Blocklist sync | `ops/sync-worker` (daily cron → Cloudflare IP List) | Cloudflare Workers |
+| Image watermarking | `ops/image-watermark` (path-normalizing proxy) | Cloudflare Workers |
+| Static assets / originals backup | Pages asset server + private R2 bucket `limooo-originals` | Cloudflare |
+| Deployment | `ops/deploy.sh` (git + `ops/pages_deploy.sh` + `ops/workers_deploy.sh`) | local |
 
 ## Project structure
 
 ```
 ├── src/
-│   ├── app.py             # VPS minimal runtime: backchannel logout, __gate_check, security headers
+│   ├── app.py             # legacy VPS runtime (backchannel logout, __gate_check, security headers); no longer deployed
 │   ├── config.py          # unified config: paths, languages, domains, DB/IP utils (consumes config-contract.json)
-│   ├── auto_block.py      # scans logs, writes blocklist.txt, syncs ipset + D1 (subcommands: ipset/d1/cf/sync; the daily cron is currently disabled)
-│   ├── render_app.py      # local preview renderer for build output
+│   ├── auto_block.py      # legacy log scan + blocklist sync (no origin host to scan any more; kept for reference)
+│   ├── render_app.py      # build-time read-only renderer used by src/build.py
 │   ├── build.py           # Pages static build (python3 src/build.py)
 │   ├── static/            # static css/js/fonts + icons/portfolio/QR codes
 │   └── templates/         # Jinja2 page templates
 ├── README.md              # this file
 ├── LICENSE.md             # AGPL-3.0
 ├── data/                  # runtime data (generated; git-ignored except blocklist.txt / whitelist.txt)
-│   ├── blocklist.txt      # VPS local import seed / auditable snapshot (D1 is the sole authority)
+│   ├── blocklist.txt      # auditable snapshot of D1 blocked_ips (D1 is the sole authority)
 │   ├── whitelist.txt      # trusted ASNs (low-risk) + fully allowed IPs/CIDRs
-│   ├── geo_cache.db       # geolocation cache database
-│   ├── apple_account.db         # Apple Account business database (accounts + encrypted passwords)
-│   └── GeoLite2-*.mmdb    # MaxMind GeoLite2 databases (city + ASN)
+│   └── gate_trust.json    # generated gate trust config
 ├── secrets/               # secrets & certificates, git-ignored
-│   ├── webauthn.env       # env file injected via systemd EnvironmentFile
-│   ├── flask_secret.key   # session signing key (migrated to /etc/limooo/ on deploy)
-│   ├── apple_account_encryption.key     # Apple Account password encryption key
-│   └── origin-*.pem       # Cloudflare Origin CA certificate + private key
+│   ├── webauthn.env       # env file read by the deploy scripts
+│   ├── flask_secret.key   # legacy session signing key
+│   └── apple_account_encryption.key     # Apple Account password encryption key
 ├── ops/                   # deployment & ops tooling
-│   ├── deploy.sh          # one-command deployment (rsync + systemd + Nginx → Pages)
+│   ├── deploy.sh          # full deploy entry point (git commit/push + Pages + Worker)
 │   ├── upload.sh          # compatibility entry point → deploy.sh
-│   ├── build.sh           # Pages build: .venv-build/, contract checks, public/manifest.json
+│   ├── build.sh           # Pages build: venv, contract checks, public/manifest.json
 │   ├── pages_deploy.sh    # Cloudflare Pages build + Wrangler deploy
-│   ├── limooo.conf        # Nginx site configuration (incl. the in-place gate proxy for VPS hosts)
-│   ├── location-security.inc      # Nginx security hardening snippet
-│   ├── limooo.service     # systemd service unit
+│   ├── ci_check.sh        # local replica of .github/workflows/tests.yml
 │   ├── security-headers.json      # single source of the response-header baseline
 │   ├── check_config_contract.py / check_gate_trust.py / check_security_headers.py
 │   ├── migrations/        # D1 schema migrations
 │   ├── export_d1.py       # unified D1 import SQL/JSON export (apple-account | blocklist)
-│   ├── prune_d1.py        # D1 retention (aggregate / prune)
-│   ├── check_health.py    # 5-minute health probe (10s re-check while down) + branded alert email
+│   ├── prune_d1.py        # legacy D1 retention script (live retention now runs in status-worker)
 │   ├── upload_originals.sh        # private R2 backup of portfolio originals
-│   ├── uptime-kuma/       # Uptime Kuma compose/bootstrap/init scripts
+│   ├── status-worker/     # Worker: probes, status page, alerting, D1 retention
 │   ├── image-watermark/   # Worker: image.limooo.cn watermark normalizer
 │   ├── d1-archive/        # D1 snapshot/archive Worker
 │   ├── sync-worker/       # Worker: D1 blocked_ips → Cloudflare IP List (cron 03:30)
 │   └── requirements.txt   # Python dependencies
 ├── functions/             # Cloudflare Pages Functions
 │   ├── _middleware.ts     # gate/redirect/blocklist/visitors/ray orchestration
-│   ├── _lib/              # config, d1, cidr, gate, env, fernet, oidc, session
+│   ├── _lib/              # config, d1, cidr, gate, access, session, fernet, routing
 │   ├── _data/             # generated i18n/runtime modules (do not hand-edit)
 │   ├── api/               # apple-account, auth, i18n, ray, visitors endpoints
 │   ├── __gate/            # Turnstile verify entry point (/__gate/verify)
-│   └── login*.ts / logout.ts
+│   └── login.ts / logout.ts
 ├── locales/               # i18n / translation catalogs
 ├── public/                # Pages build output (git keeps only .gitkeep)
 ├── preview/               # local preview (build-generated; git keeps only .gitkeep)
@@ -107,20 +94,15 @@ A Cloudflare Pages + Flask personal website and admin system running at [limooo.
 # Install dependencies
 pip install -r ops/requirements.txt
 
-# Local development
-python3 src/app.py
+# Build the static site locally
+python3 src/build.py
 ```
 
 For a clean VS Code experience, install the recommended extensions (Jinja, Pylance)
 listed in `.vscode/extensions.json`; workspace settings associate Jinja templates so
 HTML/CSS/JS diagnostics do not misread template syntax.
 
-Visit `http://localhost:8080` after starting locally. This runs the Flask/VPS runtime;
-the public Pages site is previewed from the generated `public/` output. The admin
-dashboard and Apple Account manager require authentik auth to be configured first.
-
-Uptime Kuma is deployed on the VPS and served at `https://admin.limooo.cn`.
-For first-time initialisation use `bash ops/uptime-kuma/bootstrap.sh` (credentials are written only to the server's `secrets/uptime-kuma.env`); for routine updates use `bash ops/uptime-kuma/deploy.sh`.
+For a local preview of the generated site, build and open the output from `preview/`.
 
 ## Build, testing and deploy
 
@@ -173,48 +155,45 @@ npm test
 
 ## Environment variables
 
-Injected via `secrets/webauthn.env` (systemd `EnvironmentFile=-/var/www/limooo/secrets/webauthn.env`), not committed to Git. The Pages runtime has its own secret set (see the edge section below).
+Read from `secrets/webauthn.env` by the deploy scripts, not committed to Git. The Pages runtime has its own secret set (see the edge section below).
 
 | Variable | Description |
 | --- | --- |
-| `GATE_HMAC_KEY` | HMAC-SHA256 key for the `__gate` cookie; the VPS `__gate_check` validates cookies minted at the edge, so both runtimes must share this key |
-| `AUTHENTIK_URL` / `AUTHENTIK_INTERNAL_URL` / `AUTHENTIK_PROVIDER_SLUG` / `AUTHENTIK_CLIENT_ID` | authentik endpoints and OIDC client used by the backchannel-logout callback (code defaults exist) |
-| `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | Cloudflare API access for `ops/d1_client.py`, `src/auto_block.py`, `ops/pages_deploy.sh` and `ops/workers_deploy.sh` |
-| `CLAUDE_WEBHOOK_TOKEN` | Random 32–256 char token; `ops/deploy.sh` renders it into `/etc/nginx/webhook-secret.inc` for the `status.limooo.cn` Claude / Cloudflare webhook receivers |
-| `HEALTH_ALERT_COOLDOWN_SECONDS`, `HEALTH_GATE_*`, `HEALTH_LOGIN_FAILURE_RATE_THRESHOLD`, `HEALTH_VISITOR_DROP_*` | Optional thresholds for `ops/check_health.py` |
-| `HEALTH_RETRY_INTERVAL` / `HEALTH_RETRY_WINDOW` | Down 之后的复查节奏（默认 10 秒 / 280 秒；窗口略短于 5 分钟 cron 周期） |
-| `AUTHENTIK_CLIENT_SECRET`, `REST_COUNTRIES_KEY`, `GEONAMES_USERNAME`, `LIBRETRANSLATE_URL`, `ENTRA_CLIENT_SECRET` | Legacy secrets that `ops/deploy.sh` seeds when missing; the current minimal VPS runtime does not read them |
+| `GATE_HMAC_KEY` | HMAC-SHA256 key for the `__gate` cookie, minted and validated at the edge |
+| `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | Cloudflare API access for `ops/d1_client.py`, `ops/pages_deploy.sh` and `ops/workers_deploy.sh` |
 
-Key material lives outside the repo: `flask_secret.key` and `apple_account_encryption.key` are generated by the app and migrated to `/etc/limooo/` (mode 600) at deploy time. Resolution order: `FLASK_SECRET_KEY` / `APPLE_ACCOUNT_ENCRYPTION_KEY` environment variable > `/etc/limooo/` > project `secrets/`.
+Key material lives outside the repo; `apple_account_encryption.key` is the Fernet key
+used for Apple Account passwords and the encrypted visitor IP column.
 
 ## Cron jobs
 
-VPS crontab (root) as currently deployed on `limooo`:
+There is no VPS crontab any more (retired 2026-09-17). All scheduling now lives on
+Cloudflare, as Worker Cron Triggers declared in each Worker's `wrangler.toml`:
 
-| Time | Job |
-| --- | --- |
-| Every 5 minutes | `ops/check_health.py` probes the services/D1 and emails a branded alert on failure; when a probe is down it re-checks every 10s until recovery (or until the 280s window ends, then the next cron tick continues) |
-| Hourly at :23 | `ops/prune_d1.py --mode aggregate --apply` rolls visitor/Ray rows up |
-| Daily 03:47 | `ops/prune_d1.py --mode prune --apply` enforces D1 retention |
-| 04:13 / 10:13 / 16:13 / 22:13 | `acme.sh --cron` renews certificates |
-| *(disabled)* | `src/auto_block.py` log scan + ipset/D1 sync — commented out since the 2026-08-20 blocklist reset; `ops/deploy.sh` only adds this entry when `auto_block.py` is absent from the crontab, so the commented line stays as is |
+| Schedule | Worker | Job |
+| --- | --- | --- |
+| `* * * * *` | `ops/status-worker` | HTTP/D1 probes every minute; a Durable Object alarm re-checks every 10s while a probe is down, and alerts on state change |
+| `47 3 * * *` | `ops/status-worker` | D1 retention (`src/retention.ts`): prunes `ray_log_v2` (7d), `visitors_v2` / `visitor_rollups` (30d), `events` / `heartbeats` / `probe_uptime_daily` (90d) |
+| `30 3 * * *` | `ops/sync-worker` | Mirrors active D1 `blocked_ips` rows to the Cloudflare IP List |
 
-Cloudflare side: the `ops/sync-worker` Worker has its own cron (`30 3 * * *` in `ops/sync-worker/wrangler.toml`) and mirrors active D1 `blocked_ips` rows to the Cloudflare IP List. `ops/migrate_d1.sh` and `ops/workers_deploy.sh` are manual, `--dry-run`-capable maintenance entry points.
+TLS certificates are issued and renewed by Cloudflare for the Pages custom domains,
+so `acme.sh` is gone too. `ops/migrate_d1.sh` and `ops/workers_deploy.sh` are manual,
+`--dry-run`-capable maintenance entry points.
 
 ## Deployment
 
-The deployment target is the VPS SSH alias `limooo`. From the repository root:
+There is no server to deploy to: the target is Cloudflare Pages (`limooo`) plus the
+standalone Workers. From the repository root:
 
 ```bash
 cd Flask
-bash ops/deploy.sh
+bash ops/deploy.sh --all        # commit + push + deploy Pages
+bash ops/deploy.sh              # deploy Pages only (no commit / no push)
+bash ops/deploy.sh --worker=status-worker   # deploy one standalone Worker
 ```
 
-The script: rsyncs the code to `limooo` → installs missing dependencies
-(nginx/rsync/python3/ipset/docker) → migrates secrets → restarts the systemd
-service → deploys the Nginx config (including HTTP/3) → downloads GeoLite2 →
-updates the VPS jobs → deploys Cloudflare Pages. It does not commit or push by
-default; use `--commit --push` only when the complete deployment is intended.
+Credentials are read from the local `secrets/webauthn.env`; there are no ssh, rsync,
+systemd or Nginx steps. See `../AGENTS.md` for the full deploy contract.
 
 ## Security design
 
@@ -226,17 +205,15 @@ default; use `--commit --push` only when the complete deployment is intended.
   `SESSION_HMAC_KEY` empty, the edge answers 503 instead of rendering pages or
   issuing unsigned cookies.
 - The `__gate` cookie is `<unix-expiry>.<HMAC-SHA256 hex>` (1h TTL, `HttpOnly`,
-  `Domain=.limooo.cn`). Pages mints it and the VPS `__gate_check` validates it with the
-  same `GATE_HMAC_KEY`.
-- `X-Limooo-Client-IP` / `X-Limooo-Client-Country` are set by Nginx when it proxies the
-  gate page for VPS-served hosts so the page and its event logs show the real visitor
-  instead of the VPS egress. They are display/log only — trust decisions always use
-  Cloudflare's own `CF-Connecting-IP` / `cf.country`.
-- Keys and ciphertext stored separately (`/etc/limooo/`, mode 600)
-- Three layers of blocking: app-level 403 → kernel ipset/iptables → Cloudflare edge
-- Nginx trusts only Cloudflare origin IPs, preventing forged `X-Real-IP` from bypassing blocks
+  `Domain=.limooo.cn`), minted and validated entirely at the edge.
+- Identity comes from Cloudflare Access: the Worker self-verifies
+  `Cf-Access-Jwt-Assertion` (RS256, JWKS cached 1h) and maps AUD → role. There is no
+  self-hosted IdP and no custom login form.
+- Keys and ciphertext stored separately, and never committed to the repository
+- Blocking layers: app-level 403/Worker → Cloudflare WAF + IP List at the edge
 - Admin writes (create/update/delete) require the admin role; viewer is read-only
-- Allowlist: admins logging in from a blocked IP are auto-whitelisted to avoid false positives
+- Visitor IPs are never returned by list APIs; the full IP is Fernet-encrypted in
+  `visitor_rollups.ip_enc` and decrypted one row at a time for admins
 
 ## Whitelist
 
@@ -251,8 +228,7 @@ The ASN list is sourced from [china-mainland-asn](https://github.com/xingpingcn/
 
 Per-runtime trust: edge code only treats `IP-CIDR` entries as trusted
 (`isGateTrustedIp` → `functions/_data/gateTrust.ts`). `ASN/` lines are mirrored to the
-Cloudflare WAF `js_challenge` rule and are also honoured by the VPS `__gate_check`
-(Flask receives `CF-ASN` there). After editing `data/whitelist.txt`, regenerate the edge
+Cloudflare WAF `js_challenge` rule. After editing `data/whitelist.txt`, regenerate the edge
 copy with a build (`bash ops/build.sh`, which runs `ops/check_gate_trust.py --emit`).
 
 ## Source of truth
@@ -266,7 +242,7 @@ copy with a build (`bash ops/build.sh`, which runs `ops/check_gate_trust.py --em
 
 ## Cloudflare Pages runtime
 
-The public site (home / services / contact, the gate, the visitor panel, the Apple Account manager, `images.limooo.cn` and the redirect relay) runs on Cloudflare Pages Functions; the VPS keeps the admin entry, the authentik IdP and the status page. DNS for the Pages hosts points at `limooo.pages.dev`.
+The public site (home / services / contact, the gate, the visitor panel, the Apple Account manager, `images.limooo.cn` and the redirect relay) runs on Cloudflare Pages Functions, as do the status page and every scheduled job. DNS for the Pages hosts points at `limooo.pages.dev`.
 
 Runtime split:
 
@@ -276,7 +252,7 @@ Runtime split:
 | Pages | Pre-rendered static HTML at build time (multi-language) |
 | Data | D1 (visitor analytics, blocklist, Apple Account management, auth sessions) |
 | Human verification | Cloudflare Turnstile, gate page rendered in place |
-| VPS hosts | `admin.limooo.cn` (authentik + embedded Kuma), `status.limooo.cn` (Kuma status page + Claude/Cloudflare webhook receivers), `identity.limooo.cn` (301 → admin) |
+| Independent Workers | `status.limooo.cn` (`limooo-status`: probes, status page, retention), `image.limooo.cn` (`image-watermark`), `limooo-blocklist-sync` |
 
 ### Build & directory layout
 
@@ -287,9 +263,8 @@ Runtime split:
 - `ops/export_d1.py`: generate D1 import SQL (output in `ops/out/`, git-ignored)
 - `ops/migrations/007_visitor_status_indexes.sql`: adds `(status, ts)` and `(status, ip_hash, ts)` indexes for visitor status filtering
 - `ops/sync-worker/`: a daily 03:30 Worker cron syncs active D1 `blocked_ips` rows to the Cloudflare IP List; `auto_block.py cf` is for explicit maintenance only
-- Note: Pages now exposes `POST /logout/backchannel` and revokes D1 `auth_sessions`
-  by `sub`; the legacy Flask `/logout/backchannel` remains for existing authentik
-  configuration until the provider URL is switched or mirrored.
+- Note: Pages exposes `POST /logout/backchannel` and revokes D1 `auth_sessions`
+  by `sub`. The legacy Flask `/logout/backchannel` is no longer deployed.
 
 ### Environment variables
 
@@ -300,9 +275,9 @@ Configured under **Pages project settings → Environment variables → Encrypt 
 | `TURNSTILE_SITEKEY` | Public sitekey of the Turnstile widget on the gate page |
 | `TURNSTILE_SECRET` | Server-side siteverify secret |
 | `GATE_HMAC_KEY` | HMAC-SHA256 signing key for the `__gate` cookie (`openssl rand -hex 32`) |
-| `AUTHENTIK_URL` | Public authentik URL (default `https://admin.limooo.cn`); ID Token issuer is validated as `${AUTHENTIK_URL}/application/o/visitor/` |
-| `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | authentik OIDC client (reuses the existing one) |
-| `AUTHENTIK_ADMIN_GROUPS` | Admin group (default `authentik Admins`) |
+| `ACCESS_TEAM_DOMAIN` | Cloudflare Access team domain; also the JWT `iss` used for verification |
+| `ACCESS_ADMIN_AUDS` / `ACCESS_VIEWER_AUDS` | Comma-separated Access application AUD tags mapped to the admin / viewer role (admin wins) |
+| `VISITOR_IP_KEY` | Fernet key for the encrypted full visitor IP column (`visitor_rollups.ip_enc`) |
 | `SESSION_HMAC_KEY` | Pages session-cookie signing key (separate from `GATE_HMAC_KEY`) |
 | `AUTHENTIK_JWKS_URL` | Optional JWKS URL for ID Token / logout token verification |
 | `AUTHENTIK_PKCE_ENABLED` | Optional PKCE toggle (default enabled) |
@@ -316,7 +291,7 @@ Every request is checked for the signed `__gate` cookie. Cloudflare `botManageme
 
 Unverified requests get the Turnstile gate page **in place**: the host and path never change. The middleware renders `public/<lang>/auth.html` at the requested URL with status `403`, and `POST /__gate/verify` answers on that same origin with `Set-Cookie: __gate=…` (1h, `Domain=.limooo.cn`), after which the page reloads the original target. `auth.limooo.cn` is the gate host — it serves the same page at its own root (no 404, no redirect to the main site) and owns the `/__gate/config|diag|verify` endpoints — but it is no longer a redirect target.
 
-VPS-served hosts share that gate. Nginx runs `auth_request /__gate_check` (Flask: whitelist or signed cookie) and, when it answers 403, reverse-proxies the edge gate page at the original URL (`location @gate_render`) and proxies `/__gate/*` to `auth.limooo.cn`, so Turnstile verification and cookie minting stay implemented only in Pages. Nginx forwards `X-Limooo-Client-IP` / `X-Limooo-Client-Country` so the gate page, its diagnostics and its event logs show the real visitor rather than the VPS egress (display/log only — never used for trust).
+Every host that renders the gate is served by the same edge code, so there is no second gate implementation to keep in sync.
 
 The middleware also enforces the normalized D1 blocklist and records privacy-minimized visitor analytics. The gate page is `no-store`/`noindex` and supports dark/light theme switching. The Turnstile widget must list every host that renders it (the `limooo.cn` gate subdomains, including `auth`, `status`, `visitor`, `apple` and `images`).
 
@@ -326,9 +301,9 @@ The middleware also enforces the normalized D1 blocklist and records privacy-min
 
 - `limooo.cn/` → home page; `limooo.cn/services` / `limooo.cn/contact` → corresponding pages
 - `services.limooo.cn/` → services page; `contact.limooo.cn/` → contact page (subdomains serve content directly, no 301 to the main site)
-- `visitor.limooo.cn/` → visitor panel (login required); `apple.limooo.cn/account` → Apple Account manager (login required), while `account.limooo.cn` 301s to `apple.limooo.cn/account`
+- `visitor.limooo.cn/` → visitor panel (login required); `account.limooo.cn/apple` → Apple Account manager (login required)
 - `images.limooo.cn/` → portfolio gallery plus the favicon/logo/QR asset host; `image.limooo.cn/portfolio/<img>` → watermarked variant from the normalization Worker (its root 301s to `images.limooo.cn`)
-- `www.limooo.cn` → 301 to the main site (preserving the former nginx behavior)
+- `www.limooo.cn` → 301 to the main site
 - Nav links keep absolute subdomain URLs (`https://services.limooo.cn` etc.); language switching is a pure frontend `applyLang()`, no reload, no URL change
 
 ### Performance / edge caching
@@ -356,27 +331,24 @@ The middleware also enforces the normalized D1 blocklist and records privacy-min
 
 ### Production status
 
-Done:
+All of the following is live:
 
 1. Pages project (`limooo`, `limooo.pages.dev`) and D1 database (`limooo`, APAC) created; D1 binding `DB` attached to the project
-2. `ops/migrations/001_init.sql` executed; `ops/out/apple-account.sql` (5 rows) was imported; the 1255-row `blocklist.sql` snapshot exists, but the user decided not to restore it; production `blocked_ips` stays at 0 and will be rebuilt only from new evidence
-3. Secrets configured: `TURNSTILE_SITEKEY` / `TURNSTILE_SECRET` (Turnstile widget in Managed mode; the domain list must cover every host that renders the widget — the `limooo.cn` gate subdomains incl. `auth`, `status`, `visitor`, `apple` and `images`), `GATE_HMAC_KEY` / `SESSION_HMAC_KEY` (`openssl rand -hex 32`), `AUTHENTIK_*`, `APPLE_ACCOUNT_ENCRYPTION_KEY`
-4. Deployed to Pages and verified live: root path 403 gate page + `Cache-Control: no-store`, logo 200, `/__gate/verify` re-renders on failure, Location/IP/Ray ID diagnostics OK; full chain tested with Turnstile test keys (submit → siteverify → issue cookie → page served), forged cookies are rejected
+2. Migrations `001`–`015` applied; `ops/out/apple-account.sql` (5 rows) was imported; the 1255-row `blocklist.sql` snapshot exists, but the user decided not to restore it, so production `blocked_ips` stays at 0 and is rebuilt only from new evidence
+3. Secrets configured under **Pages → Settings → Environment variables → Encrypt**: `TURNSTILE_SITEKEY` / `TURNSTILE_SECRET` (Turnstile widget in Managed mode; the domain list covers every host that renders it — the `limooo.cn` gate subdomains incl. `auth`, `status`, `visitor`, `account` and `images`), `GATE_HMAC_KEY` / `SESSION_HMAC_KEY`, the `ACCESS_*` AUD mappings, `APPLE_ACCOUNT_ENCRYPTION_KEY` and `VISITOR_IP_KEY`
+4. Deployed to Pages and verified live: root path 403 gate page + `Cache-Control: no-store`, logo 200, `/__gate/verify` re-renders on failure, Location/IP/Ray ID diagnostics OK; forged cookies are rejected
 5. WAF custom rules live: `ip.src in $limooo_blocklist` → block
-6. **DNS switched**: `limooo.cn` / `www` / `services` / `contact` / `auth` / `visitor` / `apple` (+ the legacy `apple-account` alias) / `images` / `redirect` → CNAME `limooo.pages.dev` (proxied), all custom domains active; `identity` / `xmpp` keep server A records; `status` / `admin` keep pointing at the VPS origin behind Cloudflare; `image.limooo.cn` is the watermark Worker while `images.limooo.cn` is the static asset host; first-party pages reference `/static/...` paths (`https://images.limooo.cn/static/portfolio/thumbs/IMG_0203-800.webp`)
-7. The gate lives at `auth.limooo.cn` (former `verify.limooo.cn` retired) and renders in place: subdomains serve content directly with no `/zh-CN/` language prefix, and unverified requests keep the original host and path, both on Pages hosts and on `status.limooo.cn` (Nginx proxies the gate page)
+6. **DNS**: `limooo.cn` / `www` / `services` / `contact` / `auth` / `visitor` / `account` / `images` / `redirect` → CNAME `limooo.pages.dev` (proxied), all custom domains active; `status.limooo.cn` is the `limooo-status` Worker and `image.limooo.cn` the watermark Worker, while `images.limooo.cn` is the static asset host; first-party pages reference `/static/...` paths (`https://images.limooo.cn/static/portfolio/thumbs/IMG_0203-800.webp`)
+7. The gate lives at `auth.limooo.cn` and renders in place: subdomains serve content directly with no `/zh-CN/` language prefix, and unverified requests keep the original host and path
 8. **visitor / apple / redirect run on Pages**: the visitor panel (analytics) and the Apple Account manager share the same Pages Functions (login / API / D1) with the main site; `redirect.limooo.cn` is a pure relay page **exempt from human verification** (to avoid a redirect loop after verification)
-9. **identity / admin / status run on the VPS**: authentik (self-hosted Docker OIDC IdP), the embedded Kuma admin UI and the Kuma status page + notification receivers remain VPS services; Nginx applies the same `auth_request` gate to them, rendering the edge gate page in place through the proxy described under [Gate behavior](#gate-behavior)
+9. **No server remains**: authentik, Uptime Kuma, nginx and the Flask runtime were retired with the VPS on 2026-09-17; probes, the status page, alerting and D1 retention are handled by `ops/status-worker`
 
-Production state (2026-09-13):
+Production state (2026-09-26):
 
-- `007_visitor_status_indexes.sql` verified present on production D1.
-- VPS `limooo` / `nginx` active; Nginx config test passes and matches `ops/limooo.conf` byte for byte.
-- Pages Functions and static assets deployed; OIDC `/login` uses
-  `/application/o/authorize/` and provider slug `visitor`.
-- The gate renders in place on both runtimes; `status.limooo.cn` no longer redirects to `auth.limooo.cn`, and the gate page/logs show the real visitor IP (verified with Turnstile on `status.limooo.cn`).
+- Migrations verified present on production D1, including `007` indexes, `011` read-reduction rollups and `014` visitor IP encryption.
+- Access is the only identity source; no self-hosted IdP and no custom login page.
+- The gate renders in place on every host, and the gate page/logs show the real visitor IP.
 - The historical 1255-entry blocklist is **not** restored; backup remains archive only.
-- Follow-up: Safari visitor-filter smoke test and authentik client-secret rotation.
 
 ## License
 
