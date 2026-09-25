@@ -6,7 +6,7 @@ token、secret 与可复现的 ID **不写在这里**，统一从以下来源读
 | 资源 | 名称 / 类型 | 值来源 | 说明 |
 | --- | --- | --- | --- |
 | Pages 项目 | `limooo` | 配置文件 `Flask/wrangler.toml` | 构建输出目录 `public`，托管 `limooo.cn` 与子域 |
-| Pages Functions | `functions/**` | Git 仓库代码 | 门禁、登录、Apple ID、访客统计、Ray 查询 |
+| Pages Functions | `functions/**` | Git 仓库代码 | 门禁、登录、Apple Account、访客统计、Ray 查询 |
 | D1 数据库 | `DB` binding | `Flask/wrangler.toml` 的 `database_id` | Pages 与 `sync-worker` 共用 |
 | D1 迁移 | `ops/migrations/*.sql` | Git 仓库代码 | 执行入口 `ops/migrate_d1.sh` |
 | Worker：封禁同步 | `limooo-blocklist-sync` | `ops/sync-worker/wrangler.toml` | 每日 03:30，D1 active 行 → Cloudflare IP List |
@@ -25,7 +25,7 @@ token、secret 与可复现的 ID **不写在这里**，统一从以下来源读
 - `GATE_HMAC_KEY`、`SESSION_HMAC_KEY`
 - `AUTHENTIK_URL`、`AUTHENTIK_CLIENT_ID`、`AUTHENTIK_CLIENT_SECRET`
 - `AUTHENTIK_ADMIN_GROUPS`
-- `APPLEID_ENCRYPTION_KEY`
+- `APPLE_ACCOUNT_ENCRYPTION_KEY`
 - `OBSERVABILITY_HMAC_KEY`
 
 本地开发复制 `.dev.vars.example`；生产值放在服务器

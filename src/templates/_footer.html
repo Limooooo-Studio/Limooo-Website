@@ -2,15 +2,15 @@
    base.html / auth.html / redirect.html 都 include 本文件，
    曾经三处各写一份相同标记，改一处会漏另外两处。
 
-   每个语义块包一层 .footer-item：
-   分隔符挂在语义块自己的 ::before 上，折行时跟着内容走，
-   不会出现行首的孤立竖线（见 base.css 的 .footer-item 规则）。
+   结构：版权 · 权利 · AGPL-3.0 · 源码(链接)
+   桌面端整条单行；移动端「版权」独占第一行，其余三段在第二行。
+   实现见 base.css：.footer-copyright 在窄屏后强制换行。
 
    注意：带 data-i18n 的元素会被 base.js 用 textContent 整体重写，
-   所以它内部不能放子元素——「源码在这里」的链接必须留在
+   所以它内部不能放子元素——「源码」链接必须留在
    data-i18n 元素之外，否则切一次语言链接就被抹掉了。 #}
 <footer class="global-footer" id="global-footer">
     <div class="footer-link">
-    <div class="footer-text"><span class="footer-item footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span class="footer-item" data-i18n="footer_rights">{% if _('footer_rights') %}{{ _('footer_rights') }}{% endif %}</span><span class="footer-item"><span data-i18n="footer_source">{% if _('footer_source') %}{{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></span></div>
+    <div class="footer-text"><span class="footer-item footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span class="footer-item" data-i18n="footer_rights">{% if _('footer_rights') %}{{ _('footer_rights') }}{% endif %}</span><span class="footer-item" data-i18n="footer_source">{% if _('footer_source') %}{{ _('footer_source') }}{% endif %}</span><span class="footer-item"><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></span></div>
     </div>
 </footer>

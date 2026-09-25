@@ -1,10 +1,10 @@
-/** PUT /api/appleid/accounts/:id（更新） / DELETE（删除，需 admin + CSRF） */
+/** PUT /api/apple-account/accounts/:id（更新） / DELETE（删除，需 admin + CSRF） */
 
 import { queryAll, execute } from "../../../_lib/d1";
 import { fernetEncrypt } from "../../../_lib/fernet";
 import { authUnavailableResponse, requireAuth } from "../../../_lib/session";
 import { verifyCsrf } from "../../../_lib/csrf";
-import { parseAccountId, validateUpdatePayload } from "../../../_lib/appleid";
+import { parseAccountId, validateUpdatePayload } from "../../../_lib/apple-account";
 import type { Env } from "../../../_lib/env";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -37,10 +37,10 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
   let password = "";
   if (parsed.passwordChanged) {
-    if (!context.env.APPLEID_ENCRYPTION_KEY) {
+    if (!context.env.APPLE_ACCOUNT_ENCRYPTION_KEY) {
       return Response.json({ error: "服务器未配置加密密钥" }, { status: 500, headers: NO_STORE });
     }
-    password = await fernetEncrypt(parsed.password ?? "", context.env.APPLEID_ENCRYPTION_KEY);
+    password = await fernetEncrypt(parsed.password ?? "", context.env.APPLE_ACCOUNT_ENCRYPTION_KEY);
   } else {
     const existing = await queryAll<{ password: string }>(
       context.env.DB,

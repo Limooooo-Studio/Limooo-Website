@@ -15,7 +15,7 @@ function request(
   cookieToken = token,
   method = "POST",
 ): Request {
-  return new Request("https://appleid.limooo.cn/api/appleid/accounts/1/reveal", {
+  return new Request("https://account.limooo.cn/api/apple-account/accounts/1/reveal", {
     method,
     headers: {
       Origin: origin,
@@ -33,8 +33,8 @@ describe("csrf", () => {
 
   it("rejects missing or mismatched header/cookie", async () => {
     const { token } = await createCsrfToken(env);
-    expect(await verifyCsrf(env, request("https://appleid.limooo.cn", "", token))).toBe(false);
-    expect(await verifyCsrf(env, request("https://appleid.limooo.cn", token, "different"))).toBe(false);
+    expect(await verifyCsrf(env, request("https://account.limooo.cn", "", token))).toBe(false);
+    expect(await verifyCsrf(env, request("https://account.limooo.cn", token, "different"))).toBe(false);
   });
 
   it("rejects cross-site origins", async () => {

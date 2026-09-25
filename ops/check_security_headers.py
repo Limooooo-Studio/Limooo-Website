@@ -22,7 +22,7 @@ TS_PATH = ROOT / "functions" / "_lib" / "security.ts"
 def main() -> int:
     expected = json.loads(JSON_PATH.read_text(encoding="utf-8"))
     if not isinstance(expected, dict):
-        print("FATAL: security-headers.json 必须是 JSON 对象", file=sys.stderr)
+        print("FATAL: security-headers.json must be a JSON object", file=sys.stderr)
         return 1
 
     ts = TS_PATH.read_text(encoding="utf-8")
@@ -33,19 +33,19 @@ def main() -> int:
         )
         match = pattern.search(ts)
         if not match:
-            errors.append(f"security.ts 缺少字段 {name}")
+            errors.append(f"security.ts is missing field {name}")
             continue
         actual = json.loads(f'"{match.group(1)}"')
         if actual != value:
-            errors.append(f"security.ts {name}: JSON={value!r} 实际={actual!r}")
+            errors.append(f"security.ts {name}: JSON={value!r} actual={actual!r}")
         if name == "Content-Security-Policy":
             if "'unsafe-inline'" in actual:
-                errors.append("CSP 仍包含 'unsafe-inline'，docs/14 不允许")
+                errors.append("CSP still contains 'unsafe-inline', which docs/14 forbids")
             script_src = re.search(r"script-src ([^;]+)", actual)
             style_src = re.search(r"style-src ([^;]+)", actual)
             for section, match in (("script-src", script_src), ("style-src", style_src)):
                 if match and "https://limooo.cn" in match.group(1):
-                    errors.append(f"CSP {section} 仍放行 https://limooo.cn，应使用 'self'")
+                    errors.append(f"CSP {section} still allows https://limooo.cn, use 'self' instead")
 
             # 第三方组件一致性守卫。
             #
@@ -71,13 +71,14 @@ def main() -> int:
                 for origin in origins(actual, section):
                     if origin not in connect_origins:
                         errors.append(
-                            f"CSP {section} 放行了 {origin}，但 connect-src 没有："
-                            f"该第三方组件会因 CSP 拦下网络请求而永久卡住"
-                            f"（Turnstile 表现为无限人机验证），请把 {origin} 补进 connect-src"
+                            f"CSP {section} allows {origin} but connect-src lacks it: "
+                            f"the third-party component will hang forever because CSP blocks "
+                            f"its requests (Turnstile shows an endless challenge); "
+                            f"add {origin} to connect-src"
                         )
 
     if errors:
-        print("FATAL: 安全响应头校验失败", file=sys.stderr)
+        print("FATAL: security headers validation failed", file=sys.stderr)
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
         return 1

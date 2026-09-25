@@ -15,9 +15,11 @@ export interface Env {
   /** 逗号分隔的 AUD 列表：命中即 viewer（admin 优先）。 */
   ACCESS_VIEWER_AUDS?: string;
   SESSION_HMAC_KEY?: string;
-  // Apple ID 密码加密（Fernet 密钥，与现有 Flask 部署共用）
-  APPLEID_ENCRYPTION_KEY?: string;
-  // D1（阶段 3：访客统计 / 封禁名单 / Apple ID）
+  // 访客行 IP 加密（Fernet 密钥，独立密钥，只服务 visitor_rollups.ip_enc）
+  VISITOR_IP_KEY?: string;
+  // Apple Account 密码加密（Fernet 密钥，与现有 Flask 部署共用）
+  APPLE_ACCOUNT_ENCRYPTION_KEY?: string;
+  // D1（阶段 3：访客统计 / 封禁名单 / Apple Account）
   DB?: D1Database;
   // Pages 静态资源绑定（中间件按语言取预渲染页面）
   ASSETS?: { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };

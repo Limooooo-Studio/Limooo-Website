@@ -132,3 +132,12 @@
         @media (min-width: 769px) {
             .main-layout { top: 100px; }
         }
+
+        /* 点击访客行取 IP 时的轻提示（成功会直接跳转，失败才看得见） */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 300;
+            background: var(--panel-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+            padding: 10px 20px; font-size: 13px; font-weight: 500;
+            opacity: 0; transition: opacity 0.3s var(--ease-out); pointer-events: none;
+        }
+        .toast.show { opacity: 1; }

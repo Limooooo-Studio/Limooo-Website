@@ -1,10 +1,10 @@
-/** POST /api/appleid/accounts/:id/reveal（仅 admin + CSRF，返回后审计并立即丢弃） */
+/** POST /api/apple-account/accounts/:id/reveal（仅 admin + CSRF，返回后审计并立即丢弃） */
 
 import { queryAll } from "../../../../_lib/d1";
 import { fernetDecrypt } from "../../../../_lib/fernet";
 import { authUnavailableResponse, requireAuth } from "../../../../_lib/session";
 import { verifyCsrf } from "../../../../_lib/csrf";
-import { parseAccountId } from "../../../../_lib/appleid";
+import { parseAccountId } from "../../../../_lib/apple-account";
 import { logEvent } from "../../../../_lib/logging";
 import type { Env } from "../../../../_lib/env";
 
@@ -34,8 +34,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   let plain = "";
   try {
-    if (!context.env.APPLEID_ENCRYPTION_KEY) throw new Error("missing encryption key");
-    plain = await fernetDecrypt(rows[0].password, context.env.APPLEID_ENCRYPTION_KEY);
+    if (!context.env.APPLE_ACCOUNT_ENCRYPTION_KEY) throw new Error("missing encryption key");
+    plain = await fernetDecrypt(rows[0].password, context.env.APPLE_ACCOUNT_ENCRYPTION_KEY);
   } catch {
     await logEvent(context.env, "audit_event", context.request, {
       outcome: "decrypt_failed",

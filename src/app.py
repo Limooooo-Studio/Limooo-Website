@@ -17,7 +17,7 @@
 
 """VPS 最小运行时。
 
-公开页面、登录、Apple ID、访客统计等已迁移到 Cloudflare Pages Functions。
+公开页面、登录、Apple Account、访客统计等已迁移到 Cloudflare Pages Functions。
 本模块只保留 VPS 无法迁移或仍被 Nginx/auth 依赖的能力：
 
 - authentik backchannel logout（必须由 authentik POST 到源站）
@@ -63,6 +63,7 @@ from config import (
     SUPPORTED_LANGS,
     TEMPLATES_DIR,
 )
+from portfolio import portfolio_items
 
 
 # ── Flask 应用 ───────────────────────────────────────
@@ -483,6 +484,8 @@ def inject_i18n():
         "image_asset_base": IMAGE_ASSET_BASE_URL,
         "image_watermark_base": IMAGE_WATERMARK_BASE_URL,
         "source_url": SOURCE_REPO_URL,
+        # 作品区卡片：数量由 src/static/portfolio 里的图片决定
+        "portfolio_items": portfolio_items(),
     }
 
 

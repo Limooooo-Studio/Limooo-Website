@@ -112,7 +112,7 @@ if not BUILD_MODE:
 
 # 运行时数据库：与可丢的 geo_cache.db(IP 缓存)分开,避免部署清理误伤业务数据
 DATABASE = os.path.join(DATA_DIR, "geo_cache.db")
-APPLEID_DB = os.path.join(DATA_DIR, "appleid.db")
+APPLE_ACCOUNT_DB = os.path.join(DATA_DIR, "apple_account.db")
 AUTH_DB = os.path.join(DATA_DIR, "auth.db")
 BLOCKLIST_FILE = os.path.join(DATA_DIR, "blocklist.txt")
 
@@ -136,7 +136,7 @@ WWW_HOST = f"www.{ROOT_DOMAIN}"
 SERVICES_HOST = f"services.{ROOT_DOMAIN}"
 CONTACT_HOST = f"contact.{ROOT_DOMAIN}"
 VISITOR_HOST = f"visitor.{ROOT_DOMAIN}"
-APPLEID_HOST = f"account.{ROOT_DOMAIN}"
+APPLE_ACCOUNT_HOST = f"account.{ROOT_DOMAIN}"
 REDIRECT_HOST = f"redirect.{ROOT_DOMAIN}"
 REDIRECT_URL = f"https://{REDIRECT_HOST}/"
 GATE_HOST = f"auth.{ROOT_DOMAIN}"
@@ -185,10 +185,10 @@ SESSION_TTL = _contract_int("session_ttl_seconds")
 PENDING_TTL = _contract_int("pending_ttl_seconds")
 WHITELIST_FILE = _contract_str("whitelist_file")
 
-# ── Apple ID ──────────────────────────────────────────────
-APPLEID_DOMAIN = f"@{APPLEID_HOST}"
-APPLEID_KEY_ETC = "/etc/limooo/appleid_encryption.key"
-APPLEID_KEY_FILE = os.path.join(SECRET_DIR, "appleid_encryption.key")
+# ── Apple Account ──────────────────────────────────────────────
+APPLE_ACCOUNT_DOMAIN = f"@{APPLE_ACCOUNT_HOST}"
+APPLE_ACCOUNT_KEY_ETC = "/etc/limooo/apple_account_encryption.key"
+APPLE_ACCOUNT_KEY_FILE = os.path.join(SECRET_DIR, "apple_account_encryption.key")
 
 # ── 统一跳转页预热图片（与 Page 端 manifest 及 Pages 中间件保持一致） ──
 REDIRECT_PRELOAD_IMAGES = [
@@ -221,9 +221,9 @@ def get_geo_db() -> sqlite3.Connection:
     return conn
 
 
-def get_appleid_db() -> sqlite3.Connection:
-    """创建 Apple ID 业务库连接(独立于 geo_cache.db)"""
-    conn = sqlite3.connect(APPLEID_DB, timeout=10)
+def get_apple_account_db() -> sqlite3.Connection:
+    """创建 Apple Account 业务库连接(独立于 geo_cache.db)"""
+    conn = sqlite3.connect(APPLE_ACCOUNT_DB, timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.row_factory = sqlite3.Row

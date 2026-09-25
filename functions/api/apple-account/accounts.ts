@@ -1,10 +1,10 @@
-/** GET /api/appleid/accounts（列表，脱敏） / POST（新增，需 admin + CSRF） */
+/** GET /api/apple-account/accounts（列表，脱敏） / POST（新增，需 admin + CSRF） */
 
 import { queryAll, execute } from "../../_lib/d1";
 import { fernetEncrypt } from "../../_lib/fernet";
 import { authUnavailableResponse, requireAuth } from "../../_lib/session";
 import { verifyCsrf } from "../../_lib/csrf";
-import { maskPassword, validateCreatePayload } from "../../_lib/appleid";
+import { maskPassword, validateCreatePayload } from "../../_lib/apple-account";
 import type { Env } from "../../_lib/env";
 
 interface Row {
@@ -55,7 +55,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   if (!(await verifyCsrf(context.env, context.request))) {
     return Response.json({ error: "无权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
-  if (!context.env.APPLEID_ENCRYPTION_KEY) {
+  if (!context.env.APPLE_ACCOUNT_ENCRYPTION_KEY) {
     return Response.json({ error: "服务器未配置加密密钥" }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -70,7 +70,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return Response.json({ error: "无效请求" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  const encrypted = await fernetEncrypt(parsed.password, context.env.APPLEID_ENCRYPTION_KEY);
+  const encrypted = await fernetEncrypt(parsed.password, context.env.APPLE_ACCOUNT_ENCRYPTION_KEY);
   const max = await queryAll<{ n: number }>(
     context.env.DB,
     "SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM apple_accounts",

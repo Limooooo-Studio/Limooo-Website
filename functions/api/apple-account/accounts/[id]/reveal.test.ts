@@ -1,4 +1,4 @@
-/** Apple ID 明文 reveal 接口测试：admin-only、CSRF、审计、无明文回退。 */
+/** Apple Account 明文 reveal 接口测试：admin-only、CSRF、审计、无明文回退。 */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { onRequestPost } from "./reveal";
@@ -18,14 +18,14 @@ vi.mock("../../../../_lib/csrf", () => ({ verifyCsrf: vi.fn() }));
 vi.mock("../../../../_lib/fernet", () => ({ fernetDecrypt: vi.fn() }));
 vi.mock("../../../../_lib/logging", () => ({ logEvent: vi.fn() }));
 
-const env = { APPLEID_ENCRYPTION_KEY: "test-key" } as Env;
+const env = { APPLE_ACCOUNT_ENCRYPTION_KEY: "test-key" } as Env;
 
 function context() {
   return {
-    request: new Request("https://appleid.limooo.cn/api/appleid/accounts/1/reveal", {
+    request: new Request("https://account.limooo.cn/api/apple-account/accounts/1/reveal", {
       method: "POST",
       headers: {
-        Origin: "https://appleid.limooo.cn",
+        Origin: "https://account.limooo.cn",
         "X-CSRF-Token": "valid",
       },
     }),
@@ -54,7 +54,7 @@ beforeEach(() => {
   vi.mocked(logEvent).mockResolvedValue();
 });
 
-describe("appleid reveal API", () => {
+describe("apple-account reveal API", () => {
   it("returns 401/403 before touching data", async () => {
     vi.mocked(requireAuth).mockResolvedValue(null);
     expect((await onRequestPost(context() as never)).status).toBe(401);

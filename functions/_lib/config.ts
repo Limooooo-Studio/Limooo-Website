@@ -86,9 +86,9 @@ export const CONTRACT = {
       "/visitor": "visitor.html"
     },
     "account.limooo.cn": {
-      "/": "appleid.html",
-      "/index.html": "appleid.html",
-      "/apple": "appleid.html"
+      "/": "apple-account.html",
+      "/index.html": "apple-account.html",
+      "/apple": "apple-account.html"
     },
     "auth.limooo.cn": {
       "/__gate": "auth.html"
@@ -126,7 +126,7 @@ export const WWW_HOSTNAME = `www.${ROOT_DOMAIN}`;
 export const SERVICES_HOSTNAME = `services.${ROOT_DOMAIN}`;
 export const CONTACT_HOSTNAME = `contact.${ROOT_DOMAIN}`;
 export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;
-export const APPLEID_HOSTNAME = `account.${ROOT_DOMAIN}`;
+export const APPLE_ACCOUNT_HOSTNAME = `account.${ROOT_DOMAIN}`;
 export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;
 export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;
 export const AUTHENTIK_HOSTNAME = "identity.limooo.cn";
@@ -137,7 +137,7 @@ export const REDIRECT_HOST = `https://${REDIRECT_HOSTNAME}/`;
 export const IDENTITY_URL = `https://${IDENTITY_HOSTNAME}`;
 export const AUTHENTIK_URL = `https://${AUTHENTIK_HOSTNAME}`;
 export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;
-export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;
+export const APPLE_ACCOUNT_DOMAIN = `@${APPLE_ACCOUNT_HOSTNAME}`;
 export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);
 export const MANAGED_HOSTS: Set<string> = new Set(CONTRACT.managed_hosts);
 export const SHARED_LANG_HOSTS: Set<string> = new Set(CONTRACT.shared_lang_hosts);

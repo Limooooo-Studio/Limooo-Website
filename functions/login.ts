@@ -29,7 +29,6 @@ import {
 import type { Env } from "./_lib/env";
 import { logEvent } from "./_lib/logging";
 import { safeNextUrl } from "./_lib/routing";
-import { BASE_URL } from "./_lib/config";
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { env, request } = context;
@@ -75,8 +74,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     message: `role=${session.role}`,
   });
 
-  // 相对 next 按主站解析；绝对地址（白名单主机）直接用。
-  const target = next.startsWith("/") ? `${BASE_URL}${next}` : next;
+  // 相对 next 按**当前请求所在域**解析：Access 前置在哪个子域，登录后回哪个子域。
+  // 若按主站 BASE_URL 解析，`account.limooo.cn/apple` 登录后会落到
+  // `limooo.cn/apple`（主站无该路由 → 404）；绝对地址（白名单主机）原样使用。
+  const target = next.startsWith("/") ? new URL(next, request.url).toString() : next;
   const resp = new Response(null, { status: 302, headers: { Location: target } });
   resp.headers.append("Set-Cookie", await createSessionCookie(env, session));
   return resp;

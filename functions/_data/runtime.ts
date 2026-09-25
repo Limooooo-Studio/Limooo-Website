@@ -10,8 +10,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "lang_aria": "切换语言",
     "theme_aria": "切换主题",
     "footer_rights": "保留所有权利",
-    "footer_source": "根据 AGPL-3.0 许可证发布，源码在",
-    "footer_source_link": "这里",
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "源码",
     "error_sitekey": "服务配置错误：未设置 TURNSTILE_SITEKEY。",
     "error_invalid": "请求无效，请重试。",
     "error_unavailable": "验证服务暂时不可用，请稍后重试。",
@@ -30,8 +30,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "lang_aria": "Switch language",
     "theme_aria": "Toggle theme",
     "footer_rights": "All rights reserved",
-    "footer_source": "Release under the AGPL-3.0 license, source code available on ",
-    "footer_source_link": "here",
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "Source",
     "error_sitekey": "Server configuration error: TURNSTILE_SITEKEY is not set.",
     "error_invalid": "Invalid request. Please try again.",
     "error_unavailable": "Verification service temporarily unavailable. Please try again in a moment.",
@@ -49,9 +49,9 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "foot": "Limooo Edge Security により保護されています",
     "lang_aria": "言語切替",
     "theme_aria": "テーマ切替",
-    "footer_rights": "無断転載禁止",
-    "footer_source": "AGPL-3.0 ライセンスに基づいて公開，ソースコードは",
-    "footer_source_link": "こちら",
+    "footer_rights": "すべての権利を保有",
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "ソースコード",
     "error_sitekey": "サーバー設定エラー：TURNSTILE_SITEKEY が設定されていません。",
     "error_invalid": "リクエストが無効です。もう一度お試しください。",
     "error_unavailable": "認証サービスが一時的に利用できません。しばらくしてからもう一度お試しください。",
@@ -70,8 +70,8 @@ export const GATE_I18N: Record<string, Record<string, string>> = {
     "lang_aria": "언어 전환",
     "theme_aria": "테마 전환",
     "footer_rights": "모든 권리 보유",
-    "footer_source": "AGPL-3.0 라이선스에 따라 배포，소스 코드는 ",
-    "footer_source_link": "여기",
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "소스 코드",
     "error_sitekey": "서버 설정 오류: TURNSTILE_SITEKEY가 설정되지 않았습니다.",
     "error_invalid": "잘못된 요청입니다. 다시 시도해 주세요.",
     "error_unavailable": "인증 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
@@ -86,29 +86,29 @@ export const REDIRECT_I18N: Record<string, { title: string; text: string; footer
     "title": "正在跳转…",
     "text": "正在跳转... (・ω・)",
     "footer_rights": "保留所有权利",
-    "footer_source": "根据 AGPL-3.0 许可证发布，源码在",
-    "footer_source_link": "这里"
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "源码"
   },
   "en-us": {
     "title": "Redirecting…",
     "text": "Redirecting... (・ω・)",
     "footer_rights": "All rights reserved",
-    "footer_source": "Release under the AGPL-3.0 license, source code available on ",
-    "footer_source_link": "here"
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "Source"
   },
   "ja-jp": {
     "title": "リダイレクト中…",
     "text": "リダイレクト中... (・ω・)",
-    "footer_rights": "無断転載禁止",
-    "footer_source": "AGPL-3.0 ライセンスに基づいて公開，ソースコードは",
-    "footer_source_link": "こちら"
+    "footer_rights": "すべての権利を保有",
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "ソースコード"
   },
   "ko-kr": {
     "title": "리디렉션 중…",
     "text": "리다이렉트 중... (・ω・)",
     "footer_rights": "모든 권리 보유",
-    "footer_source": "AGPL-3.0 라이선스에 따라 배포，소스 코드는 ",
-    "footer_source_link": "여기"
+    "footer_source": "AGPL-3.0",
+    "footer_source_link": "소스 코드"
   }
 };
 export const REDIRECT_PRELOAD_IMAGES = [

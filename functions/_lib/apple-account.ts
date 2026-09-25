@@ -1,6 +1,6 @@
-/** Apple ID 数据校验与脱敏（Pages 侧） */
+/** Apple Account 数据校验与脱敏（Pages 侧） */
 
-import { APPLEID_DOMAIN } from "./config";
+import { APPLE_ACCOUNT_DOMAIN } from "./config";
 
 export const MAX_EMAIL_LENGTH = 254;
 export const MAX_PASSWORD_LENGTH = 512;
@@ -37,7 +37,7 @@ function validLocalEmail(raw: unknown): string | null {
   if (!value || value.length > MAX_EMAIL_LENGTH) return null;
   const local = value.split("@", 1)[0];
   if (!local || !EMAIL_LOCAL_RE.test(local)) return null;
-  return `${local}${APPLEID_DOMAIN}`;
+  return `${local}${APPLE_ACCOUNT_DOMAIN}`;
 }
 
 function validPassword(password: unknown): string | null {

@@ -1,4 +1,4 @@
-"""Apple ID 密码 Fernet 加解密测试（测试专用 key）。"""
+"""Apple Account 密码 Fernet 加解密测试（测试专用 key）。"""
 
 from pathlib import Path
 

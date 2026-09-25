@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    作品图加载（不影响首屏）：
-   缩略图只在切换到作品区时才启动，避免 6 张图在首屏阶段抢占带宽；
+   缩略图只在切换到作品区时才启动，避免作品图在首屏阶段抢占带宽；
    进入作品区后按 srcset 选择合适尺寸。
    ═══════════════════════════════════════════════════════════════ */
 function loadWorkImages() {
@@ -21,6 +21,14 @@ function loadWorkImages() {
 
 /* ── 动画时序常量 ── */
 var ANIM_DELAY = { initialReveal: 200, homeExit: 250, portfolioReveal: 300, staggerStep: 150, reverseExit: 250 };
+var STAGGER_BUDGET = 1500; /* 作品图卡片级联淡入的总时长上限（ms） */
+
+/* 作品图数量由 src/static/portfolio 目录决定（可多可少）：
+   图片多时按预算压缩级联间隔，避免最后一张要等好几秒才出现。 */
+function staggerStep() {
+    var n = workBoxes.length;
+    return n > 1 ? Math.min(ANIM_DELAY.staggerStep, STAGGER_BUDGET / (n - 1)) : ANIM_DELAY.staggerStep;
+}
 var SWIPE_THRESHOLD = 60;
 var WHEEL_THRESHOLD = 30;
 
@@ -113,7 +121,7 @@ function showPortfolio() {
         if (seq !== animSeq) return;
         portfolioTitle.classList.add('show');
         workBoxes.forEach(function(box, index) {
-            setTimeout(function() { box.classList.add('show'); }, index * ANIM_DELAY.staggerStep);
+            setTimeout(function() { box.classList.add('show'); }, index * staggerStep());
         });
         isOnHome = false;
         isTransitioning = false;
@@ -159,7 +167,7 @@ function showPortfolioDirect() {
         if (seq !== animSeq) return;
         portfolioTitle.classList.add('show');
         workBoxes.forEach(function(box, index) {
-            setTimeout(function() { box.classList.add('show'); }, index * ANIM_DELAY.staggerStep);
+            setTimeout(function() { box.classList.add('show'); }, index * staggerStep());
         });
         isOnHome = false;
         isTransitioning = false;

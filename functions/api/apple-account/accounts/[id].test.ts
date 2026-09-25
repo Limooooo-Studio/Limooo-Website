@@ -1,4 +1,4 @@
-/** Apple ID 更新/删除接口测试（mock 所有外部依赖）。 */
+/** Apple Account 更新/删除接口测试（mock 所有外部依赖）。 */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { onRequestDelete, onRequestPut } from "./[id]";
@@ -16,7 +16,7 @@ vi.mock("../../../_lib/session", () => ({
 vi.mock("../../../_lib/csrf", () => ({ verifyCsrf: vi.fn() }));
 vi.mock("../../../_lib/fernet", () => ({ fernetEncrypt: vi.fn() }));
 
-const env = { APPLEID_ENCRYPTION_KEY: "test-key" } as Env;
+const env = { APPLE_ACCOUNT_ENCRYPTION_KEY: "test-key" } as Env;
 
 function context(request: Request) {
   return {
@@ -47,10 +47,10 @@ beforeEach(() => {
 });
 
 function request(method: string, body?: unknown): Request {
-  return new Request("https://appleid.limooo.cn/api/appleid/accounts/1", {
+  return new Request("https://account.limooo.cn/api/apple-account/accounts/1", {
     method,
     headers: {
-      Origin: "https://appleid.limooo.cn",
+      Origin: "https://account.limooo.cn",
       "X-CSRF-Token": "valid",
       "Content-Type": "application/json",
     },
@@ -58,12 +58,12 @@ function request(method: string, body?: unknown): Request {
   });
 }
 
-describe("appleid account id API", () => {
+describe("apple-account account id API", () => {
   it("updates an account with CSRF and returns 404 for missing rows", async () => {
     vi.mocked(queryAll).mockResolvedValueOnce([{ password: "old-cipher" }]);
     const ok = await onRequestPut(
       context(request("PUT", {
-        email: "alice@appleid.limooo.cn",
+        email: "alice@account.limooo.cn",
         password: "",
         notes: "",
         password_changed: false,
@@ -74,7 +74,7 @@ describe("appleid account id API", () => {
     vi.mocked(queryAll).mockResolvedValueOnce([]);
     const missing = await onRequestPut(
       context(request("PUT", {
-        email: "alice@appleid.limooo.cn",
+        email: "alice@account.limooo.cn",
         password: "",
         notes: "",
         password_changed: false,

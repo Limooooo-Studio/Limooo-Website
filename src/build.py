@@ -158,7 +158,7 @@ PAGES = (
     ("images.html", "images.html", "/images", None),
     # 子域专属管理页（visitor.limooo.cn / account.limooo.cn/apple），由中间件按主机名吐出
     ("visitor.html", "visitor.html", "/visitor", None),
-    ("appleid.html", "appleid.html", "/appleid", None),
+    ("apple-account.html", "apple-account.html", "/apple-account", None),
     # 统一跳转页（redirect.limooo.cn）：预渲染默认目标（主站首页），实际跳转参数由中间件拼接
     ("redirect.html", "redirect.html", "/r", "redirect"),
     # 自建登录页已随 Cloudflare Access 接管下线（docs/17 §11.10）。
@@ -197,12 +197,12 @@ def _load_gate_i18n() -> dict[str, dict[str, str]]:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except (OSError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"无法读取门禁文案 {path}: {exc}") from exc
+            raise RuntimeError(f"cannot read gate texts {path}: {exc}") from exc
         texts = {}
         for output_key, locale_key in GATE_I18N_KEYS:
             value = data.get(locale_key)
             if not isinstance(value, str) or not value:
-                raise RuntimeError(f"{path} 缺少门禁文案字段: {locale_key}")
+                raise RuntimeError(f"{path} is missing gate text field: {locale_key}")
             texts[output_key] = value
         result[lang] = texts
     return result
@@ -306,7 +306,7 @@ def write_config_functions() -> None:
         "export const SERVICES_HOSTNAME = `services.${ROOT_DOMAIN}`;",
         "export const CONTACT_HOSTNAME = `contact.${ROOT_DOMAIN}`;",
         "export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;",
-        "export const APPLEID_HOSTNAME = `account.${ROOT_DOMAIN}`;",
+        "export const APPLE_ACCOUNT_HOSTNAME = `account.${ROOT_DOMAIN}`;",
         "export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;",
         "export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;",
         f"export const AUTHENTIK_HOSTNAME = {json.dumps(authentik_host)};",
@@ -317,7 +317,7 @@ def write_config_functions() -> None:
         "export const IDENTITY_URL = `https://${IDENTITY_HOSTNAME}`;",
         "export const AUTHENTIK_URL = `https://${AUTHENTIK_HOSTNAME}`;",
         "export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;",
-        "export const APPLEID_DOMAIN = `@${APPLEID_HOSTNAME}`;",
+        "export const APPLE_ACCOUNT_DOMAIN = `@${APPLE_ACCOUNT_HOSTNAME}`;",
         "export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);",
         "export const MANAGED_HOSTS: Set<string> = new Set(CONTRACT.managed_hosts);",
         "export const SHARED_LANG_HOSTS: Set<string> = new Set(CONTRACT.shared_lang_hosts);",
@@ -405,8 +405,8 @@ def write_runtime_functions() -> None:
             "title": d.get("redirect_title", "正在跳转"),
             "text": d.get("redirect_text", "正在跳转..."),
             "footer_rights": d.get("footer_rights", "保留所有权利"),
-            "footer_source": d.get("footer_source", "根据 AGPL-3.0 许可证发布"),
-            "footer_source_link": d.get("footer_source_link", "here"),
+            "footer_source": d.get("footer_source", "AGPL-3.0"),
+            "footer_source_link": d.get("footer_source_link", "源码"),
         }
     output = [
         "// 由 build.py 自动生成，勿手改。",
@@ -497,8 +497,8 @@ def generate_portfolio_thumbs(source_dir=None, output_dir=None) -> int:
     )
     if Image is None:
         raise RuntimeError(
-            "Pillow 未安装，无法生成作品集缩略图。请先执行 "
-            "`pip install -r ops/requirements.txt` 再运行 build.py。"
+            "Pillow is not installed, cannot generate portfolio thumbnails. Run "
+            "`pip install -r ops/requirements.txt` before build.py."
         )
 
     # 作品集原图不入库（.gitignore: src/static/portfolio/），CI 干净 checkout
@@ -585,10 +585,10 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
     if Image is None or ImageDraw is None:
         if has_portfolio:
             raise RuntimeError(
-                "Pillow 未安装，无法生成作品集水印。请先执行 "
-                "`pip install -r ops/requirements.txt` 再运行 build.py。"
+                "Pillow is not installed, cannot generate portfolio watermarks. Run "
+                "`pip install -r ops/requirements.txt` before build.py."
             )
-        print("[build] 无可水印作品集文件，跳过水印生成", flush=True)
+        print("[build] no portfolio files to watermark, skipping watermark generation", flush=True)
         return 0
 
     wm_path = os.path.join(STATIC_DIR, "icons", "Limooo-watermark.svg")
@@ -596,16 +596,16 @@ def generate_watermarks(source_root=None, out_root=None) -> int:
     if cairosvg is None:
         if has_portfolio:
             raise RuntimeError(
-                "使用 SVG 水印时需要安装 cairosvg（及其本地 libcairo）"
+                "SVG watermarking requires cairosvg (and local libcairo)"
             )
-        print("[build] 无可水印作品集文件，跳过水印生成", flush=True)
+        print("[build] no portfolio files to watermark, skipping watermark generation", flush=True)
         return 0
     if not os.path.exists(wm_path):
         if has_portfolio:
             raise FileNotFoundError(
-                "缺少水印素材：src/static/icons/Limooo-watermark.svg"
+                "missing watermark asset: src/static/icons/Limooo-watermark.svg"
             )
-        print("[build] 无可水印作品集文件，跳过水印生成", flush=True)
+        print("[build] no portfolio files to watermark, skipping watermark generation", flush=True)
         return 0
     os.makedirs(out_root, exist_ok=True)
 
@@ -816,7 +816,7 @@ def main() -> int:
                 ("services", "services.html"),
                 ("contact", "contact.html"),
                 ("visitor", "visitor.html"),
-                ("appleid", "appleid.html"),
+                ("apple-account", "apple-account.html"),
             ):
                 html = re.sub(rf'href="https://{sub}\.limooo\.cn/?', f'href="{page}"', html)
             html = re.sub(r'href="https://limooo\.cn/?', 'href="index.html"', html)
@@ -850,7 +850,7 @@ def main() -> int:
                 "services.html",
                 "contact.html",
                 "visitor.html",
-                "appleid.html",
+                "apple-account.html",
                 "redirect.html",
                 "auth.html",
             ],

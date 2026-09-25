@@ -4,6 +4,9 @@
  * 状态筛选完全在本地完成：首次加载只请求一次 /api/visitors，
  * 点击状态 chip 只更新 DOM，不再发送 /api/visitors?status=... 请求。
  * 自动刷新、语言切换和页面重新可见时仍只使用无 status 参数的端点。
+ *
+ * 点击某一行：调 /api/visitors/<hash>/ip 单行解密完整 IP（列表接口只有哈希），
+ * 成功即在**新标签页**打开 https://ipinfo.io/<ip>。
  */
 
 import { filterMarkers } from './visitor-filter.js';
@@ -156,7 +159,8 @@ function renderList(markers) {
         Number(m.statuses[c]) + '</span>')
       .join('');
 
-    return '<div class="visitor-row" data-hash="' + esc(markerId) + '">' +
+    return '<div class="visitor-row" data-hash="' + esc(markerId) + '" title="' +
+      esc(t('ip_view_hint')) + '">' +
       '<div class="dot ' + (hasGeo ? 'geo' : 'nogeo') + '"></div>' +
       '<div class="info">' + locHtml +
       '<div class="detail">' + lines.join(' · ') + '</div>' +
@@ -199,6 +203,89 @@ document.getElementById('filter-bar').addEventListener('click', (event) => {
   if (!btn) return;
   currentStatus = btn.dataset.status;
   applyFilter();
+});
+
+// ── 点击访客行：解密该行 IP 并跳 ipinfo.io ──
+// 列表接口只给 ip_hash；完整 IP 走单行端点按需解密（见
+// functions/api/visitors/[hash]/ip.ts），避免每次轮询把 500 条密文全解一遍。
+const IP_LITERAL_RE = /^[0-9a-fA-F:.]{3,45}$/;
+
+let toastTimer = null;
+function toast(message) {
+  if (!message) return;
+  let el = document.getElementById('visitor-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'visitor-toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  void el.offsetWidth; // 重新触发过渡，连续点击也有反馈
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3000);
+}
+
+async function openIpInfo(hash) {
+  if (!hash) {
+    toast(t('ip_unavailable'));
+    return;
+  }
+
+  // 新标签页必须在**点击的同步阶段**先占位：await 之后再 window.open，
+  // Safari/Chrome 会判定为「非用户手势触发的弹窗」直接拦掉。
+  // noopener 只能事后补（用了 noopener 就拿不到窗口引用去改地址），
+  // 所以这里先开 about:blank，再把 opener 置空，避免 reverse tabnabbing。
+  const tab = window.open('', '_blank');
+  if (tab) tab.opener = null;
+  const fail = () => {
+    if (tab) tab.close();
+    toast(t('ip_unavailable'));
+  };
+
+  let resp;
+  try {
+    resp = await fetch('/api/visitors/' + encodeURIComponent(hash) + '/ip', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+  } catch (e) {
+    fail();
+    return;
+  }
+  if (!resp.ok) {
+    // 历史行没有密文（404）、密钥缺失（503）等都归到同一个提示，不泄露细节。
+    fail();
+    return;
+  }
+  let data;
+  try {
+    data = await resp.json();
+  } catch (e) {
+    fail();
+    return;
+  }
+  const ip = typeof data.ip === 'string' ? data.ip.trim() : '';
+  if (!IP_LITERAL_RE.test(ip)) {
+    fail();
+    return;
+  }
+
+  const url = 'https://ipinfo.io/' + ip;
+  if (tab) {
+    tab.location.replace(url);
+  } else {
+    // 极少数情况下占位也被拦（比如用户禁用了弹窗）：退回当前标签页，功能不丢。
+    location.href = url;
+  }
+}
+
+document.getElementById('visitor-list').addEventListener('click', (event) => {
+  const row = event.target.closest('.visitor-row');
+  if (!row) return;
+  openIpInfo(row.dataset.hash);
 });
 
 function esc(value) {

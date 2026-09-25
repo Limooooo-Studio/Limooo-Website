@@ -27,10 +27,10 @@ const env = { DB: db } as Env;
 
 function context(body: unknown) {
   return {
-    request: new Request("https://appleid.limooo.cn/api/appleid/reorder", {
+    request: new Request("https://account.limooo.cn/api/apple-account/reorder", {
       method: "PUT",
       headers: {
-        Origin: "https://appleid.limooo.cn",
+        Origin: "https://account.limooo.cn",
         "X-CSRF-Token": "valid",
         "Content-Type": "application/json",
       },
@@ -60,7 +60,7 @@ beforeEach(() => {
   vi.mocked(executeBatch).mockResolvedValue(true);
 });
 
-describe("appleid reorder API", () => {
+describe("apple-account reorder API", () => {
   it("updates all ids in one batch", async () => {
     const resp = await onRequestPut(context({ order: [2, 1] }) as never);
     expect(resp.status).toBe(200);

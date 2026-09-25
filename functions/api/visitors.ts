@@ -2,7 +2,9 @@
  * GET /api/visitors
  *
  * 需要 admin 会话，D1 前向统计。为保护隐私，接口不返回完整 IP，只返回
- * ip_hash。前端状态筛选已本地化，因此主前端只调用不带 status 参数的端点；
+ * ip_hash；要看某个访客的真实 IP，走同一目录下的单行端点
+ * `GET /api/visitors/<ip_hash>/ip`（点击访客行时才会解密那一条）。
+ * 前端状态筛选已本地化，因此主前端只调用不带 status 参数的端点；
  * `?status=<3位数字>` 保留给深链和外部调用。
  *
  * 查询范围：新 visitor_rollups 与迁移前 visitors_v2 明细共同统计最近 30 天。

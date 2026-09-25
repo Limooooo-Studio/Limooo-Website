@@ -10,7 +10,7 @@
  */
 
 import {
-  APPLEID_HOSTNAME,
+  APPLE_ACCOUNT_HOSTNAME,
   CSRF_COOKIE,
   VISITOR_HOSTNAME,
 } from "./config";
@@ -22,7 +22,7 @@ export const CSRF_COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
 const textEncoder = new TextEncoder();
 const PROD_ORIGINS = new Set([
   `https://${VISITOR_HOSTNAME}`,
-  `https://${APPLEID_HOSTNAME}`,
+  `https://${APPLE_ACCOUNT_HOSTNAME}`,
 ]);
 const LOCAL_ORIGIN_RE = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i;
 

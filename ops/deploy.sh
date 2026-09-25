@@ -17,20 +17,24 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# limooo.cn 完整部署入口（docs/17 零 VPS 版）
+# limooo.cn full deploy entrypoint (docs/17, zero-VPS)
 #
-# 2026-09-17 起已退租 VPS：没有 ssh、没有 rsync、没有远端重启、没有 nginx。
-# 完整部署 = ① git commit → ② git push → ③ Cloudflare Pages（+ 相关 Worker）。
+# The VPS was retired on 2026-09-17: no ssh, no rsync, no remote restart, no nginx.
+# Full deploy = (1) git commit -> (2) git push -> (3) Cloudflare Pages (+ related Workers).
 #
-# 用法：
-#   bash ops/deploy.sh --dry-run                # 只打印将要做什么
-#   bash ops/deploy.sh --commit                 # 只提交
-#   bash ops/deploy.sh --commit --push          # 提交并推送
-#   bash ops/deploy.sh --all                    # 提交 + 推送 + 部署 Pages
-#   bash ops/deploy.sh --worker=status-worker   # 只部署某个独立 Worker
+# Usage:
+#   bash ops/deploy.sh --dry-run                # print what would happen only
+#   bash ops/deploy.sh --commit                 # commit only
+#   bash ops/deploy.sh --commit --push          # commit and push
+#   bash ops/deploy.sh --all                    # commit + push + deploy Pages
+#   bash ops/deploy.sh --worker=status-worker   # deploy one standalone Worker only
 #
-# 不带任何参数时：只部署 Pages（不 commit / 不 push），保持旧脚本的手感。
-# 凭据从本机 secrets/webauthn.env 读，不落盘、不回显；该文件不入库。
+# With no arguments: deploy Pages only (no commit / no push), matching the old script.
+# Credentials are read from local secrets/webauthn.env; never written to disk or echoed.
+#
+# 提交/推送前会先跑 ops/ci_check.sh（本地复刻 .github/workflows/tests.yml）：
+# 「先 build 再 typecheck/测试」，红了就中止，不提交也不推送。应急跳过：
+#   LIMOOO_SKIP_CHECKS=1 bash ops/deploy.sh --all
 
 set -euo pipefail
 
@@ -51,10 +55,10 @@ while [ $# -gt 0 ]; do
         --pages) DO_PAGES=1 ;;
         --all) DO_COMMIT=1; DO_PUSH=1; DO_PAGES=1 ;;
         --worker=*) WORKER="${1#--worker=}" ;;
-        --help|-h) sed -n '20,34p' "$0"; exit 0 ;;
+        --help|-h) sed -n '20,37p' "$0"; exit 0 ;;
         *)
-            echo "FATAL: 未知参数 $1" >&2
-            echo "       支持：--dry-run / --commit / --push / --pages / --all / --worker=<name>" >&2
+            echo "FATAL: unknown argument $1" >&2
+            echo "       supported: --dry-run / --commit / --push / --pages / --all / --worker=<name>" >&2
             exit 2
             ;;
     esac
@@ -66,7 +70,8 @@ if [ "$DO_COMMIT" = 0 ] && [ "$DO_PUSH" = 0 ] && [ "$DO_PAGES" = 0 ] && [ -z "$W
 fi
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[deploy] DRY-RUN：不写 git、不写 Cloudflare。"
+    echo "[deploy] DRY-RUN: no git writes, no Cloudflare writes."
+    { [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; } && echo "[deploy] will-run: bash ops/ci_check.sh（本地复刻 CI，红了就中止）"
     [ "$DO_COMMIT" = 1 ] && echo "[deploy] will-run: git add -A && git commit"
     [ "$DO_PUSH" = 1 ] && echo "[deploy] will-run: git push origin main"
     [ "$DO_PAGES" = 1 ] && echo "[deploy] will-run: bash ops/pages_deploy.sh"
@@ -74,36 +79,53 @@ if [ "$DRY_RUN" = 1 ]; then
     exit 0
 fi
 
+# ── ⓪ 本地 CI 复刻（必须先于 commit / push）──────────────────────────
+# 历史教训：CI 是「先 build 再 typecheck / 测试」，而本地只跑过 vitest/pytest，
+# 于是「本地全绿、push 完 30 秒收到失败通知」。这里把 CI 原样跑一遍。
+if [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; then
+    if [ "${LIMOOO_SKIP_CHECKS:-0}" = 1 ]; then
+        echo "[deploy] (0/3) LIMOOO_SKIP_CHECKS=1，跳过本地 CI 复刻"
+    elif [ "$DO_COMMIT" = 1 ]; then
+        echo "[deploy] (0/3) 本地 CI 复刻（工作区）"
+        bash ops/ci_check.sh
+    else
+        echo "[deploy] (0/3) 本地 CI 复刻（HEAD）"
+        bash ops/ci_check.sh --ref=HEAD
+    fi
+fi
+
 # ── ① git commit ────────────────────────────────────────────────────
 if [ "$DO_COMMIT" = 1 ]; then
-    echo "[deploy] ① git commit"
+    echo "[deploy] (1/3) git commit"
     git add -A -- . ':!limooo.cn.png'
     if git diff --cached --quiet; then
-        echo "[deploy] 没有需要提交的改动，跳过 commit"
+        echo "[deploy] nothing to commit, skipping commit"
     else
         git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')"
     fi
+    # 刚提交的这棵树就是 ⓪ 里检查过的内容，pre-push hook 不必再跑一遍。
+    export LIMOOO_CI_CHECKED_SHA="$(git rev-parse HEAD)"
 fi
 
 # ── ② git push ──────────────────────────────────────────────────────
 if [ "$DO_PUSH" = 1 ]; then
-    echo "[deploy] ② git push"
+    echo "[deploy] (2/3) git push"
     git fetch origin main
     LOCAL_HEAD="$(git rev-parse HEAD)"
     REMOTE_HEAD="$(git rev-parse origin/main)"
     if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
-        echo "[deploy] 与 origin/main 一致，无需 push"
+        echo "[deploy] already up to date with origin/main, no push needed"
     elif git merge-base --is-ancestor "$REMOTE_HEAD" "$LOCAL_HEAD"; then
         git push origin main
     else
-        echo "FATAL: 本地与 origin/main 已分叉，请先手动处理（rebase/merge）" >&2
+        echo "FATAL: local and origin/main have diverged, resolve manually (rebase/merge) first" >&2
         exit 1
     fi
 fi
 
 # ── ③ Cloudflare Pages ──────────────────────────────────────────────
 if [ "$DO_PAGES" = 1 ]; then
-    echo "[deploy] ③ Cloudflare Pages"
+    echo "[deploy] (3/3) Cloudflare Pages"
     bash ops/pages_deploy.sh
 fi
 
@@ -113,4 +135,4 @@ if [ -n "$WORKER" ]; then
     bash ops/workers_deploy.sh "--worker=$WORKER"
 fi
 
-echo "[deploy] 完成。"
+echo "[deploy] done."

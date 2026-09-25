@@ -2,11 +2,11 @@
 """统一导出 VPS SQLite 数据 → Cloudflare D1 导入 SQL/JSON。
 
 用法：
-    python3 ops/export_d1.py appleid [appleid.db 路径]
+    python3 ops/export_d1.py apple-account [apple_account.db 路径]
     python3 ops/export_d1.py blocklist
-输出：ops/out/{appleid,blocklist}.sql/json（git 忽略）
+输出：ops/out/{apple-account,blocklist}.sql/json（git 忽略）
 
-旧的 ops/export_appleid.py / ops/export_blocklist.py 已并入此脚本。
+旧的 ops/export_apple_account.py / ops/export_blocklist.py 已并入此脚本。
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def sql_str(value: object) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def export_appleid(db_path: str) -> int:
+def export_apple_account(db_path: str) -> int:
     if not os.path.exists(db_path):
         print(f"FATAL: {db_path} 不存在", file=sys.stderr)
         return 1
@@ -43,9 +43,9 @@ def export_appleid(db_path: str) -> int:
     conn.close()
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    with open(os.path.join(OUT_DIR, "appleid.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(OUT_DIR, "apple-account.json"), "w", encoding="utf-8") as f:
         json.dump([dict(r) for r in rows], f, ensure_ascii=False, indent=2)
-    with open(os.path.join(OUT_DIR, "appleid.sql"), "w", encoding="utf-8") as f:
+    with open(os.path.join(OUT_DIR, "apple-account.sql"), "w", encoding="utf-8") as f:
         f.write(
             "INSERT OR IGNORE INTO apple_accounts "
             "(id, email, password, notes, sort_order, created_at, updated_at) VALUES\n"
@@ -58,10 +58,10 @@ def export_appleid(db_path: str) -> int:
             for r in rows
         ]
         f.write(",\n".join(values) + ";\n")
-    # 导出包含 Apple ID 密文；不要让默认 umask 决定其是否对组/其他用户可读。
-    os.chmod(os.path.join(OUT_DIR, "appleid.json"), 0o600)
-    os.chmod(os.path.join(OUT_DIR, "appleid.sql"), 0o600)
-    print(f"[export] {len(rows)} rows -> ops/out/appleid.sql / appleid.json", flush=True)
+    # 导出包含 Apple Account 密文；不要让默认 umask 决定其是否对组/其他用户可读。
+    os.chmod(os.path.join(OUT_DIR, "apple-account.json"), 0o600)
+    os.chmod(os.path.join(OUT_DIR, "apple-account.sql"), 0o600)
+    print(f"[export] {len(rows)} rows -> ops/out/apple-account.sql / apple-account.json", flush=True)
     return 0
 
 
@@ -104,9 +104,9 @@ def export_blocklist(src: str) -> int:
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
-    if command == "appleid":
-        db_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(DATA_DIR, "appleid.db")
-        return export_appleid(db_path)
+    if command == "apple-account":
+        db_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(DATA_DIR, "apple_account.db")
+        return export_apple_account(db_path)
     if command == "blocklist":
         src = sys.argv[2] if len(sys.argv) > 2 else os.path.join(DATA_DIR, "blocklist.txt")
         return export_blocklist(src)

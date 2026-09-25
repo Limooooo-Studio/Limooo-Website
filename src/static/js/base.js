@@ -233,14 +233,21 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
        - 移动端不预取二维码(contact 页二维码仅桌面悬停展示)
        - 图片清单与 index.html / contact.html 的 src 保持同步
        ═══════════════════════════════════════════════════════════════ */
+    /* 主页作品图清单由模板按 src/static/portfolio 的实际图片生成
+       （body[data-portfolio-thumbs]）；属性缺失时退回默认清单。 */
+    var HOME_IMAGES = (document.body && document.body.getAttribute('data-portfolio-thumbs') || '')
+        .split(/\s+/).filter(function (rel) { return rel; });
+    if (!HOME_IMAGES.length) {
+        HOME_IMAGES = [
+            '/static/portfolio/thumbs/IMG_0203-640.avif',
+            '/static/portfolio/thumbs/IMG_0146-640.avif',
+            '/static/portfolio/thumbs/IMG_0130-640.avif',
+            '/static/portfolio/thumbs/IMG_0244-640.avif',
+            '/static/portfolio/thumbs/IMG_0115-640.avif',
+            '/static/portfolio/thumbs/IMG_0179-640.avif' ];
+    }
     var PAGE_MANIFEST = {
-        '/':        { host: 'limooo.cn',          path: '/',        images: [
-                        '/static/portfolio/thumbs/IMG_0203-640.avif',
-                        '/static/portfolio/thumbs/IMG_0146-640.avif',
-                        '/static/portfolio/thumbs/IMG_0130-640.avif',
-                        '/static/portfolio/thumbs/IMG_0244-640.avif',
-                        '/static/portfolio/thumbs/IMG_0115-640.avif',
-                        '/static/portfolio/thumbs/IMG_0179-640.avif' ], assetBase: true },
+        '/':        { host: 'limooo.cn',          path: '/',        images: HOME_IMAGES, assetBase: true },
         '/services':{ host: 'services.limooo.cn', path: '/services', images: [] },
         '/contact': { host: 'contact.limooo.cn',  path: '/contact',  images: [
                         '/qr-codes/bilibili.webp',
@@ -254,7 +261,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
         if (h === 'limooo.cn' || h === 'www.limooo.cn') return '/';
         if (h === 'services.limooo.cn') return '/services';
         if (h === 'contact.limooo.cn') return '/contact';
-        if (h.endsWith('.limooo.cn')) return null;   /* admin/appleid 等管理页不预取 */
+        if (h.endsWith('.limooo.cn')) return null;   /* admin/apple-account 等管理页不预取 */
         return location.pathname;                    /* 本地开发:'/'|'/services'|'/contact' */
     }
 

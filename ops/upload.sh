@@ -17,19 +17,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# limooo.cn 部署脚本（输出精简版）—— docs/17 零 VPS 版
+# limooo.cn deploy script (quiet output) -- docs/17, zero-VPS
 #
-# 与 ops/deploy.sh 做同样的事（commit / push / Pages / Worker），
-# **唯一区别是输出**：成功时只打印一行行程式状态（Git: / Pages: / Deploy:），
-# 构建清单、产物数量、wrangler 上传进度全部吞掉；只有出错时才把完整日志
-# 吐到 stderr。需要看全过程请用 ops/deploy.sh。
+# Does the same work as ops/deploy.sh (commit / push / Pages / Worker);
+# the ONLY difference is output: on success it prints one status line per step
+# (Git: / Pages: / Deploy:), swallowing the build manifest, artifact count and
+# wrangler upload progress; only on failure is the full log dumped to stderr.
+# Use ops/deploy.sh when you want to watch the whole process.
 #
-#   bash ops/upload.sh                     # 部署 Pages
-#   bash ops/upload.sh --commit --push     # 提交并推送
-#   bash ops/upload.sh --all               # 提交 + 推送 + 部署 Pages
+#   bash ops/upload.sh                     # deploy Pages
+#   bash ops/upload.sh --commit --push     # commit and push
+#   bash ops/upload.sh --all               # commit + push + deploy Pages
 #   bash ops/upload.sh --worker=status-worker
-#
-# 凭据从本机 secrets/webauthn.env 读，不落盘、不回显。
+# Credentials are read from local secrets/webauthn.env; never written to disk or echoed.
 
 set -euo pipefail
 
@@ -50,9 +50,9 @@ while [ $# -gt 0 ]; do
         --pages) DO_PAGES=1 ;;
         --all) DO_COMMIT=1; DO_PUSH=1; DO_PAGES=1 ;;
         --worker=*) WORKER="${1#--worker=}" ;;
-        --help|-h) sed -n '20,31p' "$0"; exit 0 ;;
+        --help|-h) sed -n '20,32p' "$0"; exit 0 ;;
         *)
-            echo "FATAL: 未知参数 $1" >&2
+            echo "FATAL: unknown argument $1" >&2
             exit 2
             ;;
     esac
@@ -119,7 +119,7 @@ if [ "$DO_PAGES" = 1 ]; then
         # 校验 /_health = 200，失败即非 0 退出，所以这里不需要复述。
         echo "Pages: done"
     else
-        echo "Pages: FAILED — 完整日志如下" >&2
+        echo "Pages: FAILED -- full log follows" >&2
         cat "$log" >&2
         exit 1
     fi
@@ -132,7 +132,7 @@ if [ -n "$WORKER" ]; then
     if bash ops/workers_deploy.sh "--worker=$WORKER" >"$log" 2>&1; then
         echo "Worker: $WORKER deployed"
     else
-        echo "Worker: $WORKER FAILED — 完整日志如下" >&2
+        echo "Worker: $WORKER FAILED -- full log follows" >&2
         cat "$log" >&2
         exit 1
     fi

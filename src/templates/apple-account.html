@@ -17,10 +17,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 {% extends "base.html" %}
 
-{% block title %}{{ _('page_title_appleid') }}{% endblock %}
+{% block title %}{{ _('page_title_apple_account') }}{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="/static/css/appleid.css?v=1">
+<link rel="stylesheet" href="/static/css/apple-account.css?v=1">
 {% endblock %}
 
 {% block nav_links %}
@@ -46,7 +46,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
     </a>
     <a href="https://account.limooo.cn/apple" class="nav-link active">
-        <span data-i18n="nav_appleid">{{ _('nav_appleid') }}</span>
+        <span data-i18n="nav_apple_account">{{ _('nav_apple_account') }}</span>
         <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
     </a>
 </div>
@@ -56,7 +56,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 
 
 {% block nav_logo %}
-<h1 class="nav-title">Apple ID <span>Manager</span></h1>
+<h1 class="nav-title">Apple Account <span>Manager</span></h1>
 {% endblock %}
 
 {% block nav_dropdown %}
@@ -74,7 +74,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
         <div class="theme-option" data-i18n="nav_admin" data-action="navigateTo" data-arg="https://admin.limooo.cn">{{ _('nav_admin') }}</div>
         <div class="theme-option" data-i18n="nav_visitor" data-action="navigateTo" data-arg="https://visitor.limooo.cn">{{ _('nav_visitor') }}</div>
-        <div class="theme-option selected" data-i18n="nav_appleid" data-action="navigateTo" data-arg="https://account.limooo.cn/apple">{{ _('nav_appleid') }}</div>
+        <div class="theme-option selected" data-i18n="nav_apple_account" data-action="navigateTo" data-arg="https://account.limooo.cn/apple">{{ _('nav_apple_account') }}</div>
     </div>
 </div>
 {% endblock %}
@@ -133,13 +133,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block footer %}
-<footer class="global-footer" id="global-footer">
-    <div class="footer-link">
-        <div class="footer-text"><span class="footer-copyright">&copy; 2026 <span class="footer-brand">Limooo</span> Studio</span><span data-i18n="footer_rights">{% if _('footer_rights') %}{{ _('footer_rights') }}{% endif %}</span><span data-i18n="footer_source">{% if _('footer_source') %}{{ _('footer_source') }}{% endif %}</span><a class="footer-source-link" href="{{ source_url }}" target="_blank" rel="noopener noreferrer"><span data-i18n="footer_source_link">{% if _('footer_source_link') %}{{ _('footer_source_link') }}{% endif %}</span></a></div>
-    </div>
-</footer>
+{# 复用单一事实源，避免此处再维护一份会漂移的副本。 #}
+{% include "_footer.html" %}
 {% endblock %}
 
 {% block scripts %}
-    <script src="/static/js/appleid.js?v=3" defer></script>
+    <script src="/static/js/apple-account.js?v=3" defer></script>
 {% endblock %}

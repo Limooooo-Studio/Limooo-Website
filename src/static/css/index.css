@@ -56,13 +56,23 @@
 @media (hover: hover) and (pointer: fine) {
     .work-box:hover .work-box-hint { opacity: 1; }
 }
-/* 裁剪层：固定圆角（外层 16 − 内边距 10），不随 hover 变化 */
+/* 裁剪层：固定圆角（外层 16 − 内边距 10），不随 hover 变化。
+   画幅由模板按图片真实比例写入内联 aspect-ratio（3:4 / 3:2 / 2:3…），
+   这里的 3 / 4 只是没有内联值时的兜底。 */
 .work-frame {
     width: 100%; height: 100%;
     aspect-ratio: 3 / 4;
     border-radius: calc(var(--radius-lg) - 10px);
     overflow: hidden;
 }
+/* 横幅（3:2 等）：卡片改为整行铺满，保持作品图的横向构图 */
+.work-box[data-orientation="landscape"] { grid-column: 1 / -1; }
+@media (min-width: 640px) {
+    .work-box[data-orientation="landscape"] .work-frame { max-width: 840px; margin: 0 auto; }
+}
+/* 网格默认 align-items: stretch：同排的竖幅卡片会被最高的那张拉长。
+   卡片按内容高度对齐，各自的包边才能紧贴自己的画幅。 */
+.work-box { align-self: start; }
 .work-img {
     display: block; width: 100%; height: 100%;
     object-fit: cover;

@@ -60,10 +60,10 @@ def load_contract() -> dict:
         with CONTRACT_PATH.open(encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError) as exc:
-        fail(f"无法读取或解析 {CONTRACT_PATH}: {exc}")
+        fail(f"cannot read or parse {CONTRACT_PATH}: {exc}")
         raise SystemExit(1) from exc
     if not isinstance(data, dict):
-        fail(f"{CONTRACT_PATH} 必须是 JSON 对象")
+        fail(f"{CONTRACT_PATH} must be a JSON object")
         raise SystemExit(1)
     return data
 
@@ -71,7 +71,7 @@ def load_contract() -> dict:
 def load_python_config() -> dict:
     spec = importlib.util.spec_from_file_location("limooo_config_check", PYTHON_CONFIG_PATH)
     if spec is None or spec.loader is None:
-        fail(f"无法加载 {PYTHON_CONFIG_PATH}")
+        fail(f"cannot load {PYTHON_CONFIG_PATH}")
         raise SystemExit(1)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -87,20 +87,20 @@ def load_ts_contract() -> dict | None:
     try:
         text = CONFIG_TS_PATH.read_text(encoding="utf-8")
     except OSError as exc:
-        fail(f"无法读取 {CONFIG_TS_PATH}: {exc}")
+        fail(f"cannot read {CONFIG_TS_PATH}: {exc}")
         raise SystemExit(1) from exc
     marker = "export const CONTRACT = {"
     start = text.find(marker)
     outer_start = text.find("{", start + len("export const CONTRACT = ") if start >= 0 else 0)
     if start < 0 or outer_start < 0:
-        fail(f"{CONFIG_TS_PATH} 缺少生成的 CONTRACT 常量，疑似被人手改")
+        fail(f"{CONFIG_TS_PATH} is missing the generated CONTRACT constant (looks hand-edited)")
         raise SystemExit(1)
     try:
         decoder = json.JSONDecoder()
         object_data, _ = decoder.raw_decode(text[outer_start:])
         return object_data
     except json.JSONDecodeError as exc:
-        fail(f"{CONFIG_TS_PATH} 的 CONTRACT 不是合法 JSON: {exc}")
+        fail(f"CONTRACT in {CONFIG_TS_PATH} is not valid JSON: {exc}")
         raise SystemExit(1) from exc
 
 
@@ -139,7 +139,7 @@ def check_constants_consumed() -> None:
     }
     for constant, expected_file in required.items():
         if not any(constant in text for text in source_text.values()):
-            fail(f"配置常量 {constant} 未被 functions/ 源码消费（应在 {expected_file}）")
+            fail(f"config constant {constant} is not consumed by functions/ sources (expected in {expected_file})")
             raise SystemExit(1)
 
 
@@ -155,7 +155,7 @@ def check_managed_hosts(contract: dict) -> None:
     managed = set(contract.get("managed_hosts", []))
     missing = [host for host in expected if host not in managed]
     if missing:
-        fail(f"managed_hosts 缺少托管子域: {', '.join(missing)}")
+        fail(f"managed_hosts is missing managed subdomains: {', '.join(missing)}")
         raise SystemExit(1)
 
 
@@ -163,7 +163,7 @@ def main() -> int:
     skip_ts = "--skip-ts" in sys.argv[1:]
     contract = load_contract()
     if contract.get("schema_version") != 1:
-        fail("当前仅支持 schema_version = 1")
+        fail("only schema_version = 1 is supported")
         return 1
 
     module = load_python_config()

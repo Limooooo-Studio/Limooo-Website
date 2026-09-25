@@ -20,7 +20,7 @@ while [ $# -gt 0 ]; do
         --dry-run) DRY_RUN=1 ;;
         --worker=*) SELECTED="${1#--worker=}" ;;
         *)
-            echo "FATAL: 未知参数 $1（支持 --dry-run / --worker=name）" >&2
+            echo "FATAL: unknown argument $1 (supported: --dry-run / --worker=name)" >&2
             exit 2
             ;;
     esac
@@ -28,12 +28,12 @@ while [ $# -gt 0 ]; do
 done
 
 if [ ! -x "$ROOT/node_modules/.bin/wrangler" ]; then
-    echo "FATAL: 未找到本地 wrangler，请先在 $ROOT 执行 npm ci" >&2
+    echo "FATAL: local wrangler not found, run npm ci in $ROOT first" >&2
     exit 1
 fi
 
 if ! command -v git >/dev/null 2>&1; then
-    echo "FATAL: 需要 git 来记录当前 commit" >&2
+    echo "FATAL: git is required to record the current commit" >&2
     exit 1
 fi
 
@@ -49,7 +49,7 @@ if [ -n "$SELECTED" ]; then
         image-watermark) WORKERS=("$ROOT/ops/image-watermark") ;;
         d1-archive) WORKERS=("$ROOT/ops/d1-archive") ;;
         status-worker) WORKERS=("$ROOT/ops/status-worker") ;;
-        *) echo "FATAL: 未知 Worker ${SELECTED}（可选 sync-worker / image-watermark / d1-archive / status-worker）" >&2; exit 2 ;;
+        *) echo "FATAL: unknown Worker ${SELECTED} (available: sync-worker / image-watermark / d1-archive / status-worker)" >&2; exit 2 ;;
     esac
 fi
 
@@ -57,7 +57,7 @@ for dir in "${WORKERS[@]}"; do
     name="$(basename "$dir")"
     config="$dir/wrangler.toml"
     if [ ! -f "$config" ]; then
-        echo "FATAL: 缺少 $config" >&2
+        echo "FATAL: missing $config" >&2
         exit 1
     fi
     echo "[workers] $name -> wrangler deploy --config $config"

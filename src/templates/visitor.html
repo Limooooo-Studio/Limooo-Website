@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% block title %}{{ _('page_title_visitor') }}{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="/static/css/visitor.css?v=2">
+<link rel="stylesheet" href="/static/css/visitor.css?v=3">
 {% endblock %}
 
 {% block nav_links %}
@@ -46,7 +46,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
     </a>
     <a href="https://account.limooo.cn/apple" class="nav-link">
-        <span data-i18n="nav_appleid">{{ _('nav_appleid') }}</span>
+        <span data-i18n="nav_apple_account">{{ _('nav_apple_account') }}</span>
         <svg class="nav-external" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M9 5v2h6.59L4 18.59 5.41 20 17 8.41V15h2V5H9z"/></svg>
     </a>
 </div>
@@ -70,7 +70,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
         <div class="theme-option" data-i18n="nav_contact" data-action="navigateTo" data-arg="https://contact.limooo.cn">{{ _('nav_contact') }}</div>
         <div class="theme-option" data-i18n="nav_admin" data-action="navigateTo" data-arg="https://admin.limooo.cn">{{ _('nav_admin') }}</div>
         <div class="theme-option selected" data-i18n="nav_visitor" data-action="navigateTo" data-arg="https://visitor.limooo.cn">{{ _('nav_visitor') }}</div>
-        <div class="theme-option" data-i18n="nav_appleid" data-action="navigateTo" data-arg="https://account.limooo.cn/apple">{{ _('nav_appleid') }}</div>
+        <div class="theme-option" data-i18n="nav_apple_account" data-action="navigateTo" data-arg="https://account.limooo.cn/apple">{{ _('nav_apple_account') }}</div>
     </div>
 </div>
 {% endblock %}
@@ -123,5 +123,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="/static/js/visitor.js?v=4"></script>
+<script type="module" src="/static/js/visitor.js?v=6"></script>
 {% endblock %}

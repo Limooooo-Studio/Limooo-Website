@@ -1,9 +1,9 @@
-/** PUT /api/appleid/reorder（需 admin + CSRF；D1 batch 事务，失败不部分生效） */
+/** PUT /api/apple-account/reorder（需 admin + CSRF；D1 batch 事务，失败不部分生效） */
 
 import { executeBatch, queryAll } from "../../_lib/d1";
 import { authUnavailableResponse, requireAuth } from "../../_lib/session";
 import { verifyCsrf } from "../../_lib/csrf";
-import { validateOrder } from "../../_lib/appleid";
+import { validateOrder } from "../../_lib/apple-account";
 import type { Env } from "../../_lib/env";
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {

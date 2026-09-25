@@ -166,7 +166,7 @@ function initDrag() {
 async function saveOrder() {
     var order = accounts.map(function(a) { return a.id; });
     try {
-        const resp = await fetch('/api/appleid/reorder', {
+        const resp = await fetch('/api/apple-account/reorder', {
             method: 'PUT',
             headers: csrfHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ order: order })
@@ -181,7 +181,7 @@ async function loadAccounts() {
     const container = document.getElementById('account-list');
     container.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
     try {
-        const resp = await fetch('/api/appleid/accounts');
+        const resp = await fetch('/api/apple-account/accounts');
         if (resp.status === 401) { window.location.href = '/login?next=' + encodeURIComponent(location.href); return; }
         accounts = await resp.json();
         pwVisible = {};
@@ -194,8 +194,8 @@ function renderList() {
     const search = document.getElementById('search').value.toLowerCase().trim();
     let filtered = search ? accounts.filter(a => a.email.toLowerCase().includes(search) || a.notes.toLowerCase().includes(search)) : accounts;
 
-    document.getElementById('count-badge').textContent = t('appleid_count', { count: filtered.length });
-    if (!filtered.length) { container.innerHTML = '<div class="empty-state"><div class="big-icon">🔑</div>' + esc(t('appleid_empty')) + '</div>'; return; }
+    document.getElementById('count-badge').textContent = t('apple_account_count', { count: filtered.length });
+    if (!filtered.length) { container.innerHTML = '<div class="empty-state"><div class="big-icon">🔑</div>' + esc(t('apple_account_empty')) + '</div>'; return; }
     container.innerHTML = filtered.map(a => {
         const pwShown = (pwVisible[a.id] !== undefined);
         const isAdmin = currentRole === 'admin';
@@ -241,7 +241,7 @@ function renderList() {
 async function revealPw(id) {
     if (pwVisible[id] !== undefined) return pwVisible[id];
     try {
-        const resp = await fetch('/api/appleid/accounts/' + id + '/reveal', { method: 'POST', headers: csrfHeaders() });
+        const resp = await fetch('/api/apple-account/accounts/' + id + '/reveal', { method: 'POST', headers: csrfHeaders() });
         if (resp.status === 403) { toast(t('toast_no_permission')); return null; }
         if (resp.status === 401) { window.location.href = '/login?next=' + encodeURIComponent(location.href); return null; }
         if (!resp.ok) { toast(t('toast_pw_fetch_failed')); return null; }
@@ -328,7 +328,7 @@ function closeDeleteModal() {
 async function confirmDelete() {
     if (deleteTargetId === null) return;
     const id = deleteTargetId;
-    const resp = await fetch('/api/appleid/accounts/' + id, { method: 'DELETE', headers: csrfHeaders() });
+    const resp = await fetch('/api/apple-account/accounts/' + id, { method: 'DELETE', headers: csrfHeaders() });
     closeDeleteModal();
     if (!resp.ok) { handleApiFailure(resp, t('toast_delete_failed')); return; }
     accounts = accounts.filter(a => a.id !== id);
@@ -401,7 +401,7 @@ async function saveAccount() {
         if (editingId) {
             const origPw = document.getElementById('field-password').dataset.original || '';
             const pwChanged = password !== origPw;
-            const resp = await fetch('/api/appleid/accounts/' + editingId, {
+            const resp = await fetch('/api/apple-account/accounts/' + editingId, {
                 method:'PUT',
                 headers: csrfHeaders({'Content-Type':'application/json'}),
                 body: JSON.stringify({email, password, notes, password_changed: pwChanged})
@@ -409,7 +409,7 @@ async function saveAccount() {
             if (!resp.ok) { handleApiFailure(resp, t('toast_update_failed')); btn.disabled = false; return; }
         } else {
             if (!email) { toast(t('toast_enter_email')); btn.disabled = false; return; }
-            const resp = await fetch('/api/appleid/accounts', {
+            const resp = await fetch('/api/apple-account/accounts', {
                 method:'POST',
                 headers: csrfHeaders({'Content-Type':'application/json'}),
                 body: JSON.stringify({email, password, notes})

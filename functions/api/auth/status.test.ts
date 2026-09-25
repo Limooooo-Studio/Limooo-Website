@@ -14,7 +14,7 @@ const env = { SESSION_HMAC_KEY: "test-session" } as Env;
 
 function context() {
   return {
-    request: new Request("https://appleid.limooo.cn/api/auth/status"),
+    request: new Request("https://account.limooo.cn/api/auth/status"),
     env,
     params: {},
     next: async () => new Response("next"),

@@ -94,7 +94,7 @@
 .status-refresh { display: inline-flex; gap: 4px; }
 #status-updated-at { font-variant-numeric: tabular-nums; }
 
-/* ── 页头（appleid 同款） ── */
+/* ── 页头（apple-account 同款） ── */
 .nav-title { font-size: 24px; font-weight: 700; letter-spacing: calc(-0.02em * var(--ls-scale)); white-space: nowrap; }
 .nav-title span { opacity: 0.3; font-weight: 400; }
 @media (max-width: 640px) {

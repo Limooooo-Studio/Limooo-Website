@@ -1,5 +1,5 @@
 /**
- * Fernet v1 加解密（与 Flask 端 cryptography.fernet 兼容，用于 Apple ID 密码字段）
+ * Fernet v1 加解密（与 Flask 端 cryptography.fernet 兼容，用于 Apple Account 密码字段）
  *
  * token 结构：0x80 || timestamp(8B BE) || IV(16B) || ciphertext || HMAC-SHA256(32B)
  * 32 字节 base64url 密钥：前 16 字节为签名密钥，后 16 字节为 AES-128-CBC 加密密钥

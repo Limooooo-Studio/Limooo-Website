@@ -85,9 +85,9 @@
       "/visitor": "visitor.html"
     },
     "account.limooo.cn": {
-      "/": "appleid.html",
-      "/index.html": "appleid.html",
-      "/apple": "appleid.html"
+      "/": "apple-account.html",
+      "/index.html": "apple-account.html",
+      "/apple": "apple-account.html"
     },
     "auth.limooo.cn": {
       "/__gate": "auth.html"

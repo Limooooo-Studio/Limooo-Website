@@ -1,4 +1,4 @@
-/** Apple ID 列表与新增接口测试（mock 所有外部依赖）。 */
+/** Apple Account 列表与新增接口测试（mock 所有外部依赖）。 */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { onRequestGet, onRequestPost } from "./accounts";
@@ -17,7 +17,7 @@ vi.mock("../../_lib/csrf", () => ({ verifyCsrf: vi.fn() }));
 vi.mock("../../_lib/fernet", () => ({ fernetEncrypt: vi.fn() }));
 
 const env = {
-  APPLEID_ENCRYPTION_KEY: "test-key",
+  APPLE_ACCOUNT_ENCRYPTION_KEY: "test-key",
 } as Env;
 
 function context(request: Request) {
@@ -30,12 +30,12 @@ function context(request: Request) {
   };
 }
 
-function appleidRequest(method: string, body?: unknown): Request {
-  return new Request("https://appleid.limooo.cn/api/appleid/accounts", {
+function appleAccountRequest(method: string, body?: unknown): Request {
+  return new Request("https://account.limooo.cn/api/apple-account/accounts", {
     method,
     headers: {
       "Content-Type": "application/json",
-      Origin: "https://appleid.limooo.cn",
+      Origin: "https://account.limooo.cn",
       "X-CSRF-Token": "valid",
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -60,7 +60,7 @@ beforeEach(() => {
   vi.mocked(queryAll).mockResolvedValue([]);
 });
 
-describe("appleid accounts API", () => {
+describe("apple account accounts API", () => {
   it("returns a masked password and never a plaintext field", async () => {
     vi.mocked(requireAuth).mockResolvedValue({
       sid: "sid-1",
@@ -70,9 +70,9 @@ describe("appleid accounts API", () => {
       authAt: 1,
     } as never);
     vi.mocked(queryAll).mockResolvedValueOnce([
-      { id: 1, email: "a@appleid.limooo.cn", password: "cipher", notes: "", sort_order: 0 },
+      { id: 1, email: "a@account.limooo.cn", password: "cipher", notes: "", sort_order: 0 },
     ]);
-    const resp = await onRequestGet(context(new Request("https://appleid.limooo.cn/api/appleid/accounts")) as never);
+    const resp = await onRequestGet(context(new Request("https://account.limooo.cn/api/apple-account/accounts")) as never);
     const data = await resp.json();
     expect(resp.status).toBe(200);
     expect(data[0].password).toBe("·".repeat(12));
@@ -83,7 +83,7 @@ describe("appleid accounts API", () => {
   it("returns 401 when unauthenticated and 403 for viewers on POST", async () => {
     vi.mocked(requireAuth).mockResolvedValue(null);
     const unauth = await onRequestPost(
-      context(appleidRequest("POST", { email: "a", password: "p", notes: "" })) as never,
+      context(appleAccountRequest("POST", { email: "a", password: "p", notes: "" })) as never,
     );
     expect(unauth.status).toBe(401);
 
@@ -95,7 +95,7 @@ describe("appleid accounts API", () => {
       authAt: 1,
     } as never);
     const viewer = await onRequestPost(
-      context(appleidRequest("POST", { email: "a", password: "p", notes: "" })) as never,
+      context(appleAccountRequest("POST", { email: "a", password: "p", notes: "" })) as never,
     );
     expect(viewer.status).toBe(403);
   });
@@ -103,18 +103,18 @@ describe("appleid accounts API", () => {
   it("rejects a missing CSRF token", async () => {
     vi.mocked(verifyCsrf).mockResolvedValue(false);
     const resp = await onRequestPost(
-      context(appleidRequest("POST", { email: "a", password: "p", notes: "" })) as never,
+      context(appleAccountRequest("POST", { email: "a", password: "p", notes: "" })) as never,
     );
     expect(resp.status).toBe(403);
   });
 
   it("rejects unknown fields and invalid payloads", async () => {
     const unknown = await onRequestPost(
-      context(appleidRequest("POST", { email: "a", password: "p", notes: "", extra: 1 })) as never,
+      context(appleAccountRequest("POST", { email: "a", password: "p", notes: "", extra: 1 })) as never,
     );
     expect(unknown.status).toBe(400);
     const invalid = await onRequestPost(
-      context(appleidRequest("POST", { email: "", password: "p", notes: "" })) as never,
+      context(appleAccountRequest("POST", { email: "", password: "p", notes: "" })) as never,
     );
     expect(invalid.status).toBe(400);
   });
@@ -122,7 +122,7 @@ describe("appleid accounts API", () => {
   it("creates an account for a valid admin request", async () => {
     vi.mocked(queryAll).mockResolvedValueOnce([{ n: 2 }]);
     const resp = await onRequestPost(
-      context(appleidRequest("POST", { email: "alice", password: "secret", notes: "note" })) as never,
+      context(appleAccountRequest("POST", { email: "alice", password: "secret", notes: "note" })) as never,
     );
     expect(resp.status).toBe(200);
     expect(vi.mocked(execute)).toHaveBeenCalledWith(
@@ -136,11 +136,11 @@ describe("appleid accounts API", () => {
   });
 
   it("does not write without an encryption key", async () => {
-    delete env.APPLEID_ENCRYPTION_KEY;
+    delete env.APPLE_ACCOUNT_ENCRYPTION_KEY;
     const resp = await onRequestPost(
-      context(appleidRequest("POST", { email: "alice", password: "secret", notes: "" })) as never,
+      context(appleAccountRequest("POST", { email: "alice", password: "secret", notes: "" })) as never,
     );
     expect(resp.status).toBe(500);
-    env.APPLEID_ENCRYPTION_KEY = "test-key";
+    env.APPLE_ACCOUNT_ENCRYPTION_KEY = "test-key";
   });
 });

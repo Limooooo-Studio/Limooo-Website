@@ -4,12 +4,15 @@
  * 隐私约定：
  * - visitors_v2 / ray_log_v2 不保存完整 IP、UA 或 query；
  * - IP 使用独立 OBSERVABILITY_HMAC_KEY 的 HMAC 前 16 位；
+ * - visitor_rollups 额外存一份 **加密** 的 IP（VISITOR_IP_KEY，见 _lib/visitor-ip.ts），
+ *   只在 admin 点击某一行时单条解密；列表接口永远不返回它；
  * - 埋点失败只输出控制台，不阻塞业务、不递归写错误事件。
  */
 
 import { execute } from "./d1";
 import type { Env } from "./env";
 import { ipHash } from "./logging";
+import { encryptVisitorIp } from "./visitor-ip";
 import { GATE_TRUST } from "../_data/gateTrust";
 import { IMAGES_HOSTNAME, REDIRECT_HOSTNAME } from "./config";
 import { clientCountryForLogs, clientIpForLogs } from "./routing";
@@ -25,8 +28,10 @@ const TRACKING_DDL = [
     page_slug   TEXT NOT NULL DEFAULT '',
     requests    INTEGER NOT NULL DEFAULT 1,
     last_ts     INTEGER NOT NULL DEFAULT (unixepoch()),
+    ip_enc      TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (bucket_hour, ip_hash, country, status, page_slug)
   )`,
+  "CREATE INDEX IF NOT EXISTS idx_visitor_rollups_ip_hash ON visitor_rollups (ip_hash, last_ts)",
   `CREATE TABLE IF NOT EXISTS visitors_v2 (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     ip_hash     TEXT NOT NULL DEFAULT '',
@@ -71,7 +76,7 @@ export function pageSlug(pathname: string): string {
   if (p.startsWith("/services")) return "services";
   if (p.startsWith("/contact")) return "contact";
   if (p.startsWith("/visitor")) return "visitor";
-  if (p.startsWith("/account")) return "appleid";
+  if (p.startsWith("/account")) return "apple-account";
   if (p.startsWith("/login")) return "login";
   if (p.startsWith("/logout")) return "logout";
   const first = p.split("/").filter(Boolean)[0];
@@ -155,20 +160,27 @@ async function ensureTrackingSchema(env: Env): Promise<void> {
 export async function recordVisit(env: Env, request: Request, status: number): Promise<void> {
   if (!env.DB) return;
   const url = new URL(request.url);
+  const ip = clientIpForLogs(request);
   try {
     await ensureTrackingSchema(env);
     await execute(
       env.DB,
       `INSERT INTO visitor_rollups
-         (bucket_hour, ip_hash, country, status, page_slug, requests, last_ts)
-       VALUES ((unixepoch() / 3600) * 3600, ?, ?, ?, ?, 1, unixepoch())
+         (bucket_hour, ip_hash, country, status, page_slug, requests, last_ts, ip_enc)
+       VALUES ((unixepoch() / 3600) * 3600, ?, ?, ?, ?, 1, unixepoch(), ?)
        ON CONFLICT(bucket_hour, ip_hash, country, status, page_slug) DO UPDATE SET
          requests = visitor_rollups.requests + 1,
-         last_ts = excluded.last_ts`,
-      await ipHash(clientIpForLogs(request), env),
+         last_ts = excluded.last_ts,
+         -- 同 IP 每次加密的 IV 不同，只在原本为空（当时还没配密钥）时补写。
+         ip_enc = CASE
+           WHEN visitor_rollups.ip_enc = '' THEN excluded.ip_enc
+           ELSE visitor_rollups.ip_enc
+         END`,
+      await ipHash(ip, env),
       clientCountryForLogs(request),
       status,
       pageSlug(url.pathname),
+      await encryptVisitorIp(ip, env),
     );
   } catch (error) {
     // 不递归写错误事件，仅保留 Pages 控制台。

@@ -24,6 +24,7 @@ from config import (
     SUPPORTED_LANGS,
     TEMPLATES_DIR,
 )
+from portfolio import portfolio_items
 
 
 def load_translations() -> dict[str, dict[str, str]]:
@@ -74,6 +75,8 @@ def create_render_app() -> Flask:
             "image_asset_base": IMAGE_ASSET_BASE_URL,
             "image_watermark_base": IMAGE_WATERMARK_BASE_URL,
             "source_url": SOURCE_REPO_URL,
+            # 作品区卡片：数量由 src/static/portfolio 里的图片决定
+            "portfolio_items": portfolio_items(),
         }
 
     return app
