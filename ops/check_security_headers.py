@@ -47,6 +47,35 @@ def main() -> int:
                 if match and "https://limooo.cn" in match.group(1):
                     errors.append(f"CSP {section} 仍放行 https://limooo.cn，应使用 'self'")
 
+            # 第三方组件一致性守卫。
+            #
+            # Turnstile 完成一次求解需要三条指令同时放行同一来源：
+            #   script-src  加载 api.js
+            #   frame-src   内嵌 challenge iframe
+            #   connect-src 提交求解结果、取回 token
+            # 只放行前两条会得到一个"能显示、点不动、永远拿不到 token"的
+            # widget —— 表现为无限人机验证。历史上正是 connect-src 漏了
+            # challenges.cloudflare.com，导致门禁永远无法通过。
+            def origins(header: str, section: str) -> set[str]:
+                match = re.search(rf"{section} ([^;]+)", header)
+                if not match:
+                    return set()
+                return {
+                    token
+                    for token in match.group(1).split()
+                    if token.startswith(("http://", "https://"))
+                }
+
+            connect_origins = origins(actual, "connect-src")
+            for section in ("script-src", "frame-src"):
+                for origin in origins(actual, section):
+                    if origin not in connect_origins:
+                        errors.append(
+                            f"CSP {section} 放行了 {origin}，但 connect-src 没有："
+                            f"该第三方组件会因 CSP 拦下网络请求而永久卡住"
+                            f"（Turnstile 表现为无限人机验证），请把 {origin} 补进 connect-src"
+                        )
+
     if errors:
         print("FATAL: 安全响应头校验失败", file=sys.stderr)
         for error in errors:

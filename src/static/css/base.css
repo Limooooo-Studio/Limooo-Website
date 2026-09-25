@@ -45,17 +45,35 @@
             color: inherit; text-decoration: none;
         }
         .footer-text {
-            display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-            gap: 0;
+            display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center;
+            /* 行间留缝：折行后两行不贴死；单行时对总高无影响 */
+            row-gap: 0.45em;
+            column-gap: 0.7em;
+            /* 窄屏左右留安全边距，避免文字顶到屏幕边缘 */
+            padding-inline: 1rem;
             font-size: 10px !important; font-weight: 600;
             letter-spacing: calc(0.15em*var(--ls-scale)); opacity: 0.5; text-align: center; line-height: 1;
         }
         /* 语义块（版权 / 权利 / 许可）内部不截断，块之间允许折行 */
         .footer-text > span, .footer-text > a { white-space: nowrap; }
-        .footer-text > [data-i18n="footer_rights"],
-        .footer-text > [data-i18n="footer_source"] { margin-left: 0.7em; }
-        .footer-text > [data-i18n="footer_rights"]::before,
-        .footer-text > [data-i18n="footer_source"]::before { content: "|"; margin-right: 0.7em; }
+        /* 分隔符属于语义块自己（旧写法把 ::before 挂在内容块上，
+           内容块一折行竖线就落到行首，变成孤立的 "|"）。
+           窄屏放不下时（见下方 max-width 规则）直接隐藏竖线，
+           改用块间距分隔，这样永远不会出现行首孤线。
+           注意是 inline-block 而不是 inline-flex：
+           flex 会吃掉子元素之间的空格，"© 2026 Limooo Studio" 会粘成
+           "© 2026LimoooStudio"。 */
+        .footer-text > .footer-item { display: inline-block; }
+        .footer-text > .footer-item:not(:first-child)::before {
+            content: "|"; margin-right: 0.7em; opacity: 0.6;
+        }
+        /* 窄屏：整条版权信息约 426px 宽，手机上必然折行；
+           折行后行首会挂一个孤立 "|"。窄屏直接隐藏竖线，
+           用更大的块间距当分隔，视觉更干净。 */
+        @media (max-width: 559px) {
+            .footer-text { column-gap: 1.1em; }
+            .footer-text > .footer-item:not(:first-child)::before { content: none; }
+        }
         .footer-brand {
             font-family: 'Baloo 2', ui-rounded, system-ui, sans-serif;
             font-weight: 700; letter-spacing: 0.02em;
