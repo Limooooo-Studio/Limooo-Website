@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# Limooo - Flask Web Application
+#
+# Copyright (C) 2026 Limooo <https://limooo.cn/>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# pre-push：推之前把每个「将要推上去的 commit」在临时 worktree 里跑一遍
+# ops/ci_check.sh（= 复刻 .github/workflows/tests.yml）。这样 CI 的红/绿
+# 在本地就定了，不会再出现「push 之后 30 秒收到失败通知」。
+#
+# 注意校验的是 commit，不是工作区：即使工作区很脏，也校验真正要推的那棵树。
+#
+# 跳过方式（应急）：
+#   LIMOOO_SKIP_CI_CHECK=1 git push
+# deploy.sh 刚检查过的同一个 commit 会自动跳过（LIMOOO_CI_CHECKED_SHA）。
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+if [ "${LIMOOO_SKIP_CI_CHECK:-0}" = 1 ]; then
+    echo "[pre-push] LIMOOO_SKIP_CI_CHECK=1，跳过本地 CI 复刻" >&2
+    exit 0
+fi
+
+CHECKED_SHA="${LIMOOO_CI_CHECKED_SHA:-}"
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "${local_sha:-}" ] && continue
+    case "$local_sha" in
+        0000000000000000000000000000000000000000) continue ;;
+    esac
+    if [ "$local_sha" = "$CHECKED_SHA" ]; then
+        echo "[pre-push] $local_sha 已由 deploy.sh 检查过，跳过" >&2
+        continue
+    fi
+    echo "[pre-push] 校验 ${local_ref} -> ${remote_ref} (${local_sha})" >&2
+    if ! bash ops/ci_check.sh --ref="$local_sha"; then
+        echo "[pre-push] 拒绝 push：上面这份代码在 CI 上会红。修好再推。" >&2
+        status=1
+    fi
+done
+
+exit "$status"
