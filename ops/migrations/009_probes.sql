@@ -42,10 +42,10 @@ CREATE TABLE IF NOT EXISTS probe_state (
 --
 -- 注意：id=2 原先探的是 `admin.limooo.cn/_health`（authentik + Kuma 时代）。
 -- VPS 退租后该域名已无 DNS 记录，探针每分钟固定拿到 http_530，状态页永远显示
--- 一项 down——这是过时配置，不是真实故障。零 VPS 后「内部」这一组的有意义目标
--- 是状态探针 Worker 自身，故改为 `status.limooo.cn/_health`。
+-- 一项 down——这是过时配置，不是真实故障。改为探同区域的静态资源主机：
+-- 不能探 Worker 自己的域名（对自身 zone 的 subrequest 会被 Cloudflare 拦掉）。
 -- 已有库请用 015 迁移同步（INSERT OR IGNORE 不会更新已存在的行）。
 INSERT OR IGNORE INTO probes (id, name, type, target, group_key, interval_s) VALUES
-    (1, 'Website',      'http', 'https://limooo.cn/_health',        'public',   60),
-    (2, 'Status API',   'http', 'https://status.limooo.cn/_health', 'internal', 60),
-    (3, 'D1 Health',    'd1',   NULL,                               'internal', 900);
+    (1, 'Website',      'http', 'https://limooo.cn/_health',         'public',   60),
+    (2, 'Edge Assets',  'http', 'https://images.limooo.cn/_health',  'internal', 60),
+    (3, 'D1 Health',    'd1',   NULL,                                'internal', 900);

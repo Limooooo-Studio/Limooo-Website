@@ -9,12 +9,18 @@
 --
 -- 只对「仍是旧值」的行生效，避免覆盖运维手工调整过的目标。
 
+-- 注：不能探 `status.limooo.cn/_health` 或 Workers 自带的 `*.workers.dev` 域名——
+-- Worker 对「自己所在 zone / 自己的路由」发起的 subrequest 会被 Cloudflare 拦掉
+-- （实测分别得到 http_522 / http_404，而外部 curl 同一 URL 是 200）。因此改探
+-- 同区域的静态资源主机，既真实可达，又确实覆盖「边缘资产是否正常」。
 UPDATE probes
-   SET target = 'https://status.limooo.cn/_health',
-       name   = 'Status API'
+   SET target = 'https://images.limooo.cn/_health',
+       name   = 'Edge Assets'
  WHERE id = 2
    AND (target = 'https://admin.limooo.cn/_health' OR target IS NULL);
 
 UPDATE probes SET label_key = 'card_website' WHERE id = 1 AND label_key IS NULL;
-UPDATE probes SET label_key = 'card_status'  WHERE id = 2 AND label_key IS NULL;
+-- `card_admin` 已从 status-worker 的文案表移除（管理入口随 VPS 消失），指向它的
+-- 旧标签会退回显示英文 name，故一并改到新的 card_status。
+UPDATE probes SET label_key = 'card_status'  WHERE id = 2 AND (label_key IS NULL OR label_key = 'card_admin');
 UPDATE probes SET label_key = 'card_d1'      WHERE id = 3 AND label_key IS NULL;
