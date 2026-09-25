@@ -21,7 +21,7 @@ import {
   type RequestContext,
 } from "./_lib/routing";
 import {
-  APPLE_ACCOUNT_HOSTNAME,
+  APPLEID_HOSTNAME,
   BASE_URL,
   GATE_HOSTNAME,
   IMAGES_HOSTNAME,
@@ -174,7 +174,7 @@ async function adminAuthRedirect(
   request: Request,
   hostname: string,
 ): Promise<Response | null> {
-  if (hostname !== VISITOR_HOSTNAME && hostname !== APPLE_ACCOUNT_HOSTNAME) return null;
+  if (hostname !== VISITOR_HOSTNAME && hostname !== APPLEID_HOSTNAME) return null;
   try {
     if (await requireAuth(env, request)) return null;
     const url = new URL(request.url);
@@ -319,7 +319,7 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     pathname.startsWith("/logout") ||
     pathname.startsWith("/account") ||
     pathname.startsWith("/visitor") ||
-    pathname.startsWith("/api/apple-account") ||
+    pathname.startsWith("/api/appleid") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/ray");
   if (!whitelisted && !exempt && ip && (await isBlocked(env, request, ip))) {
