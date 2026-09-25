@@ -61,7 +61,7 @@ document.documentElement.lang = document.body.getAttribute('data-lang') || 'zh-c
 
     function themeChallengeUrl() {
         /* 同域名挑战：在请求来源主机上完成，而不是跳去 auth.<root_domain>。 */
-        var base = 'https://' + location.hostname + '/__gate';
+        var base = 'https://' + location.hostname + '/gate';
         var url = new URL(base, location.origin);
         url.searchParams.set('host', location.hostname);
         url.searchParams.set('next', location.pathname + location.search + location.hash);

@@ -1,6 +1,7 @@
-{# Limooo - 人机验证门禁页（auth.limooo.cn/__gate）
+{# Limooo - 人机验证门禁页（/gate，任意受管主机同域可用）
+   旧的 /__gate 由中间件 308 重定向到 /gate，模板只引用规范路径。
    由 build.py 按 4 种语言预渲染为 public/<lang>/auth.html。
-   Turnstile sitekey、完整 i18n 和错误信息由运行时 /__gate/config 与
+   Turnstile sitekey、完整 i18n 和错误信息由运行时 /gate/config 与
    {{error}} 占位符注入；CSS/JS 全部外置，不再在 HTML 内维护样式。 #}
 <!doctype html>
 <html lang="zh-cn">
@@ -47,7 +48,7 @@
   <h1 data-i18n="heading">{{ heading }}</h1>
   <div id="gate-error" class="error" hidden></div>
   <p id="gate-blocked-detail" class="blocked-detail" data-i18n="error_blocked_detail" hidden></p>
-  <form id="gate" method="post" action="/__gate/verify">
+  <form id="gate" method="post" action="/gate/verify">
     <input type="hidden" name="host" value="{{ host }}">
     <input type="hidden" name="next" value="{{ next }}">
     <div id="turnstile-wrap" class="turnstile-wrap"></div>

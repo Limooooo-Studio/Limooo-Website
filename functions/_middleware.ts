@@ -17,15 +17,12 @@ import {
   PUBLIC_FILES_PREFIX,
   pageAsset,
   preserveSetCookie,
-  safeNextPath,
-  sanitizeHost,
   withLangCookie,
   type RequestContext,
 } from "./_lib/routing";
 import {
   APPLEID_HOSTNAME,
   BASE_URL,
-  GATE_COOKIE,
   GATE_HOSTNAME,
   IMAGES_HOSTNAME,
   LANG_COOKIE,
@@ -35,11 +32,13 @@ import {
 import {
   handleGateConfig,
   handleGateDiag,
+  handleGateEntry,
+  handleLegacyGateRedirect,
   handleVerify,
   isBlocked,
-  isValidGateCookie,
   mintGateCookie,
   renderGatePage,
+  resolveGateTrust,
 } from "./_lib/gate";
 import { isRedirectHost, renderRedirectPage } from "./_lib/redirect";
 import {
@@ -201,6 +200,29 @@ function gateNextPath(pathname: string, search: string): string {
   return nextUrl.pathname + nextUrl.search;
 }
 
+/**
+ * 会话临近到期时，在正常页面响应上顺带续签 __gate cookie。
+ *
+ * 续期由 resolveGateTrust 的 shouldRenew 决定（走完 3/4 TTL 才续一次），
+ * 因此这里不会把 cookie 变成每次请求都刷新的无限滑动窗口；不续期时
+ * 原样返回响应，不做任何额外分配。
+ */
+async function renewGateCookie(
+  context: RequestContext,
+  resp: Response,
+  shouldRenew: boolean,
+): Promise<Response> {
+  if (!shouldRenew) return resp;
+  const headers = new Headers(resp.headers);
+  preserveSetCookie(headers, resp.headers);
+  headers.append("Set-Cookie", await mintGateCookie(context.env.GATE_HMAC_KEY));
+  return new Response(resp.body, {
+    status: resp.status,
+    statusText: resp.statusText,
+    headers,
+  });
+}
+
 /** 中间件核心编排，导出供本地测试 mock 依赖。 */
 export async function handleOnRequest(context: RequestContext): Promise<Response> {
   const { request, env, next } = context;
@@ -236,44 +258,14 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
   if (isRedirectHost(hostname)) return renderRedirectPage(context);
 
   // 门禁接口与公开静态/API 路径不能被门禁拦截。
-  if (pathname === "/__gate/verify") return handleVerify(context);
-  if (pathname === "/__gate/config") return handleGateConfig(context);
-  if (pathname === "/__gate/diag") return handleGateDiag(context);
+  if (pathname === "/__gate/verify" || pathname === "/gate/verify") return handleVerify(context);
+  if (pathname === "/__gate/config" || pathname === "/gate/config") return handleGateConfig(context);
+  if (pathname === "/__gate/diag" || pathname === "/gate/diag") return handleGateDiag(context);
 
-  // 门禁页：任意主机（对应域名）都能渲染/回跳，做到同域名完成 challenge。
-  if (pathname === "/__gate") {
-    const gateIp = request.headers.get("CF-Connecting-IP") ?? "";
-    const gateWhitelisted = isGateTrustedIp(gateIp);
-    const gateCrawler = isTrustedCrawler(request);
-    const gateCookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
-    const gateValid = gateCookie
-      ? await isValidGateCookie(gateCookie, env.GATE_HMAC_KEY)
-      : false;
-    const passed = gateWhitelisted || gateCrawler || gateValid;
-
-    // 已验证：仍在门禁页则送回原主机原路径（不再跳回 auth 中转）。
-    if (passed && !forceChallenge) {
-      const back = safeNextPath(url.searchParams.get("next") ?? "/");
-      const host = sanitizeHost(url.searchParams.get("host"));
-      let resp = Response.redirect(`https://${host}${back}`, 302);
-      if (!gateValid) {
-        const headers = new Headers(resp.headers);
-        headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));
-        resp = new Response(resp.body, {
-          status: resp.status,
-          statusText: resp.statusText,
-          headers,
-        });
-      }
-      return withLangCookie(request, resp);
-    }
-
-    // 未验证 / 强制挑战：在对应域名渲染门禁页。
-    return renderGatePage(context, {
-      host: url.searchParams.get("host") ?? undefined,
-      next: url.searchParams.get("next") ?? "/",
-    });
-  }
+  // 门禁页：/gate 是唯一对外入口，旧 /__gate 一律 308 到它。
+  // 任意主机（对应域名）都能渲染/回跳，做到同域名完成 challenge。
+  if (pathname === "/__gate") return handleLegacyGateRedirect(context);
+  if (pathname === "/gate") return handleGateEntry(context);
 
   // 图片子域强制挑战直接在当前 URL 输出门禁页，地址栏不切到 /__gate。
   if (forceChallenge && hostname === IMAGES_HOSTNAME) {
@@ -351,15 +343,11 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     return renderGatePage(context, { host: hostname, next: gateNextPath(pathname, url.search) });
   }
 
-  const cookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
-  const gated = !(
-    whitelisted ||
-    trustedCrawler ||
-    (cookie && (await isValidGateCookie(cookie, env.GATE_HMAC_KEY)))
-  );
+  const trust = await resolveGateTrust(context);
+  const gated = !(trust.trusted || trust.cookieValid);
 
-  if (!gated && !forceChallenge) {
-    if (whitelisted || trustedCrawler) {
+  if (!gated) {
+    if (trust.trusted) {
       defer(
         context,
         logEvent(env, "gate_bypass", request, {
@@ -377,7 +365,10 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
       const authRedirect = await adminAuthRedirect(env, request, hostname);
       if (authRedirect) return withLangCookie(request, authRedirect);
       const resp = await cachedPageAsset(context, asset, lang);
-      if (resp?.ok) return withLangCookie(request, resp);
+      if (resp?.ok) {
+        // 会话临近到期时在响应里顺带续签，访客不会在浏览中途被弹回门禁页。
+        return withLangCookie(request, await renewGateCookie(context, resp, trust.shouldRenew));
+      }
     }
     // 门禁主机没有别的内容页：已验证访客也在原地渲染门禁页（200），
     // 既不落到 404，也不把人送去主站。
@@ -388,7 +379,7 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
         passed: true,
       });
     }
-    return next();
+    return withLangCookie(request, await renewGateCookie(context, await next(), trust.shouldRenew));
   }
 
   // 未验证：直接在被访问的 URL 输出门禁页，地址栏始终保持原页面地址。

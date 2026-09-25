@@ -1,7 +1,15 @@
 /** isBlocked 的 CIDR 精确匹配测试（docs/10）。 */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { handleGateDiag, handleVerify, isBlocked } from "./gate";
+import {
+  GATE_RENEW_AFTER_SECONDS,
+  handleGateDiag,
+  handleVerify,
+  isBlocked,
+  isValidGateCookie,
+  mintGateCookie,
+  readGateCookie,
+} from "./gate";
 import type { RequestContext } from "./routing";
 import { queryAll } from "./d1";
 import { logEvent } from "./logging";
@@ -111,5 +119,64 @@ describe("handleVerify", () => {
     expect(resp.status).toBe(303);
     expect(resp.headers.get("Location")).toBe("https://limooo.cn/services");
     vi.unstubAllGlobals();
+  });
+});
+
+describe("__gate cookie: signature, expiry and renewal", () => {
+  const KEY = "k".repeat(64);
+
+  async function mintAt(nowSeconds: number): Promise<string> {
+    vi.useFakeTimers();
+    vi.setSystemTime(nowSeconds * 1000);
+    const header = await mintGateCookie(KEY);
+    vi.useRealTimers();
+    return header.split(";")[0].split("=").slice(1).join("=");
+  }
+
+  it("signs issued+expiry so a valid cookie cannot be extended by rewriting it", async () => {
+    const value = await mintAt(1_700_000_000);
+    const [issued, expiry, signature] = value.split(".");
+    // 攻击者把过期时间往后推，签名对不上 -> 无效。
+    const forged = `${issued}.${Number(expiry) + 86400}.${signature}`;
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_100 * 1000);
+    await expect(isValidGateCookie(forged, KEY)).resolves.toBe(false);
+    await expect(isValidGateCookie(value, KEY)).resolves.toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("rejects the legacy two-field cookie format", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    await expect(isValidGateCookie("1700003600.deadbeef", KEY)).resolves.toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("expires exactly one hour after it was issued", async () => {
+    const value = await mintAt(1_700_000_000);
+    vi.useFakeTimers();
+    vi.setSystemTime((1_700_000_000 + 3600 - 5) * 1000);
+    await expect(isValidGateCookie(value, KEY)).resolves.toBe(true);
+    vi.setSystemTime((1_700_000_000 + 3600 + 1) * 1000);
+    await expect(isValidGateCookie(value, KEY)).resolves.toBe(false);
+    vi.useRealTimers();
+  });
+
+  it("only asks for renewal once the cookie is 3/4 through its TTL", async () => {
+    const value = await mintAt(1_700_000_000);
+    vi.useFakeTimers();
+    // 刚签发：不续期，避免每次请求都重签（滑动窗口漂移）。
+    vi.setSystemTime((1_700_000_000 + 60) * 1000);
+    await expect(readGateCookie(value, KEY)).resolves.toMatchObject({
+      valid: true,
+      shouldRenew: false,
+    });
+    // 走完 3/4 TTL：开始续期。
+    vi.setSystemTime((1_700_000_000 + GATE_RENEW_AFTER_SECONDS + 1) * 1000);
+    await expect(readGateCookie(value, KEY)).resolves.toMatchObject({
+      valid: true,
+      shouldRenew: true,
+    });
+    vi.useRealTimers();
   });
 });

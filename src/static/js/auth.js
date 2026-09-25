@@ -1,4 +1,4 @@
-/** 门禁页前端交互：运行时从 /__gate/config 获取 sitekey 与 i18n。 */
+/** 门禁页前端交互：运行时从 /gate/config 获取 sitekey 与 i18n。 */
 
 var turnstileWidget = null;
 var CONFIG = null;
@@ -8,7 +8,7 @@ var CURRENT_LANG = document.body.getAttribute('data-lang') || 'en-us';
 var gateVerificationInFlight = false;
 document.documentElement.lang = CURRENT_LANG;
 
-/* 构建时把 4 种语言的 gate 文案内联到 HTML；/__gate/config 仅用于补 sitekey，
+/* 构建时把 4 种语言的 gate 文案内联到 HTML；/gate/config 仅用于补 sitekey，
    即使运行时配置接口暂时不可用，语言切换和首屏文案也不会变成 key 占位符。 */
 (function () {
   var el = document.getElementById('gate-i18n');
@@ -364,12 +364,12 @@ var staticBrandTarget = document.querySelector('[data-brandify]');
 if (staticBrandTarget) brandifyText(staticBrandTarget);
 showError(document.body.getAttribute('data-gate-error') || '');
 
-fetch('/__gate/config', { headers: { 'Accept': 'application/json' } })
+fetch('/gate/config', { headers: { 'Accept': 'application/json' } })
   .then(function (r) { return r.ok ? r.json() : null; })
   .then(function (cfg) { if (cfg) initGateConfig(cfg); })
   .catch(function () { showError('unavailable'); });
 
-fetch('/__gate/diag', { headers: { 'Accept': 'application/json' } })
+fetch('/gate/diag', { headers: { 'Accept': 'application/json' } })
   .then(function (r) { return r.ok ? r.json() : null; })
   .then(function (d) {
     if (!d) return;

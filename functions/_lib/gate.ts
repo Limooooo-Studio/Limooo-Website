@@ -9,10 +9,12 @@ import {
   clientIpForLogs,
   detectLang,
   getCookie,
+  isGateTrustedIp,
   safeNextPath,
   sanitizeHost,
   withLangCookie,
 } from "./routing";
+import { isTrustedCrawler } from "./tracking";
 import {
   BASE_URL,
   GATE_COOKIE,
@@ -60,34 +62,160 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** cookie 格式：<过期时间戳>.<HMAC-SHA256 hex 签名>。 */
+/**
+ * cookie 格式：`<签发时间戳>.<过期时间戳>.<HMAC-SHA256 hex 签名>`。
+ *
+ * 签名覆盖完整的 `签发.过期` 载荷，因此 cookie 既不能被篡改，也不能被
+ * 用旧 cookie 的签名拼出新过期时间。
+ *
+ * 历史上这里只签过期时间，**不签签发时间**，于是每次请求都能重新签出一个
+ * 「续满 TTL」的新 cookie；只要 TTL 短于访客的访问间隔就会反复回到门禁页。
+ * 现在签发时间进入签名，续期是显式的、有上限的：距签发超过
+ * `GATE_RENEW_AFTER_SECONDS`（即走完 TTL 的 3/4）才续期一次，因此
+ * 「1 小时会话」是可验证的承诺，而不是随请求漂移的滑动窗口。
+ */
+export const GATE_RENEW_AFTER_SECONDS = Math.floor(GATE_TTL_SECONDS * 0.75);
+
+export interface GateCookieState {
+  valid: boolean;
+  /** 距离过期不足 1/4 TTL，值得在本次响应里续期。 */
+  shouldRenew: boolean;
+}
+
+/** 校验 __gate cookie：签名、格式与过期时间三者都通过才算有效。 */
+export async function readGateCookie(
+  value: string | undefined,
+  key: string,
+): Promise<GateCookieState> {
+  const invalid: GateCookieState = { valid: false, shouldRenew: false };
+  if (!value || !key) return invalid;
+
+  const parts = value.split(".");
+  if (parts.length !== 3) return invalid;
+  const [issuedRaw, expiryRaw, signature] = parts;
+  if (!/^\d{10,}$/.test(issuedRaw) || !/^\d{10,}$/.test(expiryRaw)) return invalid;
+  if (!/^[0-9a-f]{64}$/.test(signature)) return invalid;
+
+  const expected = await hmacSha256Hex(key, `${issuedRaw}.${expiryRaw}`);
+  if (!timingSafeEqual(signature, expected)) return invalid;
+
+  const issued = Number(issuedRaw);
+  const expiry = Number(expiryRaw);
+  if (!Number.isSafeInteger(issued) || !Number.isSafeInteger(expiry)) return invalid;
+  const now = Math.floor(Date.now() / 1000);
+  if (expiry <= now) return invalid;
+  // 签发时间在未来（时钟漂移或伪造）一律视为无效，避免出现永不续期的 cookie。
+  if (issued > now + 60) return invalid;
+
+  return { valid: true, shouldRenew: now - issued >= GATE_RENEW_AFTER_SECONDS };
+}
+
+/** 兼容旧调用点：只关心有效性的场景。 */
 export async function isValidGateCookie(
   value: string | undefined,
   key: string,
 ): Promise<boolean> {
-  if (!value || !key) return false;
-  const dot = value.lastIndexOf(".");
-  if (dot <= 0) return false;
-  const payload = value.slice(0, dot);
-  const signature = value.slice(dot + 1);
-  if (!/^\d{10,}$/.test(payload)) return false;
-  if (!/^[0-9a-f]{64}$/.test(signature)) return false;
-
-  const expected = await hmacSha256Hex(key, payload);
-  if (!timingSafeEqual(signature, expected)) return false;
-  const expiry = Number(payload);
-  return Number.isSafeInteger(expiry) && expiry > Math.floor(Date.now() / 1000);
+  return (await readGateCookie(value, key)).valid;
 }
 
-/** 签发 __gate cookie（Domain=. <root_domain>，TTL 来自契约）。 */
+/** 签发 __gate cookie（Domain=. <root_domain>，TTL 来自契约，默认 1 小时）。 */
 export async function mintGateCookie(key: string): Promise<string> {
   const ttlSeconds = GATE_TTL_SECONDS;
-  const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
-  const signature = await hmacSha256Hex(key, String(expiry));
-  return `${GATE_COOKIE}=${expiry}.${signature}; Domain=.${ROOT_DOMAIN}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttlSeconds}`;
+  const now = Math.floor(Date.now() / 1000);
+  const expiry = now + ttlSeconds;
+  const payload = `${now}.${expiry}`;
+  const signature = await hmacSha256Hex(key, payload);
+  return `${GATE_COOKIE}=${payload}.${signature}; Domain=.${ROOT_DOMAIN}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttlSeconds}`;
 }
 
-/** GET /__gate/config：只下发非敏感运行时配置，不写死 sitekey 到 HTML。 */
+export interface GateTrustState {
+  /** 白名单 IP 或 Cloudflare 已验证爬虫：本就免验证，不需要 cookie。 */
+  trusted: boolean;
+  /** 持有有效 __gate cookie。 */
+  cookieValid: boolean;
+  /** 本次请求应续签 cookie（cookie 仍有效但已走过 3/4 TTL）。 */
+  shouldRenew: boolean;
+}
+
+/**
+ * 门禁放行判定的唯一实现。
+ *
+ * 中间件与 /gate 都必须调用它，避免两处各自拼「白名单 || 爬虫 || cookie」
+ * 导致语义漂移——历史上正是两份相似的判定逻辑让「看似已通过却又被要求
+ * 验证」难以定位。
+ */
+export async function resolveGateTrust(
+  context: RequestContext,
+): Promise<GateTrustState> {
+  const { request, env } = context;
+  const ip = request.headers.get("CF-Connecting-IP") ?? "";
+  const trusted = isGateTrustedIp(ip) || isTrustedCrawler(request);
+  const cookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
+  const state = await readGateCookie(cookie, env.GATE_HMAC_KEY);
+  return { trusted, cookieValid: state.valid, shouldRenew: state.shouldRenew };
+}
+
+/**
+ * GET /gate：唯一对外的门禁入口。
+ *
+ * 已通过者 302 回原页（原主机 + 原路径），未通过者原地渲染门禁页。
+ * 「是否已通过」与「是否需要续期」都收敛到 resolveGateTrust 一处，
+ * 续期只发生在 cookie 走完 3/4 TTL 时，因此 1 小时会话是稳定承诺，
+ * 不会像旧的滑动重签那样随请求漂移。
+ */
+export async function handleGateEntry(context: RequestContext): Promise<Response> {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const forceChallenge = url.searchParams.get("challenge") === "1";
+  const host = sanitizeHost(url.searchParams.get("host"));
+  const next = safeNextPath(url.searchParams.get("next") ?? "/");
+  const trust = await resolveGateTrust(context);
+  const passed = trust.trusted || trust.cookieValid;
+
+  if (passed && !forceChallenge) {
+    deferLog(
+      context,
+      logEvent(env, "gate_entry", request, {
+        outcome: "passed",
+        status: 302,
+        message: trust.trusted ? "trusted" : trust.shouldRenew ? "renewed" : "cookie",
+      }),
+    );
+    let resp = Response.redirect(`https://${host}${next}`, 302);
+    // 白名单/爬虫本来就没有 cookie，需要补一枚；持 cookie 者只在临近过期时续签。
+    if (trust.trusted || trust.shouldRenew) {
+      const headers = new Headers(resp.headers);
+      headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));
+      resp = new Response(resp.body, {
+        status: resp.status,
+        statusText: resp.statusText,
+        headers,
+      });
+    }
+    return withLangCookie(request, resp);
+  }
+
+  return renderGatePage(context, { host, next });
+}
+
+/**
+ * GET /__gate：旧入口，保留但一律 308 到等价的 /gate。
+ *
+ * 线上可能还有正在排队的请求和访客书签指向它；把它固定成跳转而不是
+ * 第二套判定逻辑，可以确保 /gate 是唯一被前端与文档引用的地址，
+ * 不会再出现「两个入口判定不一致导致反复验证」。查询参数原样保留。
+ */
+export function handleLegacyGateRedirect(context: RequestContext): Response {
+  const url = new URL(context.request.url);
+  const target = new URL(`https://${url.hostname}/gate`);
+  target.search = url.search;
+  return new Response(null, {
+    status: 308,
+    headers: { Location: target.toString(), "Cache-Control": "no-store" },
+  });
+}
+
+/** GET /gate/config 与 /__gate/config：只下发非敏感运行时配置，不写死 sitekey 到 HTML。 */
 export function handleGateConfig(context: RequestContext): Response {
   const { env, request } = context;
   return Response.json(

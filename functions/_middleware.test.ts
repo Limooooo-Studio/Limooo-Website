@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { handleOnRequest } from "./_middleware";
+import { mintGateCookie } from "./_lib/gate";
 import type { Env } from "./_lib/env";
 import type { RequestContext } from "./_lib/routing";
 
@@ -72,27 +73,44 @@ describe("force theme challenge", () => {
     await expect(resp.text()).resolves.toContain("limooo.cn /services");
   });
 
-  it("renders the gate on the same host when a challenge is forced", async () => {
-    const resp = await handleOnRequest(
+  it("308s the legacy /__gate entry and keeps the forced challenge on /gate", async () => {
+    const assets = {
+      ASSETS: {
+        fetch: async () =>
+          new Response(
+            "<html><body>{{host}} {{next}} {{lang}} {{error}}</body></html>",
+            { headers: { "Content-Type": "text/html" } },
+          ),
+      },
+    };
+
+    const legacy = await handleOnRequest(
       context(
         new Request(
           "https://limooo.cn/__gate?challenge=1&host=limooo.cn&next=%2Fservices",
           { headers: { Cookie: "cf_clearance=test" } },
         ),
-        {
-          ASSETS: {
-            fetch: async () =>
-              new Response(
-                "<html><body>{{host}} {{next}} {{lang}} {{error}}</body></html>",
-                { headers: { "Content-Type": "text/html" } },
-              ),
-          },
-        },
+        assets,
       ),
     );
 
-    expect(resp.status).toBe(403);
-    expect(resp.headers.get("Location")).toBeNull();
+    expect(legacy.status).toBe(308);
+    expect(legacy.headers.get("Location")).toBe(
+      "https://limooo.cn/gate?challenge=1&host=limooo.cn&next=%2Fservices",
+    );
+
+    // 规范化入口下强制挑战仍不放行；cf_clearance 依旧不是依据。
+    const forced = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/gate?challenge=1&host=limooo.cn&next=%2Fservices", {
+          headers: { Cookie: "cf_clearance=test" },
+        }),
+        assets,
+      ),
+    );
+
+    expect(forced.status).toBe(403);
+    expect(forced.headers.get("Location")).toBeNull();
   });
 
   it("ignores client-supplied X-Limooo-Client-IP when deciding trust", async () => {
@@ -239,5 +257,158 @@ describe("public /files", () => {
       context(new Request("https://limooo.cn/files/..%2Fsecrets"), assetsEnv()),
     );
     expect(traversal.status).toBe(404);
+  });
+});
+
+describe("canonical /gate entry", () => {
+  const assetsEnv = {
+    ASSETS: {
+      fetch: async () =>
+        new Response("<html><body>{{host}} {{next}} {{error}}</body></html>", {
+          headers: { "Content-Type": "text/html" },
+        }),
+    },
+  };
+
+  it("serves the gate page for an unverified visitor", async () => {
+    const resp = await handleOnRequest(
+      context(new Request("https://limooo.cn/gate?host=limooo.cn&next=%2Fservices"), assetsEnv),
+    );
+    expect(resp.status).toBe(403);
+    await expect(resp.text()).resolves.toContain("limooo.cn /services");
+  });
+
+  it("sends a visitor holding a valid cookie straight back without re-challenging", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    const cookie = (await mintGateCookie(keys.GATE_HMAC_KEY)).split(";")[0];
+
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/gate?host=limooo.cn&next=%2Fservices", {
+          headers: { Cookie: cookie, "CF-Connecting-IP": "203.0.113.7" },
+        }),
+        assetsEnv,
+      ),
+    );
+
+    expect(resp.status).toBe(302);
+    expect(resp.headers.get("Location")).toBe("https://limooo.cn/services");
+    vi.useRealTimers();
+  });
+
+  it("does not re-issue the cookie on every request while it is still fresh", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    const cookie = (await mintGateCookie(keys.GATE_HMAC_KEY)).split(";")[0];
+    vi.setSystemTime((1_700_000_000 + 60) * 1000);
+
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/gate?host=limooo.cn&next=%2F", {
+          headers: { Cookie: cookie, "CF-Connecting-IP": "203.0.113.7" },
+        }),
+        assetsEnv,
+      ),
+    );
+
+    expect(resp.status).toBe(302);
+    // 语言 cookie 可能顺带写入，但 __gate 不应被重复签发。
+    expect(resp.headers.get("Set-Cookie") ?? "").not.toContain("__gate=");
+    vi.useRealTimers();
+  });
+
+  it("renews the cookie on a normal page hit once it is 3/4 through its TTL", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    const cookie = (await mintGateCookie(keys.GATE_HMAC_KEY)).split(";")[0];
+    // 走完 3/4 TTL 后再访问页面：应在页面响应里顺带续签，而不是弹回门禁页。
+    vi.setSystemTime((1_700_000_000 + 2700 + 1) * 1000);
+
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/", {
+          headers: {
+            Cookie: cookie,
+            "CF-Connecting-IP": "203.0.113.7",
+            "Host": "limooo.cn",
+          },
+        }),
+        {
+          ASSETS: {
+            fetch: async () =>
+              new Response("<html>home</html>", {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+              }),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("Set-Cookie") ?? "").toContain("__gate=");
+    vi.useRealTimers();
+  });
+
+  it("does not renew on every page hit, so the hour is not a sliding window", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    const cookie = (await mintGateCookie(keys.GATE_HMAC_KEY)).split(";")[0];
+    vi.setSystemTime((1_700_000_000 + 120) * 1000);
+
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/", {
+          headers: {
+            Cookie: cookie,
+            "CF-Connecting-IP": "203.0.113.7",
+            "Host": "limooo.cn",
+          },
+        }),
+        {
+          ASSETS: {
+            fetch: async () =>
+              new Response("<html>home</html>", {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+              }),
+          },
+        },
+      ),
+    );
+
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("Set-Cookie") ?? "").not.toContain("__gate=");
+    vi.useRealTimers();
+  });
+
+  it("308s the legacy /__gate entry to /gate, preserving the query", async () => {
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/__gate?host=limooo.cn&next=%2Fservices"),
+        assetsEnv,
+      ),
+    );
+
+    expect(resp.status).toBe(308);
+    expect(resp.headers.get("Location")).toBe(
+      "https://limooo.cn/gate?host=limooo.cn&next=%2Fservices",
+    );
+  });
+
+  it("answers the canonical config/diag/verify endpoints", async () => {
+    const config = await handleOnRequest(
+      context(new Request("https://limooo.cn/gate/config")),
+    );
+    expect(config.status).toBe(200);
+    await expect(config.json()).resolves.toHaveProperty("root_domain", "limooo.cn");
+
+    const diag = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/gate/diag", {
+          headers: { "CF-Connecting-IP": "203.0.113.7" },
+        }),
+      ),
+    );
+    expect(diag.status).toBe(200);
   });
 });
