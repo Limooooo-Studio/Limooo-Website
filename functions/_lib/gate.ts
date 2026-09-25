@@ -8,8 +8,8 @@ import {
   clientCountryForLogs,
   clientIpForLogs,
   detectLang,
-  getCookie,
   isGateTrustedIp,
+  preserveSetCookie,
   safeNextPath,
   sanitizeHost,
   withLangCookie,
@@ -19,7 +19,6 @@ import {
   BASE_URL,
   GATE_COOKIE,
   GATE_TTL_SECONDS,
-  LANG_COOKIE,
   ROOT_DOMAIN,
 } from "./config";
 import { GATE_I18N } from "../_data/runtime";
@@ -76,10 +75,46 @@ function timingSafeEqual(a: string, b: string): boolean {
  */
 export const GATE_RENEW_AFTER_SECONDS = Math.floor(GATE_TTL_SECONDS * 0.75);
 
+/** 校验失败的分类，只用于诊断日志，不回传给访客以免泄露校验细节。 */
+export type GateCookieReason =
+  | "ok"
+  | "absent"
+  | "malformed"
+  | "bad_signature"
+  | "expired"
+  | "future_issued";
+
 export interface GateCookieState {
   valid: boolean;
+  /** 请求里是否存在 __gate（同名重复只要求至少有一枚）。 */
+  present: boolean;
   /** 距离过期不足 1/4 TTL，值得在本次响应里续期。 */
   shouldRenew: boolean;
+  reason: GateCookieReason;
+}
+
+/**
+ * 取出同名 cookie 的全部取值。
+ *
+ * 浏览器允许同名 cookie 在**不同作用域**（host-only 与 Domain=、不同 Path）下并存，
+ * 并把它们全部放进同一个 Cookie 请求头。只取第一枚会拿到作用域更早/更旧的那份，
+ * 表现就是「刚刚验证通过，下一次请求又被拦」——因此门禁必须逐枚校验。
+ */
+export function allCookieValues(name: string, header: string | null): string[] {
+  if (!header) return [];
+  const out: string[] = [];
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    if (part.slice(0, eq).trim() !== name) continue;
+    const raw = part.slice(eq + 1).trim();
+    try {
+      out.push(decodeURIComponent(raw));
+    } catch {
+      out.push(raw);
+    }
+  }
+  return out;
 }
 
 /** 校验 __gate cookie：签名、格式与过期时间三者都通过才算有效。 */
@@ -87,27 +122,39 @@ export async function readGateCookie(
   value: string | undefined,
   key: string,
 ): Promise<GateCookieState> {
-  const invalid: GateCookieState = { valid: false, shouldRenew: false };
-  if (!value || !key) return invalid;
+  const present = Boolean(value);
+  const fail = (reason: GateCookieReason): GateCookieState => ({
+    valid: false,
+    present,
+    shouldRenew: false,
+    reason,
+  });
+  if (!present) return fail("absent");
+  if (!key) return fail("malformed");
 
-  const parts = value.split(".");
-  if (parts.length !== 3) return invalid;
+  const parts = (value as string).split(".");
+  if (parts.length !== 3) return fail("malformed");
   const [issuedRaw, expiryRaw, signature] = parts;
-  if (!/^\d{10,}$/.test(issuedRaw) || !/^\d{10,}$/.test(expiryRaw)) return invalid;
-  if (!/^[0-9a-f]{64}$/.test(signature)) return invalid;
+  if (!/^\d{10,}$/.test(issuedRaw) || !/^\d{10,}$/.test(expiryRaw)) return fail("malformed");
+  if (!/^[0-9a-f]{64}$/.test(signature)) return fail("malformed");
 
   const expected = await hmacSha256Hex(key, `${issuedRaw}.${expiryRaw}`);
-  if (!timingSafeEqual(signature, expected)) return invalid;
+  if (!timingSafeEqual(signature, expected)) return fail("bad_signature");
 
   const issued = Number(issuedRaw);
   const expiry = Number(expiryRaw);
-  if (!Number.isSafeInteger(issued) || !Number.isSafeInteger(expiry)) return invalid;
+  if (!Number.isSafeInteger(issued) || !Number.isSafeInteger(expiry)) return fail("malformed");
   const now = Math.floor(Date.now() / 1000);
-  if (expiry <= now) return invalid;
+  if (expiry <= now) return fail("expired");
   // 签发时间在未来（时钟漂移或伪造）一律视为无效，避免出现永不续期的 cookie。
-  if (issued > now + 60) return invalid;
+  if (issued > now + 60) return fail("future_issued");
 
-  return { valid: true, shouldRenew: now - issued >= GATE_RENEW_AFTER_SECONDS };
+  return {
+    valid: true,
+    present: true,
+    shouldRenew: now - issued >= GATE_RENEW_AFTER_SECONDS,
+    reason: "ok",
+  };
 }
 
 /** 兼容旧调用点：只关心有效性的场景。 */
@@ -128,6 +175,22 @@ export async function mintGateCookie(key: string): Promise<string> {
   return `${GATE_COOKIE}=${payload}.${signature}; Domain=.${ROOT_DOMAIN}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttlSeconds}`;
 }
 
+/**
+ * 清掉早期可能存在的 host-only `__gate`（没有 Domain 属性）。
+ *
+ * host-only 与 Domain=.limooo.cn 两种作用域下的同名 cookie 会**并存**并同时发送，
+ * 若旧的那枚一直排在前面且已失效，就会稳定地把有效的那枚挡掉。签发新 cookie 时
+ * 顺手删除 host-only 变体，避免这种「验证成功却仍被拦」的僵尸态。
+ */
+export function purgeLegacyGateCookie(): string {
+  return `${GATE_COOKIE}=; Path=/; Max-Age=0; Secure; SameSite=Lax`;
+}
+
+/** 一次签发要下发的全部 Set-Cookie：先清旧作用域，再写新的域级 cookie。 */
+export async function gateCookieHeaders(key: string): Promise<string[]> {
+  return [purgeLegacyGateCookie(), await mintGateCookie(key)];
+}
+
 export interface GateTrustState {
   /** 白名单 IP 或 Cloudflare 已验证爬虫：本就免验证，不需要 cookie。 */
   trusted: boolean;
@@ -135,6 +198,10 @@ export interface GateTrustState {
   cookieValid: boolean;
   /** 本次请求应续签 cookie（cookie 仍有效但已走过 3/4 TTL）。 */
   shouldRenew: boolean;
+  /** 请求里带了 __gate 但没有一枚有效：用于诊断「验证后仍被拦」。 */
+  cookiePresent: boolean;
+  /** 校验结论分类。 */
+  cookieReason: GateCookieReason;
 }
 
 /**
@@ -143,6 +210,8 @@ export interface GateTrustState {
  * 中间件与 /gate 都必须调用它，避免两处各自拼「白名单 || 爬虫 || cookie」
  * 导致语义漂移——历史上正是两份相似的判定逻辑让「看似已通过却又被要求
  * 验证」难以定位。
+ *
+ * 同名 __gate 可能有多枚（作用域不同会并存），这里逐枚校验、任意一枚有效即放行。
  */
 export async function resolveGateTrust(
   context: RequestContext,
@@ -150,9 +219,30 @@ export async function resolveGateTrust(
   const { request, env } = context;
   const ip = request.headers.get("CF-Connecting-IP") ?? "";
   const trusted = isGateTrustedIp(ip) || isTrustedCrawler(request);
-  const cookie = getCookie(GATE_COOKIE, request.headers.get("Cookie"));
-  const state = await readGateCookie(cookie, env.GATE_HMAC_KEY);
-  return { trusted, cookieValid: state.valid, shouldRenew: state.shouldRenew };
+
+  const values = allCookieValues(GATE_COOKIE, request.headers.get("Cookie"));
+  let best: GateCookieState = {
+    valid: false,
+    present: values.length > 0,
+    shouldRenew: false,
+    reason: values.length > 0 ? "malformed" : "absent",
+  };
+  for (const value of values) {
+    const state = await readGateCookie(value, env.GATE_HMAC_KEY);
+    if (state.valid) {
+      best = state;
+      break;
+    }
+    if (state.present) best = state;
+  }
+
+  return {
+    trusted,
+    cookieValid: best.valid,
+    shouldRenew: best.shouldRenew,
+    cookiePresent: best.present,
+    cookieReason: best.reason,
+  };
 }
 
 /**
@@ -185,7 +275,10 @@ export async function handleGateEntry(context: RequestContext): Promise<Response
     // 白名单/爬虫本来就没有 cookie，需要补一枚；持 cookie 者只在临近过期时续签。
     if (trust.trusted || trust.shouldRenew) {
       const headers = new Headers(resp.headers);
-      headers.append("Set-Cookie", await mintGateCookie(env.GATE_HMAC_KEY));
+      preserveSetCookie(headers, resp.headers);
+      for (const value of await gateCookieHeaders(env.GATE_HMAC_KEY)) {
+        headers.append("Set-Cookie", value);
+      }
       resp = new Response(resp.body, {
         status: resp.status,
         statusText: resp.statusText,
@@ -289,21 +382,20 @@ export async function renderGatePage(
     .replaceAll("{{next}}", escapeHtml(next))
     .replaceAll("{{error}}", escapeHtml(opts.errorKey ?? ""));
 
-  const hasLangCookie = Boolean(getCookie(LANG_COOKIE, request.headers.get("Cookie")));
-  const cacheControl =
-    opts.errorKey || !env.TURNSTILE_SITEKEY
-      ? "no-store"
-      : hasLangCookie
-        ? "public, max-age=300"
-        : "private, max-age=300";
-
+  // 门禁页一律不可缓存。
+  //
+  // 这张页会**原地**替换真实内容的 URL 并返回 403；曾经给它 `max-age=300`
+  // （浏览器私有缓存）导致验证通过后 `location.replace` 回同一 URL 时，
+  // 浏览器可能直接重放那份 403 挑战页 —— 表现就是「验证成功又跳回验证页」，
+  // 且每次重放都再触发一次 verify，形成稳定死循环。挑战页没有任何缓存价值，
+  // 直接 no-store 才是正确语义。
   return withLangCookie(
     request,
     new Response(html, {
       status,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": cacheControl,
+        "Cache-Control": "no-store",
         "Vary": "Cookie",
       },
     }),
@@ -562,7 +654,12 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
     });
   }
 
-  const cookie = await mintGateCookie(env.GATE_HMAC_KEY);
+  // 先清 host-only 旧作用域，再写域级新 cookie。
+  //
+  // 这里刻意下发两条 Set-Cookie：旧的同名 host-only cookie 会与新的域级 cookie
+  // 并存并一直排在请求头前面，只写一条新 cookie 并不能解除它的遮挡。
+  // 多条 Set-Cookie 由 preserveSetCookie 保证不被合并（Safari 只认第一条的坑）。
+  const cookies = await gateCookieHeaders(env.GATE_HMAC_KEY);
   deferLog(
     context,
     logEvent(env, "gate_verify", request, {
@@ -573,24 +670,16 @@ export async function handleVerify(context: RequestContext): Promise<Response> {
     }),
   );
 
-  // 验证成功只签发 __gate cookie；若再叠加语言 cookie，Workers 会把两条
-  // Set-Cookie 合并，Safari 只认第一条。
   if (wantsJson(request)) {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Set-Cookie": cookie,
-        "Cache-Control": "no-store",
-      },
-    });
+    const headers = new Headers({ "Cache-Control": "no-store" });
+    for (const value of cookies) headers.append("Set-Cookie", value);
+    return new Response(null, { status: 204, headers });
   }
 
-  return new Response(null, {
-    status: 303,
-    headers: {
-      Location: gateTarget(host, next),
-      "Set-Cookie": cookie,
-      "Cache-Control": "no-store",
-    },
+  const headers = new Headers({
+    Location: gateTarget(host, next),
+    "Cache-Control": "no-store",
   });
+  for (const value of cookies) headers.append("Set-Cookie", value);
+  return new Response(null, { status: 303, headers });
 }

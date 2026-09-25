@@ -21,7 +21,7 @@ import {
   type RequestContext,
 } from "./_lib/routing";
 import {
-  APPLEID_HOSTNAME,
+  APPLE_ACCOUNT_HOSTNAME,
   BASE_URL,
   GATE_HOSTNAME,
   IMAGES_HOSTNAME,
@@ -34,9 +34,9 @@ import {
   handleGateDiag,
   handleGateEntry,
   handleLegacyGateRedirect,
+  gateCookieHeaders,
   handleVerify,
   isBlocked,
-  mintGateCookie,
   renderGatePage,
   resolveGateTrust,
 } from "./_lib/gate";
@@ -174,7 +174,7 @@ async function adminAuthRedirect(
   request: Request,
   hostname: string,
 ): Promise<Response | null> {
-  if (hostname !== VISITOR_HOSTNAME && hostname !== APPLEID_HOSTNAME) return null;
+  if (hostname !== VISITOR_HOSTNAME && hostname !== APPLE_ACCOUNT_HOSTNAME) return null;
   try {
     if (await requireAuth(env, request)) return null;
     const url = new URL(request.url);
@@ -215,7 +215,9 @@ async function renewGateCookie(
   if (!shouldRenew) return resp;
   const headers = new Headers(resp.headers);
   preserveSetCookie(headers, resp.headers);
-  headers.append("Set-Cookie", await mintGateCookie(context.env.GATE_HMAC_KEY));
+  for (const value of await gateCookieHeaders(context.env.GATE_HMAC_KEY)) {
+    headers.append("Set-Cookie", value);
+  }
   return new Response(resp.body, {
     status: resp.status,
     statusText: resp.statusText,
@@ -317,7 +319,7 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
     pathname.startsWith("/logout") ||
     pathname.startsWith("/account") ||
     pathname.startsWith("/visitor") ||
-    pathname.startsWith("/api/appleid") ||
+    pathname.startsWith("/api/apple-account") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/ray");
   if (!whitelisted && !exempt && ip && (await isBlocked(env, request, ip))) {
@@ -380,6 +382,20 @@ export async function handleOnRequest(context: RequestContext): Promise<Response
       });
     }
     return withLangCookie(request, await renewGateCookie(context, await next(), trust.shouldRenew));
+  }
+
+  // 带了 __gate 却仍不放行：把校验结论落进 events，用于定位「验证成功又被拦」。
+  // 只在这种异常态记录，正常首访（无 cookie）不写，避免无谓的 D1 写入。
+  if (trust.cookiePresent) {
+    defer(
+      context,
+      logEvent(env, "gate_stale_cookie", request, {
+        outcome: "gated",
+        status: 403,
+        path: pathname,
+        message: trust.cookieReason,
+      }),
+    );
   }
 
   // 未验证：直接在被访问的 URL 输出门禁页，地址栏始终保持原页面地址。

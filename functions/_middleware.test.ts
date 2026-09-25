@@ -381,6 +381,35 @@ describe("canonical /gate entry", () => {
     vi.useRealTimers();
   });
 
+  it("accepts the request when a stale __gate precedes a valid one", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    const valid = (await mintGateCookie(keys.GATE_HMAC_KEY)).split(";")[0];
+
+    // 旧作用域里那枚已失效的 __gate 排在前面；只看第一枚就会被它挡掉。
+    const stale = `__gate=1700000000.1700003600.${"a".repeat(64)}`;
+    const resp = await handleOnRequest(
+      context(
+        new Request("https://limooo.cn/gate?host=limooo.cn&next=%2Fservices", {
+          headers: { Cookie: `${stale}; ${valid}`, "CF-Connecting-IP": "203.0.113.7" },
+        }),
+        assetsEnv,
+      ),
+    );
+    vi.useRealTimers();
+
+    expect(resp.status).toBe(302);
+    expect(resp.headers.get("Location")).toBe("https://limooo.cn/services");
+  });
+
+  it("never lets the challenge page be cached at the content URL", async () => {
+    const resp = await handleOnRequest(
+      context(new Request("https://limooo.cn/services"), assetsEnv),
+    );
+    expect(resp.status).toBe(403);
+    expect(resp.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("308s the legacy /__gate entry to /gate, preserving the query", async () => {
     const resp = await handleOnRequest(
       context(

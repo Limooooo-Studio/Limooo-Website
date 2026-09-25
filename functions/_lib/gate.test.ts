@@ -3,6 +3,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GATE_RENEW_AFTER_SECONDS,
+  allCookieValues,
+  gateCookieHeaders,
   handleGateDiag,
   handleVerify,
   isBlocked,
@@ -178,5 +180,47 @@ describe("__gate cookie: signature, expiry and renewal", () => {
       shouldRenew: true,
     });
     vi.useRealTimers();
+  });
+});
+
+describe("__gate 同名重复与签发清理", () => {
+  const KEY = "k".repeat(64);
+
+  it("同名 __gate 全部取出，不只看第一枚", () => {
+    const stale = `__gate=1790000000.1790003600.${"a".repeat(64)}`;
+    const values = allCookieValues("__gate", `${stale}; __gate=fresh; other=1`);
+    expect(values).toEqual([`1790000000.1790003600.${"a".repeat(64)}`, "fresh"]);
+  });
+
+  it("签发时先清 host-only 旧作用域，再写域级 cookie", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000 * 1000);
+    const headers = await gateCookieHeaders(KEY);
+    vi.useRealTimers();
+
+    expect(headers).toHaveLength(2);
+    // 第一条删除 host-only 变体：不能带 Domain，否则删不掉它。
+    expect(headers[0]).toContain("__gate=;");
+    expect(headers[0]).toContain("Max-Age=0");
+    expect(headers[0]).not.toContain("Domain=");
+    // 第二条写入正常的 1h 域级 cookie。
+    expect(headers[1]).toContain("Domain=.limooo.cn");
+    expect(headers[1]).toContain("Max-Age=3600");
+  });
+
+  it("校验把失败原因分类返回，供诊断使用", async () => {
+    const key = "k".repeat(64);
+    await expect(readGateCookie(undefined, key)).resolves.toMatchObject({
+      valid: false,
+      present: false,
+      reason: "absent",
+    });
+    await expect(readGateCookie("only-two.fields", key)).resolves.toMatchObject({
+      valid: false,
+      reason: "malformed",
+    });
+    await expect(
+      readGateCookie(`1700000000.1700003600.${"b".repeat(64)}`, key),
+    ).resolves.toMatchObject({ valid: false, reason: "bad_signature" });
   });
 });
