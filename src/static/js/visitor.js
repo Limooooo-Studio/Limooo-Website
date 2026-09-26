@@ -101,20 +101,56 @@ async function refresh() {
   }
 }
 
-function formatTime(value) {
-  if (!value) return '';
-  const str = String(value);
-  const numeric = Number(str);
-  if (/^\d+$/.test(str) && Number.isFinite(numeric)) {
-    const date = new Date(numeric * 1000);
-    if (!Number.isNaN(date.getTime())) {
-      const pad = (n) => String(n).padStart(2, '0');
-      return date.getUTCFullYear() + '-' + pad(date.getUTCMonth() + 1) + '-' + pad(date.getUTCDate()) +
-        ' ' + pad(date.getUTCHours()) + ':' + pad(date.getUTCMinutes());
-    }
+// 接口给的是 UTC 时间戳（`2026-01-02T00:00:00Z` 或 Unix 秒，历史数据也可能
+// 是裸的 UTC 字符串）。统一解析成 Date 之后一律用**本机时区**的 getter 输出，
+// 这样管理员在哪个时区看，时间就是哪个时区的墙上时间。
+// 解析不出时区信息时（裸 `YYYY-MM-DD HH:MM:SS`）按 UTC 处理——它本来就是 UTC。
+function toDate(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') {
+    const fromNumber = new Date(value * 1000);
+    return Number.isNaN(fromNumber.getTime()) ? null : fromNumber;
   }
-  const m = str.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
-  return m ? (m[2] + '-' + m[3] + ' ' + m[4] + ':' + m[5]) : str;
+  const str = String(value).trim();
+  if (/^\d+$/.test(str)) {
+    const fromEpoch = new Date(Number(str) * 1000);
+    return Number.isNaN(fromEpoch.getTime()) ? null : fromEpoch;
+  }
+  const legacy = str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  const date = legacy
+    ? new Date(Date.UTC(
+      Number(legacy[1]), Number(legacy[2]) - 1, Number(legacy[3]),
+      Number(legacy[4]), Number(legacy[5]), Number(legacy[6] || 0),
+    ))
+    : new Date(str);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatTime(value) {
+  const date = toDate(value);
+  if (!date) return value ? String(value) : '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) +
+    ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+}
+
+// 悬停看完整信息：绝对时间（带时区偏移）+ 相对多久之前，避免只看到一串数字。
+function timeTitle(value) {
+  const date = toDate(value);
+  if (!date) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  const offsetMin = -date.getTimezoneOffset();
+  const sign = offsetMin < 0 ? '-' : '+';
+  const abs = Math.abs(offsetMin);
+  const offset = 'UTC' + sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);
+  const diffSec = Math.round((date.getTime() - Date.now()) / 1000);
+  const absSec = Math.abs(diffSec);
+  let relative;
+  if (absSec < 60) relative = t('time_just_now');
+  else if (absSec < 3600) relative = t('time_minutes_ago', { n: Math.round(absSec / 60) });
+  else if (absSec < 86400) relative = t('time_hours_ago', { n: Math.round(absSec / 3600) });
+  else relative = t('time_days_ago', { n: Math.round(absSec / 86400) });
+  return formatTime(value) + ' ' + offset + ' · ' + relative;
 }
 
 function statusClass(code) {
@@ -166,7 +202,8 @@ function renderList(markers) {
       '<div class="detail">' + lines.join(' · ') + '</div>' +
       (badges ? '<div class="badges">' + badges + '</div>' : '') +
       '</div><div class="time-col">' +
-      '<div class="time-text">' + esc(formatTime(m.last_time)) + '</div>' +
+      '<div class="time-text" title="' + esc(timeTitle(m.last_time)) + '">' +
+      esc(formatTime(m.last_time)) + '</div>' +
       '<div class="count-text">' + t('times', { count: m.count }) + '</div>' +
       '</div></div>';
   }).join('');

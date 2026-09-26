@@ -183,5 +183,9 @@
   "page_title_apple_account": "Apple Account",
   "page_title_visitor": "訪問者",
   "page_title_status": "ステータス",
-  "page_title_login": "ログイン"
+  "page_title_login": "ログイン",
+  "time_just_now": "たった今",
+  "time_minutes_ago": "{n} 分前",
+  "time_hours_ago": "{n} 時間前",
+  "time_days_ago": "{n} 日前"
 }

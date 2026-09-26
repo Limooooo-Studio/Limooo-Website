@@ -45,14 +45,14 @@ describe("visitors API", () => {
           country: "US",
           status: 200,
           n: 3,
-          last_ts: "2026-01-01 00:00:00",
+          last_ts: 1767225600,
         },
         {
           ip_hash: "abc123",
           country: "US",
           status: 404,
           n: 1,
-          last_ts: "2026-01-02 00:00:00",
+          last_ts: 1767312000,
         },
       ]);
 
@@ -77,7 +77,7 @@ describe("visitors API", () => {
     expect(data.markers[0].ip_hash).toBe("abc123");
     expect(data.markers[0].ip).toBeNull();
     expect(data.markers[0].count).toBe(4);
-    expect(data.markers[0].last_time).toBe("2026-01-02 00:00:00");
+    expect(data.markers[0].last_time).toBe("2026-01-02T00:00:00.000Z");
     expect(data.markers[0].statuses).toEqual({ "200": 3, "404": 1 });
     expect(data.range_days).toBe(30);
     expect(data.max_markers).toBe(500);
@@ -95,7 +95,7 @@ describe("visitors API", () => {
           country: "",
           status: 404,
           n: 1,
-          last_ts: "2026-01-01 00:00:00",
+          last_ts: 1767225600,
         },
       ]);
 

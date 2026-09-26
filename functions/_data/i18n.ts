@@ -185,7 +185,11 @@ export const translations: Record<string, Record<string, string>> = {
     "page_title_apple_account": "Apple 账户",
     "page_title_visitor": "访客",
     "page_title_status": "状态",
-    "page_title_login": "登录"
+    "page_title_login": "登录",
+    "time_just_now": "刚刚",
+    "time_minutes_ago": "{n} 分钟前",
+    "time_hours_ago": "{n} 小时前",
+    "time_days_ago": "{n} 天前"
   },
   "en-us": {
     "redirect_title": "Redirecting…",
@@ -372,7 +376,11 @@ export const translations: Record<string, Record<string, string>> = {
     "page_title_apple_account": "Apple Account",
     "page_title_visitor": "Visitor",
     "page_title_status": "Status",
-    "page_title_login": "Login"
+    "page_title_login": "Login",
+    "time_just_now": "just now",
+    "time_minutes_ago": "{n} min ago",
+    "time_hours_ago": "{n} h ago",
+    "time_days_ago": "{n} d ago"
   },
   "ja-jp": {
     "redirect_title": "リダイレクト中…",
@@ -559,7 +567,11 @@ export const translations: Record<string, Record<string, string>> = {
     "page_title_apple_account": "Apple Account",
     "page_title_visitor": "訪問者",
     "page_title_status": "ステータス",
-    "page_title_login": "ログイン"
+    "page_title_login": "ログイン",
+    "time_just_now": "たった今",
+    "time_minutes_ago": "{n} 分前",
+    "time_hours_ago": "{n} 時間前",
+    "time_days_ago": "{n} 日前"
   },
   "ko-kr": {
     "redirect_title": "리디렉션 중…",
@@ -746,6 +758,10 @@ export const translations: Record<string, Record<string, string>> = {
     "page_title_apple_account": "Apple 어카운트",
     "page_title_visitor": "방문자",
     "page_title_status": "상태",
-    "page_title_login": "로그인"
+    "page_title_login": "로그인",
+    "time_just_now": "방금 전",
+    "time_minutes_ago": "{n}분 전",
+    "time_hours_ago": "{n}시간 전",
+    "time_days_ago": "{n}일 전"
   }
 };

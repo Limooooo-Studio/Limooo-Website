@@ -31,13 +31,15 @@ interface MarkerRow {
   country: string;
   status: number;
   n: number;
-  last_ts: string;
+  /** D1 取回的整数（visitors_v2.ts / visitor_rollups.last_ts 都是 INTEGER）。 */
+  last_ts: number;
 }
 
 interface MarkerAccumulator {
   country: string;
   count: number;
-  last_time: string;
+  /** 最近一次访问的 Unix 秒；返回给前端前再转成带 Z 的 ISO 时间戳。 */
+  last_time: number;
   statuses: Record<string, number>;
 }
 
@@ -65,6 +67,7 @@ function buildMarkers(rows: MarkerRow[]): Array<{
   longitude: null;
   hosts: unknown[];
   count: number;
+  /** UTC ISO8601（`2026-01-02T00:00:00Z`）；展示时由前端换算到访问者（浏览器）时区。 */
   last_time: string;
   statuses: Record<string, number>;
 }> {
@@ -95,7 +98,7 @@ function buildMarkers(rows: MarkerRow[]): Array<{
     longitude: null,
     hosts: [],
     count: acc.count,
-    last_time: acc.last_time,
+    last_time: new Date(acc.last_time * 1000).toISOString(),
     statuses: acc.statuses,
   }));
 }
@@ -177,7 +180,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
               MAX(v.country) AS country,
               v.status,
               SUM(v.requests) AS n,
-              strftime('%Y-%m-%d %H:%M:%S', MAX(v.ts), 'unixepoch') AS last_ts
+              MAX(v.ts) AS last_ts
        FROM scoped v
        JOIN top t ON t.ip_hash = v.ip_hash
        GROUP BY v.ip_hash, v.status
@@ -202,7 +205,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
               MAX(v.country) AS country,
               v.status,
               SUM(v.requests) AS n,
-              strftime('%Y-%m-%d %H:%M:%S', MAX(v.ts), 'unixepoch') AS last_ts
+              MAX(v.ts) AS last_ts
        FROM scoped v
        JOIN top t ON t.ip_hash = v.ip_hash
        GROUP BY v.ip_hash, v.status

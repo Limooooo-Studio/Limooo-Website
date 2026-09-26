@@ -183,5 +183,9 @@
   "page_title_apple_account": "Apple 어카운트",
   "page_title_visitor": "방문자",
   "page_title_status": "상태",
-  "page_title_login": "로그인"
+  "page_title_login": "로그인",
+  "time_just_now": "방금 전",
+  "time_minutes_ago": "{n}분 전",
+  "time_hours_ago": "{n}시간 전",
+  "time_days_ago": "{n}일 전"
 }

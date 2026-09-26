@@ -183,5 +183,9 @@
   "page_title_apple_account": "Apple Account",
   "page_title_visitor": "Visitor",
   "page_title_status": "Status",
-  "page_title_login": "Login"
+  "page_title_login": "Login",
+  "time_just_now": "just now",
+  "time_minutes_ago": "{n} min ago",
+  "time_hours_ago": "{n} h ago",
+  "time_days_ago": "{n} d ago"
 }
