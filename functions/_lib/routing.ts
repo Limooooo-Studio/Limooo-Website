@@ -11,7 +11,6 @@ import {
   PUBLIC_HOSTS,
   REDIRECT_HOST,
   ROOT_DOMAIN,
-  SHARED_LANG_HOSTS,
   SUPPORTED_LANGS,
 } from "./config";
 
@@ -145,8 +144,9 @@ export function clientCountryForLogs(request: Request): string {
 /** 语言检测：cookie > Accept-Language(zh/en/ja/ko) > CF 地区(CN/JP/KR) > default。 */
 export function detectLang(request: Request): (typeof SUPPORTED_LANGS)[number] {
   const host = (request.headers.get("Host") ?? new URL(request.url).hostname).split(":")[0];
-  // 仅共享语言的主域读取主站 cookie（visitor/apple-account/status 等各自独立）
-  if (SHARED_LANG_HOSTS.has(host)) {
+  // 语言 cookie 以 Domain=.limooo.cn 下发，全站共享：主域与所有子域（含
+  // visitor / account / status / images 等）都读同一份，切语言后跨子域一致。
+  if (host === ROOT_DOMAIN || host.endsWith(`.${ROOT_DOMAIN}`)) {
     const cookie = getCookie(LANG_COOKIE, request.headers.get("Cookie"));
     if (
       cookie &&
