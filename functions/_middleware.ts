@@ -93,10 +93,19 @@ function defer(context: RequestContext, promise: Promise<unknown>): void {
   }
 }
 
-/** 公开预渲染页面的边缘缓存策略。 */
+/**
+ * 公开预渲染页面的边缘缓存策略。
+ *
+ * `Vary` 必须同时带上 `Cookie`：页面语言由 `user_lang_preference` cookie 决定，
+ * 而 Cloudflare 边缘缓存只按 `Vary` 列出的请求头分桶。早先只写
+ * `Accept-Language`，导致缓存一旦预热，切语言后再访问（同 Accept-Language）
+ * 仍命中旧语言页面——cookie 形同失效。带上 `Cookie` 后，边缘按 cookie 正确分桶。
+ *
+ * （进程内 Cache API 的 key 本来就含 `lang`，所以这只影响边缘那一层。）
+ */
 const PAGE_CACHE_CONTROL =
   "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
-const PAGE_CACHE_VARY = "Accept-Language";
+const PAGE_CACHE_VARY = "Accept-Language, Cookie";
 
 type CacheLike = {
   match(request: RequestInfo): Promise<Response | undefined>;

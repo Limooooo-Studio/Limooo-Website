@@ -205,6 +205,8 @@ describe("force theme challenge", () => {
     expect(resp.status).toBe(200);
     expect(resp.headers.get("Cache-Control")).toContain("s-maxage=300");
     expect(resp.headers.get("Vary")).toContain("Accept-Language");
+    // 边缘缓存必须按 Cookie 分桶，否则预渲染页会按旧语言命中缓存。
+    expect(resp.headers.get("Vary")).toContain("Cookie");
   });
 });
 
