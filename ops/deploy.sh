@@ -71,7 +71,7 @@ fi
 
 if [ "$DRY_RUN" = 1 ]; then
     echo "[deploy] DRY-RUN: no git writes, no Cloudflare writes."
-    { [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; } && echo "[deploy] will-run: bash ops/ci_check.sh（本地复刻 CI，红了就中止）"
+    { [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; } && echo "[deploy] will-run: bash ops/ci_check.sh (local CI replica; aborts on failure)"
     [ "$DO_COMMIT" = 1 ] && echo "[deploy] will-run: git add -A && git commit"
     [ "$DO_PUSH" = 1 ] && echo "[deploy] will-run: git push origin main"
     [ "$DO_PAGES" = 1 ] && echo "[deploy] will-run: bash ops/pages_deploy.sh"
@@ -84,12 +84,12 @@ fi
 # 于是「本地全绿、push 完 30 秒收到失败通知」。这里把 CI 原样跑一遍。
 if [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; then
     if [ "${LIMOOO_SKIP_CHECKS:-0}" = 1 ]; then
-        echo "[deploy] (0/3) LIMOOO_SKIP_CHECKS=1，跳过本地 CI 复刻"
+        echo "[deploy] (0/3) LIMOOO_SKIP_CHECKS=1, skipping local CI replica"
     elif [ "$DO_COMMIT" = 1 ]; then
-        echo "[deploy] (0/3) 本地 CI 复刻（工作区）"
+        echo "[deploy] (0/3) local CI replica (working tree)"
         bash ops/ci_check.sh
     else
-        echo "[deploy] (0/3) 本地 CI 复刻（HEAD）"
+        echo "[deploy] (0/3) local CI replica (HEAD)"
         bash ops/ci_check.sh --ref=HEAD
     fi
 fi

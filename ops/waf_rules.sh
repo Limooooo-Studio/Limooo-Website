@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 
-# Limooo WAF 自定义规则压缩 / 快照。
+# Limooo WAF custom rule compaction / snapshot.
 #
-# 背景（docs/17 §10）：免费版「自定义规则」只有 5 条名额，而 IP Access Rules
-# 有 50,000 条且不占名额。本脚本把「单 IP 放行」这类一句话规则从自定义规则
-# 迁移到 IP Access Rules，并可选清理已禁用的规则。
+# Background (docs/17 section 10): the free plan allows only 5 custom rules,
+# while IP Access Rules allow 50,000 and do not consume that quota. This script
+# migrates one-line rules such as single-IP allow entries from custom rules to
+# IP Access Rules, and can optionally clean up disabled rules.
 #
-# 用法：
-#   bash ops/waf_rules.sh --show                 # 只打印当前规则，不写任何东西
-#   bash ops/waf_rules.sh --snapshot             # 抓取快照到 ops/waf/rules.snapshot.json
-#   bash ops/waf_rules.sh --dry-run              # 打印计划（默认行为）
-#   bash ops/waf_rules.sh --apply                # 执行：skip(单IP) → IP Access Rule
-#   bash ops/waf_rules.sh --apply --drop-disabled  # 额外删除 disabled 的规则
+# Usage:
+#   bash ops/waf_rules.sh --show                 # print current rules only, write nothing
+#   bash ops/waf_rules.sh --snapshot             # write snapshot to ops/waf/rules.snapshot.json
+#   bash ops/waf_rules.sh --dry-run              # print the plan (default behaviour)
+#   bash ops/waf_rules.sh --apply                # execute: skip(single IP) -> IP Access Rule
+#   bash ops/waf_rules.sh --apply --drop-disabled  # also delete disabled rules
 #
-# 凭据始终留在服务器 secrets/webauthn.env，本脚本通过 ssh 调用 API，
-# 从不读取或回显 token 值。
+# Credentials stay on the server in secrets/webauthn.env; this script calls the
+# API over ssh and never reads or echoes token values.
 
 set -euo pipefail
 
@@ -30,7 +31,8 @@ MODE=plan
 DROP_DISABLED=0
 
 usage() {
-    sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'
+    # 打印文件头注释块（第 3 行起，到第一个非注释行为止），不再写死行号。
+    awk 'NR>=3 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0"
 }
 
 while [ $# -gt 0 ]; do
@@ -41,7 +43,7 @@ while [ $# -gt 0 ]; do
         --apply) MODE=apply ;;
         --drop-disabled) DROP_DISABLED=1 ;;
         -h|--help) usage; exit 0 ;;
-        *) echo "未知参数: $1" >&2; usage >&2; exit 2 ;;
+        *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
     esac
     shift
 done
@@ -66,7 +68,7 @@ api() {
 jsonq() { python3 -c "import sys,json;d=json.load(sys.stdin);$1" 2>/dev/null; }
 
 ZID="$(api GET "/zones?name=$ZONE_NAME" | jsonq 'print((d.get("result") or [{}])[0].get("id",""))')"
-[ -n "$ZID" ] || { echo "无法解析 zone id（检查 ssh / secrets）" >&2; exit 1; }
+[ -n "$ZID" ] || { echo "cannot resolve zone id (check ssh / secrets)" >&2; exit 1; }
 
 fetch_entrypoint() { api GET "/zones/$ZID$PHASE_PATH"; }
 
@@ -112,12 +114,12 @@ PY
 } > "$SNAP"
 
 if [ "$MODE" = snapshot ]; then
-    echo "已写入 $SNAP"
+    echo "wrote $SNAP"
     print_rules
     exit 0
 fi
 
-echo "=== 当前 ==="
+echo "current"
 print_rules
 echo
 
@@ -141,7 +143,7 @@ PLAN_IPS="$(grep '^IPS=' /tmp/_waf_plan.txt | cut -d= -f2-)"
 PLAN_DEL="$(grep -v '^IPS=' /tmp/_waf_plan.txt)"
 rm -f /tmp/_waf_plan.txt
 
-echo "=== 计划 ==="
+echo "plan"
 python3 -c "
 import json,sys
 p=json.loads('''$PLAN_DEL''')
@@ -151,11 +153,11 @@ print(f'  新增 IP Access Rule: {len(\"$PLAN_IPS\".split())} 条')
 echo
 
 if [ "$MODE" != apply ]; then
-    echo "（dry-run：未做任何改动。加 --apply 执行）"
+    echo "(dry-run: nothing changed. pass --apply to execute)"
     exit 0
 fi
 
-echo "=== 执行 ==="
+echo "execute"
 for ip in $PLAN_IPS; do
     resp="$(api POST "/zones/$ZID/firewall/access_rules/rules" \
         "{\"mode\":\"whitelist\",\"configuration\":{\"target\":\"ip\",\"value\":\"$ip\"},\"notes\":\"limooo: bypass security for trusted IP (migrated from custom skip rule)\"}")"
@@ -173,7 +175,7 @@ print('\n'.join(i for i,_,_ in p))
 done
 
 echo
-echo "=== 结果 ==="
+echo "result"
 fetch_entrypoint > "$SNAPFILE"
 print_rules
-echo "快照: $SNAP"
+echo "snapshot: $SNAP"

@@ -106,9 +106,9 @@ CONFLICTS="$(cd "$TARGET" && find functions src locales tests ops .github \
        -o -name out -o -name kuma-dist \) -prune -o \
     -type f \( -name '* [0-9]' -o -name '* [0-9].*' \) -print 2>/dev/null | sort)"
 if [ -n "$CONFLICTS" ]; then
-    echo "[ci] FAIL: 检测到 iCloud 冲突副本（'xxx 2.ext'），提交前先处理掉：" >&2
+    echo "[ci] FAIL: iCloud conflict copies detected ('xxx 2.ext'); resolve them before committing:" >&2
     echo "$CONFLICTS" | head -20 | sed 's/^/       /' >&2
-    echo "       确认与正本一致后删除：rm -f 'functions/_data/runtime 2.ts' ..." >&2
+    echo "       once confirmed identical to the original, delete: rm -f 'functions/_data/runtime 2.ts' ..." >&2
     exit 1
 fi
 
@@ -117,10 +117,10 @@ fi
 # src/config.py 相对 HEAD 有差异，说明提交时忘了带上它们 —— 这正是 CI 变红的根因。
 GENERATED_PATHS=(functions/_lib/config.ts functions/_data src/config.py)
 
-echo "[ci] ===== typescript job ====="
+echo "[ci] typescript job"
 if [ "$RUN_TS" = 1 ]; then
     if [ ! -d "$TARGET/node_modules" ]; then
-        echo "[ci] FAIL: $TARGET/node_modules 不存在，先 npm ci" >&2
+        echo "[ci] FAIL: $TARGET/node_modules is missing; run npm ci first" >&2
         exit 1
     fi
 
@@ -132,9 +132,9 @@ if [ "$RUN_TS" = 1 ]; then
     if [ -n "$REF" ]; then
         drift="$(cd "$TARGET" && git status --porcelain -- "${GENERATED_PATHS[@]}" 2>/dev/null || true)"
         if [ -n "$drift" ]; then
-            echo "[ci] FAIL: $REF 里的生成产物与 src/build.py + config-contract.json 不一致：" >&2
+            echo "[ci] FAIL: generated artifacts in $REF do not match src/build.py + config-contract.json:" >&2
             echo "$drift" | sed 's/^/       /' >&2
-            echo "       把改到的 generator 源头（src/build.py / config-contract.json / locales/）一起提交。" >&2
+            echo "       commit the generator sources you changed (src/build.py / config-contract.json / locales/) as well." >&2
             exit 1
         fi
     fi
@@ -150,9 +150,9 @@ if [ "$RUN_TS" = 1 ]; then
 fi
 
 if [ "$RUN_PY" = 1 ]; then
-    echo "[ci] ===== python job ====="
+    echo "[ci] python job"
     echo "[ci] python -m pytest"
     (cd "$TARGET" && "$PYTHON_BIN" -m pytest -q)
 fi
 
-echo "[ci] OK: CI 会绿。"
+echo "[ci] OK: CI will pass."

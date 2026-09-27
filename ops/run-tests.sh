@@ -4,18 +4,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "== Python tests =="
+echo "Python tests"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 if [ -x "$PWD/.venv-build/bin/python" ]; then
     PYTHON_BIN="$PWD/.venv-build/bin/python"
 fi
 "$PYTHON_BIN" -m pytest
 
-echo "== TypeScript tests =="
+echo "TypeScript tests"
 if command -v npm >/dev/null 2>&1 && [ -f package.json ]; then
-    echo "== TypeScript typecheck =="
+    echo "TypeScript typecheck"
     npm run typecheck
     npm test
 else
-    echo "WARNING: npm/package.json 不存在，跳过 vitest" >&2
+    echo "WARNING: npm/package.json not found; skipping vitest" >&2
 fi

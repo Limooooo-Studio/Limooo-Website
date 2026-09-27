@@ -72,7 +72,7 @@ def cf_request(cfg: dict[str, str], url: str, body: object | None = None) -> dic
         except Exception as exc:  # noqa: BLE001 - 网络抖动统一重试
             last = exc
             time.sleep(1.5 * (attempt + 1))
-    raise RuntimeError(f"Cloudflare API 请求失败: {last}")
+    raise RuntimeError(f"Cloudflare API request failed: {last}")
 
 
 def gql(cfg: dict[str, str], query: str) -> dict:
@@ -122,7 +122,12 @@ def d1_lookup(cfg: dict[str, str], ray: str) -> tuple[list[str], str | None]:
             continue
         for row in rows:
             lines.append(render_d1_row(source, row))
-    error = f"以下表查询失败（网络/API 抖动，不代表无记录）：{', '.join(errors)}" if errors else None
+    error = (
+        f"these tables failed to query (network/API flake; this does NOT mean there are no records): "
+        f"{', '.join(errors)}"
+        if errors
+        else None
+    )
     return lines, error
 
 
@@ -178,7 +183,7 @@ def edge_lookup(
             return [render_edge_row(r) for r in groups], None
         return [], None
     except RuntimeError as exc:
-        note = f"边缘逐请求数据集不可用（{exc}），已退回聚合数据集。"
+        note = f"edge per-request dataset unavailable ({exc}); falling back to the aggregated dataset."
         if "rayname" not in str(exc).lower() and "access to the field" not in str(exc).lower():
             return [], note
 
@@ -207,8 +212,9 @@ def edge_lookup(
         for item in groups
     ]
     note = (
-        f"当前账户无权读取逐请求数据集 httpRequestsAdaptive.rayName，无法按 Ray ID 精确定位；"
-        f"以下为最近 {minutes} 分钟内的边缘请求候选（时间倒序，供交叉比对，非该 Ray ID 的记录）。"
+        f"this account cannot read the per-request dataset httpRequestsAdaptive.rayName, "
+        f"so the Ray ID cannot be pinpointed; below are edge request candidates from the last "
+        f"{minutes} minutes (newest first, for cross-checking, NOT records of this Ray ID)."
     )
     return rows, note
 
@@ -231,13 +237,13 @@ def render_edge_row(row: dict[str, object], aggregated: bool = False, count: obj
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="按 Cloudflare Ray ID 反查请求记录")
-    parser.add_argument("rayid", nargs="?", help="Cloudflare Ray ID，如 a334352fe9806564-AMS")
-    parser.add_argument("--minutes", type=int, default=DEFAULT_WINDOW_MINUTES, help="边缘检索时间窗（分钟）")
+    parser = argparse.ArgumentParser(description="Look up request records by Cloudflare Ray ID")
+    parser.add_argument("rayid", nargs="?", help="Cloudflare Ray ID, e.g. a334352fe9806564-AMS")
+    parser.add_argument("--minutes", type=int, default=DEFAULT_WINDOW_MINUTES, help="edge search window in minutes")
     parser.add_argument(
         "--edge-candidates",
         action="store_true",
-        help="即使 D1 命中，也打印降级后的边缘候选（默认仅在未命中时展示）",
+        help="also print degraded edge candidates even when D1 hits (by default only shown on a miss)",
     )
     args = parser.parse_args()
 
@@ -258,12 +264,12 @@ def main() -> int:
         sys.stderr.flush()
 
     # 1) 边缘
-    print("== Cloudflare 边缘 ==", flush=True)
+    print("Cloudflare edge", flush=True)
     degraded = False
     try:
         zone = zone_id(cfg)
         if not zone:
-            warn(f"  未能解析 zone：{ZONE_NAME}")
+            warn(f"  could not resolve zone: {ZONE_NAME}")
         else:
             rows, note = edge_lookup(cfg, zone, ray, colo, args.minutes)
             if note:
@@ -282,11 +288,11 @@ def main() -> int:
                     print("  " + line)
                 found = found or bool(rows)
     except Exception as exc:  # noqa: BLE001 - 运维脚本统一收口
-        warn(f"  边缘查询失败: {exc}")
+        warn(f"  edge query failed: {exc}")
         degraded, edge_note, edge_rows = False, "", []
 
     # 2) D1（补充）
-    print("== D1 站点日志 ==", flush=True)
+    print("D1 site logs", flush=True)
     d1_error = False
     try:
         rows, err = d1_lookup(cfg, ray)
@@ -298,21 +304,21 @@ def main() -> int:
             warn(f"  {err}")
     except Exception as exc:  # noqa: BLE001
         d1_error = True
-        warn(f"  D1 查询失败: {exc}")
+        warn(f"  D1 query failed: {exc}")
 
     # 两个精确源都没命中、但存在降级候选时，展开候选供人工比对。
     if degraded and not found and edge_rows:
-        print("== 边缘候选（降级，非精确匹配）==", flush=True)
+        print("edge candidates (degraded, not an exact match)", flush=True)
         for line in edge_rows:
             print("  " + line)
 
     if not found:
         if d1_error:
             # 查询失败 != 记录不存在，明确区分，避免误判为“没记录”。
-            warn(f"\n查询未完成：{ray}（D1 查询失败，请重试）")
+            warn(f"\nquery incomplete: {ray} (D1 query failed; please retry)")
             return 1
-        hint = "（边缘无精确匹配权限，已列出候选供比对）" if degraded else ""
-        warn(f"\n未找到记录：{ray}" + (f"-{colo}" if colo else "") + hint)
+        hint = " (no permission for an exact edge match; candidates listed for comparison)" if degraded else ""
+        warn(f"\nno records found: {ray}" + (f"-{colo}" if colo else "") + hint)
         return 1
     return 0
 

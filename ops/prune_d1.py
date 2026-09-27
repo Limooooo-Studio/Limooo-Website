@@ -165,17 +165,17 @@ def dry_run(cfg: dict[str, str], mode: str) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="D1 保留期与每日聚合")
+    parser = argparse.ArgumentParser(description="D1 retention and daily aggregation")
     parser.add_argument(
         "--mode",
         choices=("all", "aggregate", "prune"),
         default="all",
-        help="all=聚合+清理；aggregate=只聚合；prune=只清理",
+        help="all=aggregate+prune; aggregate=aggregate only; prune=prune only",
     )
     parser.add_argument(
         "--apply",
         action="store_true",
-        help="执行真实写入/删除；不传时始终 dry-run。",
+        help="perform real writes/deletes; without it this is always a dry run.",
     )
     args = parser.parse_args()
 
@@ -183,7 +183,7 @@ def main() -> int:
         env = load_env(ENV_FILE)
         cfg = cloudflare_config(env)
         if not cfg["token"] or not cfg["account_id"] or not cfg["database_id"]:
-            raise RuntimeError("Cloudflare / D1 配置缺失")
+            raise RuntimeError("Cloudflare / D1 config missing")
         if args.apply:
             ensure_schema(cfg)
             if args.mode in ("all", "aggregate"):
@@ -198,7 +198,7 @@ def main() -> int:
                     indent=2,
                 )
             )
-            print("提示：未传 --apply，未执行任何写入/删除。")
+            print("note: --apply not passed; no writes or deletes were performed.")
         return 0
     except Exception as exc:  # noqa: BLE001
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)

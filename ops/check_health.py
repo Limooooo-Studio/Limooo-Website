@@ -245,7 +245,7 @@ def evaluate_metrics(
         alerts.append({
             "key": "gate_failure_rate",
             "message": (
-                f"门禁验证失败率 {gate_failure_rate:.2f}% "
+                f"gate verification failure rate {gate_failure_rate:.2f}% "
                 f"(> {GATE_FAILURE_RATE_THRESHOLD:.2f}%)"
             ),
         })
@@ -253,7 +253,7 @@ def evaluate_metrics(
         alerts.append({
             "key": "gate_unavailable",
             "message": (
-                f"门禁不可用次数 {gate_unavailable} "
+                f"gate unavailable count {gate_unavailable} "
                 f"(> {GATE_UNAVAILABLE_THRESHOLD})"
             ),
         })
@@ -261,20 +261,20 @@ def evaluate_metrics(
         alerts.append({
             "key": "login_failure_rate",
             "message": (
-                f"登录失败率 {login_failure_rate:.2f}% "
+                f"login failure rate {login_failure_rate:.2f}% "
                 f"(> {LOGIN_FAILURE_RATE_THRESHOLD:.2f}%)"
             ),
         })
     if d1_errors > D1_WRITE_ERROR_THRESHOLD:
         alerts.append({
             "key": "d1_write_errors",
-            "message": f"D1 写入失败事件 {d1_errors} (> {D1_WRITE_ERROR_THRESHOLD})",
+            "message": f"D1 write failure events {d1_errors} (> {D1_WRITE_ERROR_THRESHOLD})",
         })
     if visitor_drop_enabled and previous_hour and visitor_drop > VISITOR_DROP_THRESHOLD:
         alerts.append({
             "key": "visitor_drop",
             "message": (
-                f"访客量下降 {visitor_drop:.2f}% "
+                f"visitor volume drop {visitor_drop:.2f}% "
                 f"(> {VISITOR_DROP_THRESHOLD:.2f}%)"
             ),
         })
@@ -434,12 +434,12 @@ def _health_metrics(metrics: dict[str, Any]) -> list[tuple[str, str]]:
     gate = metrics.get("gate_verify_1h", {})
     login = metrics.get("login_callback_1h", {})
     return [
-        ("门禁验证/1h", f"{gate.get('ok', 0)} / {gate.get('total', 0)}"),
-        ("门禁失败率/1h", f"{gate.get('failure_rate_pct', 0):.2f}%"),
-        ("登录失败率/1h", f"{login.get('failure_rate_pct', 0):.2f}%"),
-        ("页面请求/1h", str(metrics.get("page_requests_1h", 0))),
-        ("访客/1h", str(metrics.get("visitors_1h", 0))),
-        ("D1 写入错误/24h", str(metrics.get("d1_write_errors_24h", 0))),
+        ("gate verify/1h", f"{gate.get('ok', 0)} / {gate.get('total', 0)}"),
+        ("gate failure rate/1h", f"{gate.get('failure_rate_pct', 0):.2f}%"),
+        ("login failure rate/1h", f"{login.get('failure_rate_pct', 0):.2f}%"),
+        ("page requests/1h", str(metrics.get("page_requests_1h", 0))),
+        ("visitors/1h", str(metrics.get("visitors_1h", 0))),
+        ("D1 write errors/24h", str(metrics.get("d1_write_errors_24h", 0))),
     ]
 
 
@@ -579,7 +579,7 @@ def perform_check(cfg: dict[str, str], *, with_schema: bool = True) -> dict[str,
     if not cfg["token"] or not cfg["account_id"] or not cfg["database_id"]:
         return {
             "status": "config_error",
-            "message": "Cloudflare/D1 配置缺失",
+            "message": "Cloudflare/D1 config missing",
             "alerts": [],
         }
     try:
@@ -672,33 +672,33 @@ def run_health_loop(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Limooo 健康检查与告警")
+    parser = argparse.ArgumentParser(description="Limooo health checks and alerting")
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="只打印将执行的检查配置，不访问 D1、不发邮件、不写日志",
+        help="only print the check configuration; no D1 access, no email, no logs",
     )
     parser.add_argument(
         "--no-email",
         action="store_true",
-        help="命中阈值时只记录健康日志，不发送 SMTP 邮件",
+        help="on a threshold hit, only record a health log entry; send no SMTP email",
     )
     parser.add_argument(
         "--retry-interval",
         type=float,
         default=None,
-        help=f"down 之后的复查间隔秒数（默认 {RETRY_INTERVAL_SECONDS:g}）",
+        help=f"recheck interval in seconds after down (default {RETRY_INTERVAL_SECONDS:g})",
     )
     parser.add_argument(
         "--retry-window",
         type=float,
         default=None,
-        help=f"down 之后持续复查的窗口秒数（默认 {RETRY_WINDOW_SECONDS:g}）",
+        help=f"recheck window in seconds after down (default {RETRY_WINDOW_SECONDS:g})",
     )
     parser.add_argument(
         "--no-retry",
         action="store_true",
-        help="检查失败只推送一次 down，不做复查",
+        help="on failure push down once and do not recheck",
     )
     args = parser.parse_args()
 
@@ -762,7 +762,7 @@ def main() -> int:
         record = {
             "status": "skipped",
             "ts": int(time.time()),
-            "message": "已有 check_health.py 在运行",
+            "message": "another check_health.py is already running",
         }
         print(json.dumps(record, ensure_ascii=False))
         return 0

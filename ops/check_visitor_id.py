@@ -75,11 +75,11 @@ def decrypt_ip(token: str, key: str) -> str:
         from cryptography.fernet import Fernet
     except ImportError as exc:  # pragma: no cover - 取决于本机解释器
         raise RuntimeError(
-            "当前解释器缺少 cryptography，无法解密 ip_enc。\n"
-            "  用带依赖的解释器：/tmp/limooo-venv/bin/python "
+            "this interpreter lacks cryptography, cannot decrypt ip_enc.\n"
+            "  use an interpreter that has it: /tmp/limooo-venv/bin/python "
             f"{Path(__file__).name} <ID>\n"
-            "  （重建：python3 -m venv /tmp/limooo-venv && "
-            "/tmp/limooo-venv/bin/pip install -r ops/requirements.txt）"
+            "  (recreate: python3 -m venv /tmp/limooo-venv && "
+            "/tmp/limooo-venv/bin/pip install -r ops/requirements.txt)"
         ) from exc
     return Fernet(key.encode("ascii")).decrypt(token.encode("ascii")).decode("utf-8")
 
@@ -89,14 +89,14 @@ def summarize(rows: list[dict]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="按访客 ID 反查真实 IP 与访问概况")
-    parser.add_argument("visitor_id", nargs="?", help="访客页显示的 16 位 ID（ip_hash）")
+    parser = argparse.ArgumentParser(description="Look up the real IP and visit summary by visitor ID")
+    parser.add_argument("visitor_id", nargs="?", help="the 16-char ID shown on the visitor page (ip_hash)")
     parser.add_argument(
         "--requests",
         type=int,
         default=0,
         metavar="N",
-        help="额外列出最近 N 条请求明细（读 ray_log_v2；该表无 ip_hash 索引，会扫表）",
+        help="also list the most recent N request details (reads ray_log_v2; that table has no ip_hash index, so it scans)",
     )
     args = parser.parse_args()
 
@@ -104,7 +104,7 @@ def main() -> int:
     try:
         visitor = normalize(raw)
     except ValueError:
-        print("invalid visitor ID（应为 16 位十六进制，如 d51153cb767fc758）", file=sys.stderr)
+        print("invalid visitor ID (expected 16 hex chars, e.g. d51153cb767fc758)", file=sys.stderr)
         return 2
 
     def warn(message: str) -> None:
@@ -116,7 +116,7 @@ def main() -> int:
     key = (os.environ.get("VISITOR_IP_KEY") or env.get("VISITOR_IP_KEY") or "").strip()
     cfg = d1_client.cloudflare_config(env)
 
-    print(f"== 访客 {visitor} ==", flush=True)
+    print(f"visitor {visitor}", flush=True)
     try:
         totals = d1_query_retry(
             cfg,
@@ -126,13 +126,13 @@ def main() -> int:
             f"FROM visitor_rollups WHERE ip_hash = '{visitor}'",
         )
     except Exception as exc:  # noqa: BLE001
-        warn(f"  D1 查询失败: {exc}")
-        warn(f"\n查询未完成：{visitor}（不代表没有记录，请重试）")
+        warn(f"  D1 query failed: {exc}")
+        warn(f"\nquery incomplete: {visitor} (this does NOT mean there is no record; please retry)")
         return 1
 
     row = totals[0] if totals else {}
     if not row or not row.get("rows_n"):
-        warn(f"\n未找到记录：{visitor}（该 ID 不在 visitor_rollups 保留窗口内）")
+        warn(f"\nno records found: {visitor} (this ID is outside the visitor_rollups retention window)")
         return 1
 
     statuses = d1_query_retry(
@@ -146,12 +146,12 @@ def main() -> int:
         f"WHERE ip_hash = '{visitor}' GROUP BY page_slug ORDER BY n DESC LIMIT 8",
     )
 
-    print(f"  首次      {fmt_ts(row.get('first_ts'))}")
-    print(f"  最近      {fmt_ts(row.get('last_ts'))}")
-    print(f"  请求      {row.get('total_requests')} 次 / {row.get('rows_n')} 个聚合行")
-    print(f"  国家      {row.get('countries') or '-'}")
-    print(f"  状态      {summarize(statuses)}")
-    print("  页面      " + (" ".join(f"{r['page_slug']}×{r['n']}" for r in pages) or "-"))
+    print(f"  first      {fmt_ts(row.get('first_ts'))}")
+    print(f"  last       {fmt_ts(row.get('last_ts'))}")
+    print(f"  requests   {row.get('total_requests')} visits / {row.get('rows_n')} rollup rows")
+    print(f"  country    {row.get('countries') or '-'}")
+    print(f"  status     {summarize(statuses)}")
+    print("  pages      " + (" ".join(f"{r['page_slug']}×{r['n']}" for r in pages) or "-"))
 
     # 密文只取最近一条：同一个 IP 的小时行很多，但密文内容一致。
     tokens = d1_query_retry(
@@ -162,27 +162,28 @@ def main() -> int:
     token = (tokens[0].get("ip_enc") if tokens else "") or ""
 
     if not token:
-        print("  IP        不可用")
+        print("  IP         unavailable")
         warn(
-            "\n该访客只有 2026-09-26 之前的记录：当时只存了 HMAC 哈希，不可逆。\n"
-            "同一个 IP 之后再访问一次，这一行就会自动带上可解密的 IP。"
+            "\nthis visitor only has records from before 2026-09-26: only an HMAC hash was stored then, "
+            "which is irreversible.\n"
+            "if the same IP visits once more, this row will automatically carry a decryptable IP."
         )
         return 3
 
     if not key:
-        warn(f"  找到密文，但 {SECRETS_FILE} 里没有 VISITOR_IP_KEY，无法解密。")
+        warn(f"  ciphertext found, but {SECRETS_FILE} has no VISITOR_IP_KEY, cannot decrypt.")
         return 1
     try:
         ip = decrypt_ip(token, key)
     except Exception as exc:  # noqa: BLE001
-        warn(f"  解密失败: {exc}")
+        warn(f"  decryption failed: {exc}")
         return 1
 
-    print(f"  IP        {ip}")
-    print(f"  密文      最近一条 {fmt_ts(tokens[0].get('last_ts'))}（Fernet / VISITOR_IP_KEY，已本地解密）")
+    print(f"  IP         {ip}")
+    print(f"  ciphertext {fmt_ts(tokens[0].get('last_ts'))} (Fernet / VISITOR_IP_KEY, decrypted locally)")
 
     if args.requests > 0:
-        print(f"== 最近请求（ray_log_v2，最多 {args.requests} 条）==", flush=True)
+        print(f"recent requests (ray_log_v2, up to {args.requests})", flush=True)
         try:
             hits = d1_query_retry(
                 cfg,
@@ -191,10 +192,10 @@ def main() -> int:
                 f"ORDER BY ts DESC LIMIT {int(args.requests)}",
             )
         except Exception as exc:  # noqa: BLE001
-            warn(f"  ray_log_v2 查询失败: {exc}")
+            warn(f"  ray_log_v2 query failed: {exc}")
             hits = []
         if not hits:
-            print("  （保留窗口内没有明细记录）")
+            print("  (no detail records within the retention window)")
         for hit in hits:
             print(
                 f"  {fmt_ts(hit.get('ts'))} {hit.get('host')} {hit.get('method')} "
@@ -202,7 +203,7 @@ def main() -> int:
                 f"country={hit.get('country')} ua={hit.get('ua_family')} [ray_log_v2]"
             )
     else:
-        print("  （加 --requests 10 可列出该访客最近的请求明细）")
+        print("  (pass --requests 10 to list this visitor's recent request details)")
     return 0
 
 

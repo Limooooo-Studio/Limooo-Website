@@ -65,7 +65,7 @@ def d1_query(cfg: dict[str, str], sql: str) -> list[dict[str, Any]]:
     account_id = cfg["account_id"]
     database_id = cfg["database_id"]
     if not token or not account_id or not database_id:
-        raise RuntimeError("Cloudflare / D1 配置缺失")
+        raise RuntimeError("Cloudflare / D1 config missing")
     url = f"{CLOUDFLARE_API_BASE}/accounts/{account_id}/d1/database/{database_id}/query"
     body = json.dumps({"sql": sql}).encode("utf-8")
     request = urllib.request.Request(
@@ -84,11 +84,11 @@ def d1_query(cfg: dict[str, str], sql: str) -> list[dict[str, Any]]:
         detail = exc.read().decode("utf-8", "replace")[:300]
         raise RuntimeError(f"D1 HTTP {exc.code}: {detail}") from exc
     if not data.get("success"):
-        raise RuntimeError(f"D1 API 返回失败: {str(data)[:300]}")
+        raise RuntimeError(f"D1 API returned a failure: {str(data)[:300]}")
     results = data.get("result") or []
     if not results:
         return []
     first = results[0] or {}
     if not first.get("success"):
-        raise RuntimeError(f"D1 查询失败: {str(first)[:300]}")
+        raise RuntimeError(f"D1 query failed: {str(first)[:300]}")
     return first.get("results") or []

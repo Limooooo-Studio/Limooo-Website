@@ -35,4 +35,4 @@ chmod +x .githooks/* 2>/dev/null || true
 git config core.hooksPath .githooks
 
 echo "[hooks] core.hooksPath = .githooks"
-echo "[hooks] 生效：git push 前会跑 ops/ci_check.sh（校验要推的 commit）"
+echo "[hooks] active: ops/ci_check.sh runs before git push (validates the commit being pushed)"

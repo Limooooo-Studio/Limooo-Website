@@ -32,13 +32,13 @@ if [ ! -d "$SOURCE_DIR" ]; then
     exit 1
 fi
 if [ ! -x "$LOCAL_DIR/node_modules/.bin/wrangler" ]; then
-    echo "FATAL: 未找到本地 wrangler，请先在 $LOCAL_DIR 执行 npm ci" >&2
+    echo "FATAL: local wrangler not found; run npm ci in $LOCAL_DIR first" >&2
     exit 1
 fi
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[r2] DRY-RUN: 不会连接 Cloudflare。"
-    echo "[r2] will-run: wrangler r2 bucket create ${BUCKET}  (若不存在)"
+    echo "[r2] DRY-RUN: will not contact Cloudflare."
+    echo "[r2] will-run: wrangler r2 bucket create ${BUCKET}  (if absent)"
     echo "[r2] will-run: wrangler r2 object put ${BUCKET}/portfolio/<file> --file <file> --remote"
     echo "[r2] files: $(find "$SOURCE_DIR" -maxdepth 1 -type f | wc -l | tr -d ' ')"
     exit 0

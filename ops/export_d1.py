@@ -32,7 +32,7 @@ def sql_str(value: object) -> str:
 
 def export_apple_account(db_path: str) -> int:
     if not os.path.exists(db_path):
-        print(f"FATAL: {db_path} 不存在", file=sys.stderr)
+        print(f"FATAL: {db_path} does not exist", file=sys.stderr)
         return 1
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -72,7 +72,7 @@ def normalize_blocklist(line: str) -> str | None:
 
 def export_blocklist(src: str) -> int:
     if not os.path.exists(src):
-        print(f"FATAL: {src} 不存在", file=sys.stderr)
+        print(f"FATAL: {src} does not exist", file=sys.stderr)
         return 1
     seen: set[str] = set()
     with open(src, encoding="utf-8") as f:
