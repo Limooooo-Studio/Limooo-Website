@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: 動画プラットフォーム一覧
-      link: /ja-jp/video-platform
+      link: /video-platform/ja-jp
     - theme: alt
       text: メインサイト
       link: https://limooo.cn
@@ -17,7 +17,7 @@ features:
   - icon: 🌐
     title: 動画プラットフォーム一覧
     details: 主要プラットフォームの運営会社、所在地、プライバシーポリシーへの入口。
-    link: /ja-jp/video-platform
+    link: /video-platform/ja-jp
     linkText: 一覧を見る
   - icon: 🍪
     title: メインサイトと Cookie を共有

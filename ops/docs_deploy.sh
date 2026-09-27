@@ -26,6 +26,7 @@
 #   LIMOOO_DOCS_BUILD_DIR  build workspace   (default: /tmp/limooo-docs-build)
 #   DOCS_PAGES_PROJECT     Pages project     (default: limooo-docs)
 #   LIMOOO_SKIP_VITEPRESS_BUILD=1  reuse the cached tarball as-is
+#   LIMOOO_VITEPRESS_FETCH=0       use the fork working tree as-is (fork development)
 
 set -euo pipefail
 
@@ -99,9 +100,13 @@ ensure_vitepress() {
         git clone --filter=blob:none --quiet "$VITEPRESS_REPO" "$VITEPRESS_DIR"
     fi
 
-    echo "[docs] fetching VitePress fork: $VITEPRESS_REF"
-    git -C "$VITEPRESS_DIR" fetch --quiet --depth 1 origin "$VITEPRESS_REF"
-    git -C "$VITEPRESS_DIR" reset --hard --quiet FETCH_HEAD
+    if [ "${LIMOOO_VITEPRESS_FETCH:-1}" = 1 ]; then
+        echo "[docs] fetching VitePress fork: $VITEPRESS_REF"
+        git -C "$VITEPRESS_DIR" fetch --quiet --depth 1 origin "$VITEPRESS_REF"
+        git -C "$VITEPRESS_DIR" reset --hard --quiet FETCH_HEAD
+    else
+        echo "[docs] LIMOOO_VITEPRESS_FETCH=0, using the working tree at $VITEPRESS_DIR"
+    fi
     local sha
     sha="$(git -C "$VITEPRESS_DIR" rev-parse HEAD)"
     echo "[docs] VitePress fork commit: $sha"
@@ -110,7 +115,9 @@ ensure_vitepress() {
         echo "[docs] LIMOOO_SKIP_VITEPRESS_BUILD=1, reusing cached tarball"
         return 0
     fi
-    if [ -f "$TARBALL" ] && [ "$(cat "$SHA_MARKER" 2>/dev/null || true)" = "$sha" ]; then
+    # FETCH=0 表示在 fork 工作区里开发：工作区可能是脏的，commit sha 没变也要重建
+    if [ "${LIMOOO_VITEPRESS_FETCH:-1}" = 1 ] && [ -f "$TARBALL" ] \
+        && [ "$(cat "$SHA_MARKER" 2>/dev/null || true)" = "$sha" ]; then
         echo "[docs] VitePress fork already built for this commit, reusing tarball"
         return 0
     fi
@@ -185,22 +192,8 @@ echo "[docs] building docs site"
 
 # ── ④ 校验产物：每个 md 都要有对应 HTML ─────────────────────────────
 echo "[docs] validating markdown -> html mapping"
-missing=0
-while IFS= read -r md; do
-    rel="${md#"$DOCS_DIR"/}"
-    case "$rel" in
-        .vitepress/*|node_modules/*) continue ;;
-    esac
-    html="$DIST_DIR/${rel%.md}.html"
-    if [ ! -f "$html" ]; then
-        echo "  missing: ${rel%.md}.html" >&2
-        missing=1
-    fi
-done < <(find "$DOCS_DIR" -name '*.md' -type f | sort)
-if [ "$missing" = 1 ]; then
-    echo "FATAL: docs build did not produce HTML for every markdown file" >&2
-    exit 1
-fi
+python3 "$ROOT/ops/docs_check_output.py" "$DOCS_DIR" "$DIST_DIR"
+
 echo "[docs] artifact: $(find "$DIST_DIR" -type f | wc -l | tr -d ' ') files"
 
 python3 "$ROOT/ops/docs_headers.py" "$DIST_DIR"
@@ -240,7 +233,7 @@ export CI=1 WRANGLER_SEND_METRICS=false
 
 # ── ⑦ 冒烟 ──────────────────────────────────────────────────────────
 echo "[docs] post-deploy check"
-for path in / /video-platform /en-us/video-platform; do
+for path in / /video-platform /video-platform/en-us /video-platform/ja-jp /video-platform/ko-kr; do
     code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://${DOCS_HOST}${path}" || echo 000)"
     if [ "$code" != "200" ]; then
         echo "FATAL: https://${DOCS_HOST}${path} = ${code} (expected 200)" >&2

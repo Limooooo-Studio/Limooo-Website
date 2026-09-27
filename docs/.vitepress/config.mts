@@ -1,13 +1,19 @@
 /**
  * docs.limooo.cn — VitePress 站点配置
  *
- * 内容源：Flask/docs/*.md（每个 md 对应 docs.limooo.cn/<文件名>）
- * 主题实现：消费 Limooooo-Studio/vitepress fork（页头/页脚在 fork 里改）
+ * 内容源：Flask/docs/*.md
+ *   docs/video-platform.md            → /video-platform
+ *   docs/video-platform/en-us.md      → /video-platform/en-us
+ *   docs/en-us.md                     → /en-us
  *
- * 语言：root = zh-cn，另有 en-us / ja-jp / ko-kr 三个目录前缀，
- * 前缀名与主站 config-contract.json 的 supported_langs 完全一致，
- * 这样 user_lang_preference cookie 的值可以直接当 URL 前缀用。
+ * 语言码放在**页面路径最后一段**（不是 VitePress 的 locales 前缀），所以不用
+ * `locales`，改用 `additionalConfig`（按**源目录**分层）+ `rewrites`：
+ * 每个页面拿到自己那份 lang / themeConfig（导航、侧栏、UI 文案都跟着语言走）。
+ *
+ * 主题：fork Limooooo-Studio/vitepress —— 页头/页脚在 fork 里改。
  */
+import { readFileSync } from 'node:fs'
+
 import { defineConfig } from 'vitepress'
 import type { DefaultTheme } from 'vitepress'
 
@@ -17,158 +23,194 @@ const SITE_URL = 'https://docs.limooo.cn'
 const MAIN_SITE = 'https://limooo.cn'
 const REPO = 'https://github.com/Limooooo-Studio/Limooo-Website'
 
+interface LangDef {
+  code: string
+  label: string
+  flag: string
+  lang: string
+  default?: boolean
+}
+
+const LANGS: LangDef[] = [
+  { code: 'zh-cn', label: '简体中文', flag: '🇨🇳', lang: 'zh-CN', default: true },
+  { code: 'en-us', label: 'English', flag: '🇺🇸', lang: 'en-US' },
+  { code: 'ja-jp', label: '日本語', flag: '🇯🇵', lang: 'ja-JP' },
+  { code: 'ko-kr', label: '한국어', flag: '🇰🇷', lang: 'ko-KR' }
+]
+
+const CODES = LANGS.map((l) => l.code)
+const DEFAULT_LANG = LANGS.find((l) => l.default)?.code ?? CODES[0]
+
+/** 语言码 -> BCP 47 标签（写进 <html lang> 与 head）。 */
+function langTag(code: string): string {
+  return (LANGS.find((l) => l.code === code) ?? LANGS[0]).lang
+}
+
+/** 页面路径 + 语言码 → 该语言的 URL 路径。 */
+function routePath(basePath: string, code: string): string {
+  const base = basePath === '/' ? '' : basePath
+  if (code === DEFAULT_LANG) return base || '/'
+  return `${base}/${code}`
+}
+
 /** 每个语言一份 UI 文案；VitePress 不会自动翻译默认主题。 */
 interface Labels {
   title: string
   description: string
-  navVideo: string
   navHome: string
+  navVideo: string
   navMain: string
+  docsSection: string
   outlineTitle: string
-  lastUpdatedText: string
-  returnToTopLabel: string
   sidebarMenuLabel: string
   darkModeSwitchLabel: string
-  lightModeSwitchTitle: string
-  darkModeSwitchTitle: string
   langMenuLabel: string
   prev: string
   next: string
-  footerMessage: string
-  footerCopyright: string
+  editLink: string
+  footerRights: string
+  footerSource: string
 }
 
 const labels: Record<string, Labels> = {
-  root: {
+  'zh-cn': {
     title: 'Limooo 文档',
     description: 'Limooo 的公开文档：平台清单、隐私与合规参考。',
+    navHome: '首页',
     navVideo: '视频平台',
-    navHome: '文档首页',
     navMain: '返回主站',
+    docsSection: '文档',
     outlineTitle: '本页目录',
-    lastUpdatedText: '最后更新',
-    returnToTopLabel: '回到顶部',
     sidebarMenuLabel: '菜单',
     darkModeSwitchLabel: '外观',
-    lightModeSwitchTitle: '切换到浅色模式',
-    darkModeSwitchTitle: '切换到深色模式',
     langMenuLabel: '切换语言',
     prev: '上一页',
     next: '下一页',
-    footerMessage: '文档以 CC BY 4.0 提供，仅供参考，不构成法律意见。',
-    footerCopyright: '© 2026 Limooo'
+    editLink: '在 GitHub 上编辑此页',
+    footerRights: '保留所有权利',
+    footerSource: '源码'
   },
   'en-us': {
     title: 'Limooo Docs',
     description: 'Public Limooo documentation: platform inventories, privacy and compliance references.',
-    navVideo: 'Video Platforms',
-    navHome: 'Docs Home',
+    navHome: 'Home',
+    navVideo: 'Video platforms',
     navMain: 'Main site',
+    docsSection: 'Documentation',
     outlineTitle: 'On this page',
-    lastUpdatedText: 'Last updated',
-    returnToTopLabel: 'Return to top',
     sidebarMenuLabel: 'Menu',
     darkModeSwitchLabel: 'Appearance',
-    lightModeSwitchTitle: 'Switch to light theme',
-    darkModeSwitchTitle: 'Switch to dark theme',
     langMenuLabel: 'Change language',
     prev: 'Previous page',
     next: 'Next page',
-    footerMessage: 'Documentation provided under CC BY 4.0 for reference only; not legal advice.',
-    footerCopyright: '© 2026 Limooo'
+    editLink: 'Edit this page on GitHub',
+    footerRights: 'All rights reserved',
+    footerSource: 'Source'
   },
   'ja-jp': {
     title: 'Limooo ドキュメント',
     description: 'Limooo の公開ドキュメント：プラットフォーム一覧、プライバシーとコンプライアンスの参考資料。',
+    navHome: 'ホーム',
     navVideo: '動画プラットフォーム',
-    navHome: 'ドキュメント',
     navMain: 'メインサイト',
+    docsSection: 'ドキュメント',
     outlineTitle: 'このページの目次',
-    lastUpdatedText: '最終更新',
-    returnToTopLabel: 'トップへ戻る',
     sidebarMenuLabel: 'メニュー',
     darkModeSwitchLabel: '外観',
-    lightModeSwitchTitle: 'ライトテーマに切り替え',
-    darkModeSwitchTitle: 'ダークテーマに切り替え',
     langMenuLabel: '言語を変更',
     prev: '前のページ',
     next: '次のページ',
-    footerMessage: '本ドキュメントは CC BY 4.0 で提供され、参考情報であり法的助言ではありません。',
-    footerCopyright: '© 2026 Limooo'
+    editLink: 'GitHub でこのページを編集',
+    footerRights: 'All rights reserved',
+    footerSource: 'ソース'
   },
   'ko-kr': {
     title: 'Limooo 문서',
     description: 'Limooo 공개 문서: 플랫폼 목록, 개인정보 및 컴플라이언스 참고 자료.',
+    navHome: '홈',
     navVideo: '동영상 플랫폼',
-    navHome: '문서 홈',
     navMain: '메인 사이트',
+    docsSection: '문서',
     outlineTitle: '이 페이지 목차',
-    lastUpdatedText: '최종 수정',
-    returnToTopLabel: '맨 위로',
     sidebarMenuLabel: '메뉴',
     darkModeSwitchLabel: '테마',
-    lightModeSwitchTitle: '라이트 테마로 전환',
-    darkModeSwitchTitle: '다크 테마로 전환',
     langMenuLabel: '언어 변경',
     prev: '이전 페이지',
     next: '다음 페이지',
-    footerMessage: '이 문서는 CC BY 4.0으로 제공되며 참고용일 뿐 법률 자문이 아닙니다.',
-    footerCopyright: '© 2026 Limooo'
+    editLink: 'GitHub에서 이 페이지 편집',
+    footerRights: '모든 권리 보유',
+    footerSource: '소스'
   }
 }
 
-/** 非 root 语言在 URL 里的前缀，同时也是 user_lang_preference 的取值。 */
-const NON_ROOT = ['en-us', 'ja-jp', 'ko-kr'] as const
-const ROOT_LANG = 'zh-cn'
-
-function prefixOf(localeKey: string): string {
-  return localeKey === 'root' ? '' : `/${localeKey}`
-}
-
-function themeFor(localeKey: string): DefaultTheme.Config {
-  const L = labels[localeKey]
-  const p = prefixOf(localeKey)
+function themeFor(code: string): DefaultTheme.Config {
+  const L = labels[code] ?? labels[DEFAULT_LANG]
+  const home = routePath('/', code)
+  const video = routePath('/video-platform', code)
   return {
-    logo: { src: '/logo.svg', width: 24, height: 24, alt: 'Limooo' },
+    // 页头/页脚由 fork 的 Limooo 组件渲染（与主站 base.html 一致）
     nav: [
-      { text: L.navHome, link: `${p}/` },
-      { text: L.navVideo, link: `${p}/video-platform` },
+      { text: L.navHome, link: home },
+      { text: L.navVideo, link: video },
       { text: L.navMain, link: MAIN_SITE }
     ],
-    sidebar: {
-      [`${p}/`]: [
-        {
-          text: L.navHome,
-          items: [
-            { text: L.navHome, link: `${p}/` },
-            { text: L.navVideo, link: `${p}/video-platform` }
-          ]
-        }
-      ]
-    },
+    sidebar: [
+      {
+        text: L.docsSection,
+        items: [
+          { text: L.navHome, link: home },
+          { text: L.navVideo, link: video },
+          { text: L.navMain, link: MAIN_SITE }
+        ]
+      }
+    ],
     outline: { level: [2, 3], label: L.outlineTitle },
-    lastUpdated: { text: L.lastUpdatedText },
-    returnToTopLabel: L.returnToTopLabel,
     sidebarMenuLabel: L.sidebarMenuLabel,
     darkModeSwitchLabel: L.darkModeSwitchLabel,
-    lightModeSwitchTitle: L.lightModeSwitchTitle,
-    darkModeSwitchTitle: L.darkModeSwitchTitle,
     langMenuLabel: L.langMenuLabel,
     docFooter: { prev: L.prev, next: L.next },
-    footer: { message: L.footerMessage, copyright: L.footerCopyright },
-    editLink: {
-      pattern: `${REPO}/edit/main/Flask/docs/:path`,
-      text: localeKey === 'root' ? '在 GitHub 上编辑此页' : 'Edit this page on GitHub'
+    editLink: { pattern: `${REPO}/edit/main/Flask/docs/:path`, text: L.editLink },
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/Limooooo-Studio' },
+      { icon: 'bilibili', link: 'https://space.bilibili.com/1234163143', ariaLabel: 'Bilibili' }
+    ],
+    footer: {
+      copyright: '© 2026 <span class="footer-brand">Limooo</span> Studio',
+      items: [
+        { text: L.footerRights },
+        { text: 'AGPL-3.0' },
+        { text: L.footerSource, link: `${REPO}/blob/main/LICENSE.md` }
+      ]
     },
-    socialLinks: [{ icon: 'github', link: REPO }],
-    search: { provider: 'local' }
+    limooo: { languages: LANGS }
+  } as DefaultTheme.Config
+}
+
+/** 每个语言的 lang / 标题 / 主题配置（纯数据，能安全序列化进客户端）。 */
+function localeConfigFor(code: string) {
+  const L = labels[code] ?? labels[DEFAULT_LANG]
+  return {
+    lang: langTag(code),
+    title: L.title,
+    description: L.description,
+    themeConfig: themeFor(code)
   }
 }
 
+/**
+ * 源文件放各自的语言目录（en-us/index.md），用 rewrites 把路由改成
+ * 「语言码在最后一段」（/en-us、/video-platform/en-us）。
+ * 不用 additionalConfig 的函数形式：函数会被序列化进客户端而丢掉闭包。
+ * 映射表同时被 ops/docs_deploy.sh 的产物校验读取，保持单一事实源。
+ */
+const REWRITES: Record<string, string> = JSON.parse(
+  readFileSync(new URL('./rewrites.json', import.meta.url), 'utf-8')
+)
+
 export default defineConfig({
-  lang: 'zh-CN',
-  title: labels.root.title,
-  description: labels.root.description,
+  lang: langTag(DEFAULT_LANG),
+  title: labels[DEFAULT_LANG].title,
+  description: labels[DEFAULT_LANG].description,
   cleanUrls: true,
   metaChunk: true,
   head: [
@@ -179,34 +221,29 @@ export default defineConfig({
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'Limooo Docs' }],
     ['meta', { property: 'og:url', content: SITE_URL }],
+    [
+      'link',
+      {
+        rel: 'preload',
+        href: '/fonts/baloo2-latin-wght-normal.woff2',
+        as: 'font',
+        type: 'font/woff2',
+        crossorigin: ''
+      }
+    ],
+    ['link', { rel: 'stylesheet', href: '/fonts.css' }],
     // 必须在 VitePress 的 check-dark-mode 之前执行：把主站 limooo_theme cookie
     // 灌进 localStorage，避免与主站深浅模式不一致造成的首屏闪烁。
     ['script', { id: 'limooo-theme-bridge' }, THEME_BOOTSTRAP_SCRIPT]
   ],
   sitemap: { hostname: SITE_URL },
-  themeConfig: themeFor('root'),
-  locales: {
-    root: {
-      label: '简体中文',
-      lang: 'zh-CN',
-      title: labels.root.title,
-      description: labels.root.description,
-      themeConfig: themeFor('root')
-    },
-    ...Object.fromEntries(
-      NON_ROOT.map((key) => [
-        key,
-        {
-          label: key === 'en-us' ? 'English' : key === 'ja-jp' ? '日本語' : '한국어',
-          lang: key === 'en-us' ? 'en-US' : key === 'ja-jp' ? 'ja-JP' : 'ko-KR',
-          link: `/${key}/`,
-          title: labels[key].title,
-          description: labels[key].description,
-          themeConfig: themeFor(key)
-        }
-      ])
-    )
+  rewrites: REWRITES,
+  themeConfig: themeFor(DEFAULT_LANG),
+  // 按**源目录**给页面套上对应语言的 lang + themeConfig（纯数据，可序列化）
+  additionalConfig: {
+    '/': localeConfigFor('zh-cn'),
+    '/en-us/': localeConfigFor('en-us'),
+    '/ja-jp/': localeConfigFor('ja-jp'),
+    '/ko-kr/': localeConfigFor('ko-kr')
   }
 })
-
-export { ROOT_LANG, NON_ROOT }

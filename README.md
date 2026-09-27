@@ -200,13 +200,28 @@ systemd or Nginx steps. See `../AGENTS.md` for the full deploy contract.
 
 ### Docs site (docs.limooo.cn)
 
-`Flask/docs/*.md` is the content source: every markdown file becomes
-`https://docs.limooo.cn/<path>` and the site ships in four languages
-(root = `zh-cn`, plus `en-us` / `ja-jp` / `ko-kr`). It is built with VitePress from the
-fork `Limooooo-Studio/vitepress` — edit header/footer there, and the next deploy picks
-it up (the fork is rebuilt only when its commit changes). The site is a separate
-Cloudflare Pages project (`limooo-docs`) so it never touches the main `limooo` artifact,
-and it shares the `user_lang_preference` / `limooo_theme` cookies with the main site.
+`Flask/docs/` is the content source: one markdown file per page per language, and the
+language code is the **last** URL segment (`zh-cn` has no suffix):
+
+| Source | URL |
+| --- | --- |
+| `docs/video-platform.md` | `/video-platform` |
+| `docs/en-us/video-platform.md` | `/video-platform/en-us` |
+| `docs/en-us/index.md` | `/en-us` |
+
+`docs/.vitepress/rewrites.json` maps those sources onto the suffixed routes, and
+`docs/.vitepress/config.mts` gives each page its own `lang` / `themeConfig` through
+`additionalConfig`. Add a page by dropping a markdown file in each language directory
+plus a rewrites entry — `ops/docs_check_output.py` fails the build if any markdown file
+has no HTML.
+
+The site is built with VitePress from the fork `Limooooo-Studio/vitepress`: the header
+and footer live in the fork (`VPLimoooNav.vue` / `VPLimoooFooter.vue`) and mirror the
+main site's `base.html` / `_footer.html` — edit them there and the next deploy picks it
+up (the fork is rebuilt only when its commit changes; use `LIMOOO_VITEPRESS_FETCH=0` to
+build from a fork working tree). The site is a separate Cloudflare Pages project
+(`limooo-docs`) so it never touches the main `limooo` artifact, and it shares the
+`user_lang_preference` / `limooo_theme` cookies with the main site.
 
 ```bash
 bash ops/docs_deploy.sh --build-only   # build + validate only

@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: 동영상 플랫폼 목록
-      link: /ko-kr/video-platform
+      link: /video-platform/ko-kr
     - theme: alt
       text: 메인 사이트
       link: https://limooo.cn
@@ -17,7 +17,7 @@ features:
   - icon: 🌐
     title: 동영상 플랫폼 목록
     details: 주요 플랫폼의 운영 주체, 소재지, 개인정보 처리방침 링크.
-    link: /ko-kr/video-platform
+    link: /video-platform/ko-kr
     linkText: 목록 보기
   - icon: 🍪
     title: 메인 사이트와 쿠키 공유

@@ -8,7 +8,7 @@ hero:
   actions:
     - theme: brand
       text: Video platform inventory
-      link: /en-us/video-platform
+      link: /video-platform/en-us
     - theme: alt
       text: Main site
       link: https://limooo.cn
@@ -17,7 +17,7 @@ features:
   - icon: 🌐
     title: Video platform inventory
     details: Operating entity, registered address and privacy policy entry point for major platforms.
-    link: /en-us/video-platform
+    link: /video-platform/en-us
     linkText: Open the inventory
   - icon: 🍪
     title: Shared cookies with the main site
