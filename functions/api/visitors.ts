@@ -179,20 +179,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        -- 国家取**最近一次**访问的值。不能写 MAX(country)：那按字母序选，与
        -- 「最近」无关（CN/CH 混合的访客会恒显示 CN）。同 IP 跨国是常态——
        -- 代理/中转网段上 Cloudflare 在不同时间本就可能判出不同国家。
-       -- 用窗口函数一次算出每 IP 的最新行；不要用相关子查询，实测会把
-       -- 行读取从 ~17 万抬到 ~1370 万（免费版 5M 行/天上限）。
-       recent AS (
-         SELECT s.ip_hash, s.country,
-                ROW_NUMBER() OVER (PARTITION BY s.ip_hash ORDER BY s.ts DESC) AS rn
-         FROM scoped s
-         JOIN top t ON t.ip_hash = s.ip_hash
+       -- 实现要点（都拿线上 D1 实测过，别凭直觉改）：
+       --   · top 已经带每 IP 的 last_ts，直接 JOIN 回 scoped 取那一行的国家，
+       --     实测 13.1 万行读取；
+       --   · 不要用相关子查询（SELECT s2.country ... ORDER BY ts DESC LIMIT 1）
+       --     ——1370 万行；不要用 NOT EXISTS ——753 万行；不要用
+       --     ROW_NUMBER() 全分区排序 ——17.5 万行。免费版上限 5M 行/天。
+       latest AS (
+         SELECT t.ip_hash, MAX(s.country) AS country
+         FROM top t
+         JOIN scoped s ON s.ip_hash = t.ip_hash AND s.ts = t.last_ts
+         GROUP BY t.ip_hash
        )
-       SELECT v.ip_hash, r.country, v.status,
+       SELECT v.ip_hash, l.country, v.status,
               SUM(v.requests) AS n,
               MAX(v.ts) AS last_ts
        FROM scoped v
        JOIN top t ON t.ip_hash = v.ip_hash
-       JOIN recent r ON r.ip_hash = v.ip_hash AND r.rn = 1
+       JOIN latest l ON l.ip_hash = v.ip_hash
        GROUP BY v.ip_hash, v.status
        ORDER BY MAX(v.ts) DESC, v.status`
     : `WITH scoped AS (
@@ -214,20 +218,24 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        -- 国家取**最近一次**访问的值。不能写 MAX(country)：那按字母序选，与
        -- 「最近」无关（CN/CH 混合的访客会恒显示 CN）。同 IP 跨国是常态——
        -- 代理/中转网段上 Cloudflare 在不同时间本就可能判出不同国家。
-       -- 用窗口函数一次算出每 IP 的最新行；不要用相关子查询，实测会把
-       -- 行读取从 ~17 万抬到 ~1370 万（免费版 5M 行/天上限）。
-       recent AS (
-         SELECT s.ip_hash, s.country,
-                ROW_NUMBER() OVER (PARTITION BY s.ip_hash ORDER BY s.ts DESC) AS rn
-         FROM scoped s
-         JOIN top t ON t.ip_hash = s.ip_hash
+       -- 实现要点（都拿线上 D1 实测过，别凭直觉改）：
+       --   · top 已经带每 IP 的 last_ts，直接 JOIN 回 scoped 取那一行的国家，
+       --     实测 13.1 万行读取；
+       --   · 不要用相关子查询（SELECT s2.country ... ORDER BY ts DESC LIMIT 1）
+       --     ——1370 万行；不要用 NOT EXISTS ——753 万行；不要用
+       --     ROW_NUMBER() 全分区排序 ——17.5 万行。免费版上限 5M 行/天。
+       latest AS (
+         SELECT t.ip_hash, MAX(s.country) AS country
+         FROM top t
+         JOIN scoped s ON s.ip_hash = t.ip_hash AND s.ts = t.last_ts
+         GROUP BY t.ip_hash
        )
-       SELECT v.ip_hash, r.country, v.status,
+       SELECT v.ip_hash, l.country, v.status,
               SUM(v.requests) AS n,
               MAX(v.ts) AS last_ts
        FROM scoped v
        JOIN top t ON t.ip_hash = v.ip_hash
-       JOIN recent r ON r.ip_hash = v.ip_hash AND r.rn = 1
+       JOIN latest l ON l.ip_hash = v.ip_hash
        GROUP BY v.ip_hash, v.status
        ORDER BY MAX(v.ts) DESC, v.status`;
 

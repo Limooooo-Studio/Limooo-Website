@@ -172,23 +172,26 @@ def rays_legacy(cfg: dict[str, str], ip: str, limit: int) -> tuple[list[dict], s
 def render_v2(row: dict) -> str:
     ts = row.get("ts")
     stamp = dt.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S") if isinstance(ts, (int, float)) else ""
-    host = row.get("host", "")
-    method = row.get("method", "")
-    path = row.get("path", "")
-    status = row.get("status", "")
-    country = row.get("country", "")
+    host = str(row.get("host", ""))
+    method = str(row.get("method", ""))
+    path = str(row.get("path", ""))
+    status = str(row.get("status", ""))
+    country = str(row.get("country", ""))
     duration = row.get("duration_ms")
-    ms = f" {duration}ms" if isinstance(duration, (int, float)) and duration else ""
-    return f"{stamp} {row.get('ray','')} {host} {method} {path} {status} country={country}{ms}"
+    ms = f"{int(duration)}ms" if isinstance(duration, (int, float)) and duration else ""
+    # 定宽对齐：时间/ray/状态/方法/国家/耗时不抖动；host+path 放最后（长度不可控）。
+    return f"{stamp} {row.get('ray',''):<22} {status:>3} {method:<4} {country:<2} {ms:>7}  {host}{path}"
 
 
 def render_legacy(row: dict) -> str:
     ts = row.get("ts")
     stamp = dt.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S") if isinstance(ts, (int, float)) else ""
-    return (
-        f"{stamp} {row.get('ray','')} {row.get('host','')} {row.get('method','')} "
-        f"{row.get('path','')} {row.get('status','')} country={row.get('country','')} [legacy]"
-    )
+    host = str(row.get("host", ""))
+    method = str(row.get("method", ""))
+    path = str(row.get("path", ""))
+    status = str(row.get("status", ""))
+    country = str(row.get("country", ""))
+    return f"{stamp} {row.get('ray',''):<22} {status:>3} {method:<4} {country:<2} {'-':>7}  {host}{path} [legacy]"
 
 
 def main() -> int:
@@ -251,16 +254,16 @@ def main() -> int:
         return 0 if (rows or legacy) else 1
 
     label = ip or f"hash:{hashes[0]}"
-    print(f"== {label} latest {limit} Ray ID(s) ==", flush=True)
+    print(f"{label} latest {limit} Ray ID(s)", flush=True)
     if hashes:
-        print(f"   ip_hash: {', '.join(hashes)}")
+        print(f"  ip_hash {', '.join(hashes)}")
     for row in rows:
         print("  " + render_v2(row))
     for row in legacy:
         print("  " + render_legacy(row))
 
-    for warn in warnings:
-        print(f"   note: {warn}", file=sys.stderr)
+    for warn in dict.fromkeys(warnings):
+        print(f"  note: {warn}", file=sys.stderr)
 
     if not rows and not legacy:
         print(f"\nno records found: {label}", file=sys.stderr)

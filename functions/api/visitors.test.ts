@@ -104,12 +104,18 @@ describe("visitors API", () => {
     // 'CN' > 'CH' 字母序更大，旧实现会在这里返回 CN。
     expect(data.markers[0].country).toBe("CH");
 
-    // SQL 侧必须用窗口函数取最新行，不得再出现 MAX(country) 这种字母序选法。
+    // SQL 侧必须按「最近一次访问」取国家，不得再出现 MAX(country) 这种字母序选法。
     const markerSql = vi.mocked(queryAll).mock.calls[1][1] as string;
-    expect(markerSql).toContain("ROW_NUMBER() OVER (PARTITION BY");
-    expect(markerSql).not.toContain("MAX(v.country)");
-    // 禁止相关子查询：实测会把行读取从 ~17 万抬到 ~1370 万（免费版 5M 行/天）。
-    expect(markerSql).not.toMatch(/SELECT\s+s2\.country/);
+    // SQL 的注释里会引用下面这些反面写法，断言前先剥掉注释，
+    // 否则测的是说明文字而不是真正的 SQL。
+    const sqlCode = markerSql.replace(/--[^\n]*/g, "");
+    expect(sqlCode).toContain("JOIN scoped s ON s.ip_hash = t.ip_hash AND s.ts = t.last_ts");
+    expect(sqlCode).not.toContain("MAX(v.country)");
+    // 禁止更贵的替代写法（都在线上 D1 实测过，读数远高于 13.1 万的基线）：
+    // 相关子查询 1370 万行、NOT EXISTS 753 万行、ROW_NUMBER 全分区 17.5 万行。
+    expect(sqlCode).not.toMatch(/SELECT\s+s2\.country/);
+    expect(sqlCode).not.toContain("NOT EXISTS");
+    expect(sqlCode).not.toContain("ROW_NUMBER()");
   });
 
   it("keeps the status filter compatible and applies the same 30-day window", async () => {

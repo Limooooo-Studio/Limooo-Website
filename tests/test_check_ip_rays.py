@@ -38,6 +38,11 @@ def test_terminal_output_is_english():
     assert not offenders, "terminal-facing text must be English:\n" + "\n".join(offenders)
 
 
+def test_default_limit_is_five():
+    """默认返回 5 条（用户 2026-09-27 指定）。"""
+    assert cir.DEFAULT_LIMIT == 5
+
+
 @pytest.mark.parametrize(
     "raw,expected",
     [
@@ -81,15 +86,34 @@ def test_render_v2_renders_fields():
         }
     )
     assert "a4162d53fc471732-SJC" in line
-    assert "visitor.limooo.cn" in line
-    assert "country=US" in line
-    assert line.endswith("386ms")
+    assert "visitor.limooo.cn/" in line
+    assert "386ms" in line
+    # 无装饰符号（AGENTS.md：终端输出只要纯净英文）。
+    assert "==" not in line and "--" not in line
 
 
-def test_render_legacy_marks_source():
+def test_render_v2_columns_align():
+    """定宽对齐：状态列右对齐、ray 列左对齐，长度不同的行也落在同一列。"""
+    base = {"ts": 1790466693, "method": "GET", "country": "US", "path": "/"}
+    short = cir.render_v2({**base, "ray": "a4162d53fc471732-SJC", "status": 200, "duration_ms": 5})
+    long = cir.render_v2({**base, "ray": "a4158dde3e649f60-AMS", "status": 301, "duration_ms": 1234})
+    assert short.index("200") == long.index("301")
+    assert short.index("GET") == long.index("GET")
+
+
+def test_render_legacy_marks_source_and_fills_gap():
     line = cir.render_legacy({"ray": "a40468eaedd2a158", "ts": 1790280389, "host": "x", "ip": "1.2.3.4"})
     assert "a40468eaedd2a158" in line
     assert line.endswith("[legacy]")
+    # 旧表没有 duration，用 - 占位，不留空洞。
+    assert " - " in line
+
+
+def test_no_decorative_banner_in_source():
+    """源码里不应再出现 == xxx == 这种装饰性横幅（AGENTS.md 约定）。"""
+    source = Path(cir.__file__).read_text(encoding="utf-8")
+    assert "print(f\"== " not in source
+    assert 'print("==' not in source
 
 
 def test_resolve_hashes_requires_key(monkeypatch):
