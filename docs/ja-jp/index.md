@@ -19,9 +19,4 @@ features:
     details: 主要プラットフォームの運営会社、所在地、プライバシーポリシーへの入口。
     link: /video-platform/ja-jp
     linkText: 一覧を見る
-  - icon: 🍪
-    title: メインサイトと Cookie を共有
-    details: 言語とカラーテーマは .limooo.cn ドメインの Cookie でメインサイトと同期します。
-    link: https://limooo.cn
-    linkText: メインサイトへ
 ---

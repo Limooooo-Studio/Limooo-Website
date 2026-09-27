@@ -19,9 +19,4 @@ features:
     details: 주요 플랫폼의 운영 주체, 소재지, 개인정보 처리방침 링크.
     link: /video-platform/ko-kr
     linkText: 목록 보기
-  - icon: 🍪
-    title: 메인 사이트와 쿠키 공유
-    details: 언어와 테마는 .limooo.cn 도메인 쿠키로 메인 사이트와 동기화됩니다.
-    link: https://limooo.cn
-    linkText: 메인 사이트로
 ---

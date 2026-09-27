@@ -19,9 +19,4 @@ features:
     details: Operating entity, registered address and privacy policy entry point for major platforms.
     link: /video-platform/en-us
     linkText: Open the inventory
-  - icon: 🍪
-    title: Shared cookies with the main site
-    details: Language and colour scheme stay in sync across limooo.cn and docs.limooo.cn via .limooo.cn cookies.
-    link: https://limooo.cn
-    linkText: Go to main site
 ---
