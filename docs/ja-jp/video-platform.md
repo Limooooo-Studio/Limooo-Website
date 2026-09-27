@@ -31,6 +31,7 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 - プライバシーポリシーには別途、郵送先として「北京市朝陽区融中心 A 座 法務部
   データセキュリティ・プライバシー保護センター」が記載されています。
 - プライバシーポリシー：[「抖音」プライバシーポリシー](https://www.douyin.com/agreements/?id=6773906068725565448)
+- 未成年者・児童：[抖音 児童個人情報保護規則](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html)
 
 ### 小紅書（Xiaohongshu / RED）
 
@@ -38,12 +39,14 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 - 所在地：上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室。
 - 注意：中国本土版の小紅書と海外版 **rednote** は運営主体が異なります。本ページは小紅書のみ対象です。
 - プライバシーポリシー：[小紅書ユーザープライバシーポリシー](https://www.xiaohongshu.com/protocols/privacy)
+- 未成年者・児童：単独の文書なし。[プライバシーポリシー第 8 章](https://www.xiaohongshu.com/protocols/privacy)を参照
 
 ### bilibili
 
 - 運営主体：**上海宽娱数码科技有限公司**（bilibili.com の運営者、Bilibili Inc. の関連会社）。
 - 所在地：上海市楊浦区政立路 485 号。
 - プライバシーポリシー：[bilibili プライバシーポリシー](https://www.bilibili.com/blackboard/privacy-pc.html)
+- 未成年者・児童：[bilibili 未成年者個人情報保護指引](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html)
 
 ### 微信視頻号（WeChat Channels）
 
@@ -53,6 +56,7 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 - 情報の収集・利用は「WeChat プライバシー保護ガイドライン」に定められており、
   専用のポリシーページはありません。
 - プライバシーポリシー：[WeChat プライバシー保護ガイドライン](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56)
+- 未成年者・児童：[テンセント児童プライバシー声明](https://privacy.qq.com/yszc-children.htm)
 
 ### YouTube
 
@@ -61,3 +65,4 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 - 利用規約の原文：「The entity providing the Service is Google LLC, a company operating under
   the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043」。
 - プライバシーポリシー：[Google プライバシーポリシー](https://policies.google.com/privacy)
+- 未成年者・児童：[YouTube Kids プライバシー通知](https://kids.youtube.com/t/privacynotice)

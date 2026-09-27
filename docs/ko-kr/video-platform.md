@@ -31,6 +31,7 @@ description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili
 - 개인정보 처리방침에는 별도의 우편 연락처로 «베이징시 차오양구 融中心 A동 법무부
   데이터 보안·프라이버시 보호 센터»가 기재되어 있습니다.
 - 개인정보 처리방침: [더우인 개인정보 처리방침](https://www.douyin.com/agreements/?id=6773906068725565448)
+- 미성년자·아동: [더우인 아동 개인정보 보호 규칙](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html)
 
 ### 샤오홍슈 (小红书 / RED)
 
@@ -39,12 +40,14 @@ description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili
 - 참고: 중국 본토판 샤오홍슈와 해외판 **rednote** 는 운영 주체가 다릅니다.
   이 페이지는 샤오홍슈만 다룹니다.
 - 개인정보 처리방침: [샤오홍슈 사용자 개인정보 처리방침](https://www.xiaohongshu.com/protocols/privacy)
+- 미성년자·아동: 별도 문서 없음. [개인정보 처리방침 제8장](https://www.xiaohongshu.com/protocols/privacy) 참조
 
 ### 빌리빌리 (bilibili)
 
 - 운영 주체: **上海宽娱数码科技有限公司** (bilibili.com 운영사, Bilibili Inc.의 관계사).
 - 소재지: 상하이시 양푸구 정리로 485호.
 - 개인정보 처리방침: [빌리빌리 개인정보 처리방침](https://www.bilibili.com/blackboard/privacy-pc.html)
+- 미성년자·아동: [빌리빌리 미성년자 개인정보 보호 지침](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html)
 
 ### 위챗 채널 (微信视频号)
 
@@ -53,6 +56,7 @@ description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili
 - 소재지: 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층.
 - 정보 수집·이용은 《위챗 개인정보 보호 지침》에 규정되어 있으며 별도 정책 페이지는 없습니다.
 - 개인정보 처리방침: [위챗 개인정보 보호 지침](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56)
+- 미성년자·아동: [텐센트 아동 개인정보 보호 성명](https://privacy.qq.com/yszc-children.htm)
 
 ### YouTube
 
@@ -61,3 +65,4 @@ description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili
 - 서비스 약관 원문: "The entity providing the Service is Google LLC, a company operating under
   the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043".
 - 개인정보 처리방침: [Google 개인정보 처리방침](https://policies.google.com/privacy)
+- 미성년자·아동: [YouTube Kids 개인정보 안내](https://kids.youtube.com/t/privacynotice)

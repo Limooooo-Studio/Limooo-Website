@@ -33,6 +33,7 @@ due diligence.
 - The privacy policy also lists a separate postal contact: Legal Department, Data Security and
   Privacy Protection Center, Building A, Rong Center, Chaoyang District, Beijing.
 - Privacy policy: [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773906068725565448)
+- Minors' policy: [Douyin Children's PI Protection Rules](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html)
 
 ### Xiaohongshu / RED
 
@@ -42,6 +43,7 @@ due diligence.
 - Note: mainland-China Xiaohongshu and its overseas version **rednote** are operated by
   different entities; this page covers Xiaohongshu only.
 - Privacy policy: [Xiaohongshu User Privacy Policy](https://www.xiaohongshu.com/protocols/privacy)
+- Minors' policy: no standalone document — see [section 8 (未成年人保护) of the Xiaohongshu privacy policy](https://www.xiaohongshu.com/protocols/privacy)
 
 ### Bilibili
 
@@ -49,6 +51,7 @@ due diligence.
   bilibili.com and an affiliate of Bilibili Inc.
 - Registered address: 485 Zhengli Road, Yangpu District, Shanghai.
 - Privacy policy: [Bilibili Privacy Policy](https://www.bilibili.com/blackboard/privacy-pc.html)
+- Minors' policy: [Bilibili Minors' PI Protection Guidelines](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html)
 
 ### WeChat Channels
 
@@ -59,6 +62,7 @@ due diligence.
 - Collection and use of Channels data is governed by the WeChat Privacy Protection Guidelines;
   there is no separate policy page.
 - Privacy policy: [WeChat Privacy Protection Guidelines](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56)
+- Minors' policy: [Tencent Children's Privacy Statement](https://privacy.qq.com/yszc-children.htm)
 
 ### YouTube
 
@@ -68,3 +72,4 @@ due diligence.
   operating under the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View,
   CA 94043".
 - Privacy policy: [Google Privacy Policy](https://policies.google.com/privacy)
+- Minors' policy: [YouTube Kids Privacy Notice](https://kids.youtube.com/t/privacynotice)
