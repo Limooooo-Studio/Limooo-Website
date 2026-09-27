@@ -21,6 +21,8 @@ import { THEME_BOOTSTRAP_SCRIPT } from './theme/limooo.ts'
 
 const SITE_URL = 'https://docs.limooo.cn'
 const MAIN_SITE = 'https://limooo.cn'
+const SERVICES_SITE = 'https://services.limooo.cn'
+const CONTACT_SITE = 'https://contact.limooo.cn'
 const REPO = 'https://github.com/Limooooo-Studio/Limooo-Website'
 
 interface LangDef {
@@ -58,9 +60,12 @@ interface Labels {
   title: string
   description: string
   navHome: string
-  navVideo: string
-  navMain: string
+  navServices: string
+  navContact: string
   docsSection: string
+  sidebarHome: string
+  sidebarVideo: string
+  sidebarMain: string
   outlineTitle: string
   sidebarMenuLabel: string
   darkModeSwitchLabel: string
@@ -76,10 +81,13 @@ const labels: Record<string, Labels> = {
   'zh-cn': {
     title: 'Limooo 文档',
     description: 'Limooo 的公开文档：平台清单、隐私与合规参考。',
-    navHome: '首页',
-    navVideo: '视频平台',
-    navMain: '返回主站',
+    navHome: '主页',
+    navServices: '服务',
+    navContact: '联系方式',
     docsSection: '文档',
+    sidebarHome: '文档首页',
+    sidebarVideo: '视频平台',
+    sidebarMain: '返回主站',
     outlineTitle: '本页目录',
     sidebarMenuLabel: '菜单',
     darkModeSwitchLabel: '外观',
@@ -94,9 +102,12 @@ const labels: Record<string, Labels> = {
     title: 'Limooo Docs',
     description: 'Public Limooo documentation: platform inventories, privacy and compliance references.',
     navHome: 'Home',
-    navVideo: 'Video platforms',
-    navMain: 'Main site',
+    navServices: 'Services',
+    navContact: 'Contact',
     docsSection: 'Documentation',
+    sidebarHome: 'Docs home',
+    sidebarVideo: 'Video platforms',
+    sidebarMain: 'Main site',
     outlineTitle: 'On this page',
     sidebarMenuLabel: 'Menu',
     darkModeSwitchLabel: 'Appearance',
@@ -111,9 +122,12 @@ const labels: Record<string, Labels> = {
     title: 'Limooo ドキュメント',
     description: 'Limooo の公開ドキュメント：プラットフォーム一覧、プライバシーとコンプライアンスの参考資料。',
     navHome: 'ホーム',
-    navVideo: '動画プラットフォーム',
-    navMain: 'メインサイト',
+    navServices: 'サービス',
+    navContact: 'お問い合わせ',
     docsSection: 'ドキュメント',
+    sidebarHome: 'ドキュメント ホーム',
+    sidebarVideo: '動画プラットフォーム',
+    sidebarMain: 'メインサイト',
     outlineTitle: 'このページの目次',
     sidebarMenuLabel: 'メニュー',
     darkModeSwitchLabel: '外観',
@@ -128,9 +142,12 @@ const labels: Record<string, Labels> = {
     title: 'Limooo 문서',
     description: 'Limooo 공개 문서: 플랫폼 목록, 개인정보 및 컴플라이언스 참고 자료.',
     navHome: '홈',
-    navVideo: '동영상 플랫폼',
-    navMain: '메인 사이트',
+    navServices: '서비스',
+    navContact: '문의',
     docsSection: '문서',
+    sidebarHome: '문서 홈',
+    sidebarVideo: '동영상 플랫폼',
+    sidebarMain: '메인 사이트',
     outlineTitle: '이 페이지 목차',
     sidebarMenuLabel: '메뉴',
     darkModeSwitchLabel: '테마',
@@ -149,18 +166,19 @@ function themeFor(code: string): DefaultTheme.Config {
   const video = routePath('/video-platform', code)
   return {
     // 页头/页脚由 fork 的 Limooo 组件渲染（与主站 base.html 一致）
+    // 页头就是主站那三个入口（跟 limooo.cn 完全一致），文档自己的导航在侧栏
     nav: [
-      { text: L.navHome, link: home },
-      { text: L.navVideo, link: video },
-      { text: L.navMain, link: MAIN_SITE }
+      { text: L.navHome, link: MAIN_SITE },
+      { text: L.navServices, link: SERVICES_SITE },
+      { text: L.navContact, link: CONTACT_SITE }
     ],
     sidebar: [
       {
         text: L.docsSection,
         items: [
-          { text: L.navHome, link: home },
-          { text: L.navVideo, link: video },
-          { text: L.navMain, link: MAIN_SITE }
+          { text: L.sidebarHome, link: home },
+          { text: L.sidebarVideo, link: video },
+          { text: L.sidebarMain, link: MAIN_SITE }
         ]
       }
     ],
