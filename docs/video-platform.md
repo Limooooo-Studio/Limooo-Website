@@ -1,4 +1,5 @@
 ---
+aside: false
 title: 国内外自媒体平台清单
 description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的运营主体、公司所在地与隐私政策入口。
 ---

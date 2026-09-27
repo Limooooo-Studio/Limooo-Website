@@ -1,4 +1,5 @@
 ---
+aside: false
 title: 동영상 플랫폼 목록
 description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili), 위챗 채널(WeChat Channels), YouTube의 운영 주체·소재지·개인정보 처리방침.
 ---

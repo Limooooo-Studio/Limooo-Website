@@ -1,4 +1,5 @@
 ---
+aside: false
 title: Video platform inventory
 description: Operating entity, registered address and privacy policy entry point for Douyin, Xiaohongshu, Bilibili, WeChat Channels and YouTube.
 ---

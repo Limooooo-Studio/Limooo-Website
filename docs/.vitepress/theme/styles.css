@@ -9,17 +9,26 @@
     'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
-/* 平台清单表格列很多：窄屏横向滚动，长 URL 不撑破布局 */
+/* ── 平台清单表格 ──
+   5 列长内容 + ~690px 正文列，处理方式：
+   1) 表格自身当横向滚动容器（display:block + overflow-x），
+      内层匿名表格按 min-content 撑开，不够宽就滚动，不挤成竖排；
+   2) 单元格里的链接（文档名）不折行——原来为了长 URL 加的 break-all
+      会把《哔哩哔哩未成年人个人信息保护指引》拆成每行两三个字。 */
 .vp-doc table {
   display: block;
-  overflow-x: auto;
   max-width: 100%;
+  overflow-x: auto;
+  width: 100%;
 }
 
-.vp-doc table code {
-  white-space: nowrap;
+.vp-doc table th,
+.vp-doc table td {
+  vertical-align: top;
 }
 
 .vp-doc table a {
-  word-break: break-all;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
 }

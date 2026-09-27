@@ -1,4 +1,5 @@
 ---
+aside: false
 title: 動画プラットフォーム一覧
 description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信視頻号（WeChat Channels）、YouTube の運営会社・所在地・プライバシーポリシー。
 ---

@@ -72,7 +72,6 @@ interface Labels {
   langMenuLabel: string
   prev: string
   next: string
-  editLink: string
   footerRights: string
   footerSource: string
 }
@@ -94,7 +93,6 @@ const labels: Record<string, Labels> = {
     langMenuLabel: '切换语言',
     prev: '上一页',
     next: '下一页',
-    editLink: '在 GitHub 上编辑此页',
     footerRights: '保留所有权利',
     footerSource: '源码'
   },
@@ -114,7 +112,6 @@ const labels: Record<string, Labels> = {
     langMenuLabel: 'Change language',
     prev: 'Previous page',
     next: 'Next page',
-    editLink: 'Edit this page on GitHub',
     footerRights: 'All rights reserved',
     footerSource: 'Source'
   },
@@ -134,7 +131,6 @@ const labels: Record<string, Labels> = {
     langMenuLabel: '言語を変更',
     prev: '前のページ',
     next: '次のページ',
-    editLink: 'GitHub でこのページを編集',
     footerRights: 'All rights reserved',
     footerSource: 'ソース'
   },
@@ -154,7 +150,6 @@ const labels: Record<string, Labels> = {
     langMenuLabel: '언어 변경',
     prev: '이전 페이지',
     next: '다음 페이지',
-    editLink: 'GitHub에서 이 페이지 편집',
     footerRights: '모든 권리 보유',
     footerSource: '소스'
   }
@@ -187,7 +182,6 @@ function themeFor(code: string): DefaultTheme.Config {
     darkModeSwitchLabel: L.darkModeSwitchLabel,
     langMenuLabel: L.langMenuLabel,
     docFooter: { prev: L.prev, next: L.next },
-    editLink: { pattern: `${REPO}/edit/main/Flask/docs/:path`, text: L.editLink },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/Limooooo-Studio' },
       { icon: 'bilibili', link: 'https://space.bilibili.com/1234163143', ariaLabel: 'Bilibili' }
