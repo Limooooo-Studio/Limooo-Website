@@ -17,10 +17,10 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 | 平台 | 运营主体（法人全称） | 公司所在地 | 隐私政策 | 未成年人 / 儿童政策 |
 | --- | --- | --- | --- | --- |
 | 抖音 | 北京抖音科技有限公司（曾用名：北京微播视界科技有限公司） | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | [《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773901168964798477) | [《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | [《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [隐私政策第八章「未成年人保护」](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) |
+| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | [《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [《小红书未成年人个人信息保护规则》](https://www.xiaohongshu.com/privacy/teenager) |
 | 哔哩哔哩 | 上海宽娱数码科技有限公司 | 中国上海市杨浦区政立路 485 号 | [《哔哩哔哩隐私政策》](https://www.bilibili.com/blackboard/privacy-pc.html) | [《哔哩哔哩未成年人个人信息保护指引》](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
 | 微信视频号 | 深圳市腾讯计算机系统有限公司 | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | [《微信隐私保护指引》](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm) |
-| YouTube | Google LLC | 美国加利福尼亚州山景城 Amphitheatre Parkway 1600 号，CA 94043 | [《Google 隐私政策》](https://policies.google.com/privacy) | [YouTube Kids Privacy Notice](https://kids.youtube.com/t/privacynotice) |
+| YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [《Google 隐私政策》](https://policies.google.com/privacy) | [YouTube Kids Privacy Notice](https://kids.youtube.com/t/privacynotice) |
 
 ## 逐条说明
 
@@ -39,7 +39,7 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 - 公司所在地：上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室。
 - 注意：小红书（中国大陆版）与其海外版 **rednote** 由不同主体运营，本页只覆盖小红书。
 - 隐私政策：[《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
-- 未成年人 / 儿童政策：无独立文件，见[《小红书用户隐私政策》第八章「未成年人保护」](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
+- 未成年人 / 儿童政策：[《小红书未成年人个人信息保护规则》](https://www.xiaohongshu.com/privacy/teenager)
 
 ### 哔哩哔哩
 

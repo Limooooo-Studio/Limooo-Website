@@ -18,10 +18,10 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 | プラットフォーム | 運営主体（法人名） | 所在地 | プライバシーポリシー | 未成年者・児童 |
 | --- | --- | --- | --- | --- |
 | 抖音（Douyin） | 北京抖音科技有限公司（旧称：北京微播视界科技有限公司） | 中国 北京市海淀区北三環西路甲 18 号院 4 号楼 2 層 2022 | [「抖音」プライバシーポリシー](https://www.douyin.com/agreements/?id=6773901168964798477) | [抖音 児童個人情報保護規則](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| 小紅書（Xiaohongshu） | 行吟信息科技（上海）有限公司 | 中国 上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室 | [小紅書ユーザープライバシーポリシー](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [プライバシーポリシー第 8 章](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) |
+| 小紅書（Xiaohongshu） | 行吟信息科技（上海）有限公司 | 中国 上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室 | [小紅書ユーザープライバシーポリシー](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [小紅書未成年者個人情報保護規則](https://www.xiaohongshu.com/privacy/teenager) |
 | bilibili | 上海宽娱数码科技有限公司 | 中国 上海市楊浦区政立路 485 号 | [bilibili プライバシーポリシー](https://www.bilibili.com/blackboard/privacy-pc.html) | [bilibili 未成年者個人情報保護指引](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
 | 微信視頻号（WeChat Channels） | 深圳市騰訊計算機系統有限公司 | 中国 広東省深圳市南山区粤海街道麻嶺社区科技中一路騰訊大廈 35 階 | [WeChat プライバシー保護ガイドライン](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [テンセント児童プライバシー声明](https://privacy.qq.com/yszc-children.htm) |
-| YouTube | Google LLC | アメリカ合衆国 カリフォルニア州マウンテンビュー Amphitheatre Parkway 1600、CA 94043 | [Google プライバシーポリシー](https://policies.google.com/privacy) | [YouTube Kids プライバシー通知](https://kids.youtube.com/t/privacynotice) |
+| YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google プライバシーポリシー](https://policies.google.com/privacy) | [YouTube Kids プライバシー通知](https://kids.youtube.com/t/privacynotice) |
 
 ## 各プラットフォームの補足
 
@@ -40,7 +40,7 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 - 所在地：上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室。
 - 注意：中国本土版の小紅書と海外版 **rednote** は運営主体が異なります。本ページは小紅書のみ対象です。
 - プライバシーポリシー：[小紅書ユーザープライバシーポリシー](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
-- 未成年者・児童：単独の文書なし。[プライバシーポリシー第 8 章](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)を参照
+- 未成年者・児童：[小紅書未成年者個人情報保護規則](https://www.xiaohongshu.com/privacy/teenager)
 
 ### bilibili
 
