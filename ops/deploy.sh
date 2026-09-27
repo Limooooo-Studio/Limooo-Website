@@ -26,7 +26,8 @@
 #   bash ops/deploy.sh --dry-run                # print what would happen only
 #   bash ops/deploy.sh --commit                 # commit only
 #   bash ops/deploy.sh --commit --push          # commit and push
-#   bash ops/deploy.sh --all                    # commit + push + deploy Pages
+#   bash ops/deploy.sh --all                    # commit + push + deploy Pages + docs
+#   bash ops/deploy.sh --docs                   # build + deploy docs.limooo.cn only
 #   bash ops/deploy.sh --worker=status-worker   # deploy one standalone Worker only
 #
 # With no arguments: deploy Pages only (no commit / no push), matching the old script.
@@ -44,6 +45,7 @@ cd "$ROOT"
 DO_COMMIT=0
 DO_PUSH=0
 DO_PAGES=0
+DO_DOCS=0
 WORKER=""
 DRY_RUN=0
 
@@ -53,20 +55,26 @@ while [ $# -gt 0 ]; do
         --commit) DO_COMMIT=1 ;;
         --push) DO_PUSH=1 ;;
         --pages) DO_PAGES=1 ;;
-        --all) DO_COMMIT=1; DO_PUSH=1; DO_PAGES=1 ;;
+        --docs) DO_DOCS=1 ;;
+        --all) DO_COMMIT=1; DO_PUSH=1; DO_PAGES=1; DO_DOCS=1 ;;
         --worker=*) WORKER="${1#--worker=}" ;;
         --help|-h) sed -n '20,37p' "$0"; exit 0 ;;
         *)
             echo "FATAL: unknown argument $1" >&2
-            echo "       supported: --dry-run / --commit / --push / --pages / --all / --worker=<name>" >&2
+            echo "       supported: --dry-run / --commit / --push / --pages / --docs / --all / --worker=<name>" >&2
             exit 2
             ;;
     esac
     shift
 done
 
-if [ "$DO_COMMIT" = 0 ] && [ "$DO_PUSH" = 0 ] && [ "$DO_PAGES" = 0 ] && [ -z "$WORKER" ]; then
+if [ "$DO_COMMIT" = 0 ] && [ "$DO_PUSH" = 0 ] && [ "$DO_PAGES" = 0 ] && [ "$DO_DOCS" = 0 ] && [ -z "$WORKER" ]; then
     DO_PAGES=1
+    DO_DOCS=1
+fi
+
+if [ "${LIMOOO_SKIP_DOCS:-0}" = 1 ]; then
+    DO_DOCS=0
 fi
 
 if [ "$DRY_RUN" = 1 ]; then
@@ -75,6 +83,7 @@ if [ "$DRY_RUN" = 1 ]; then
     [ "$DO_COMMIT" = 1 ] && echo "[deploy] will-run: git add -A && git commit"
     [ "$DO_PUSH" = 1 ] && echo "[deploy] will-run: git push origin main"
     [ "$DO_PAGES" = 1 ] && echo "[deploy] will-run: bash ops/pages_deploy.sh"
+    [ "$DO_DOCS" = 1 ] && echo "[deploy] will-run: bash ops/docs_deploy.sh"
     [ -n "$WORKER" ] && echo "[deploy] will-run: bash ops/workers_deploy.sh --worker=$WORKER"
     exit 0
 fi
@@ -127,6 +136,12 @@ fi
 if [ "$DO_PAGES" = 1 ]; then
     echo "[deploy] (3/3) Cloudflare Pages"
     bash ops/pages_deploy.sh
+fi
+
+# ── ③b docs.limooo.cn（独立 Pages 项目 limooo-docs）─────────────────
+if [ "$DO_DOCS" = 1 ]; then
+    echo "[deploy] (3b) Cloudflare Pages: docs.limooo.cn"
+    bash ops/docs_deploy.sh
 fi
 
 # ── 独立 Worker（可选，与 Pages 互不影响）────────────────────────────

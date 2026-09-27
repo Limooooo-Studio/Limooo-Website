@@ -1,0 +1,94 @@
+---
+title: 동영상 플랫폼 목록
+description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili), 위챗 채널(WeChat Channels), YouTube의 운영 주체·소재지·개인정보 처리방침.
+---
+
+# 동영상 플랫폼 목록
+
+이 페이지는 자주 쓰이는 셀프미디어 플랫폼의 **운영 주체(법인명)**, **소재지**,
+**공식 개인정보 처리방침**을 정리한 것입니다. 광고 집행, 계정 컴플라이언스,
+데이터 처리 실사에 활용하세요.
+
+> 확인일: 2026-09-27. 운영 주체와 정책 URL은 변경될 수 있으므로 인용 전 반드시
+> 공식 페이지를 확인하세요. 이 페이지는 색인일 뿐 법률 자문이 아닙니다.
+
+## 플랫폼 목록
+
+| 플랫폼 | 운영 주체(법인명) | 소재지 | 개인정보 처리방침 |
+| --- | --- | --- | --- |
+| 더우인 (抖音) | 北京抖音科技有限公司 (구 北京微播视界科技有限公司) | 중국 베이징시 하이뎬구 북삼환서로 갑 18호원 4호동 2층 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> |
+| 샤오홍슈 (小红书) | 行吟信息科技（上海）有限公司 | 중국 상하이시 황푸구 마당로 368호 SOHO 푸싱광장 C동 C201–C207실 | <https://www.xiaohongshu.com/protocols/privacy> |
+| 빌리빌리 (bilibili) | 上海宽娱数码科技有限公司 | 중국 상하이시 양푸구 정리로 485호 | <https://www.bilibili.com/blackboard/privacy-pc.html> |
+| 위챗 채널 (微信视频号) | 深圳市腾讯计算机系统有限公司 | 중국 광둥성 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> |
+| YouTube | Google LLC | 미국 캘리포니아주 마운틴뷰 Amphitheatre Parkway 1600, CA 94043 | <https://policies.google.com/privacy> |
+
+## 플랫폼별 설명
+
+### 더우인 (抖音)
+
+- 운영 주체: **北京抖音科技有限公司**. 2024년 3월 «北京微播视界科技有限公司»에서 사명 변경.
+- 소재지: 베이징시 하이뎬구 북삼환서로 갑 18호원 4호동 2층 2022.
+- 개인정보 처리방침에는 별도의 우편 연락처로 «베이징시 차오양구 融中心 A동 법무부
+  데이터 보안·프라이버시 보호 센터»가 기재되어 있습니다.
+- 개인정보 처리방침: <https://www.douyin.com/agreements/?id=6773906068725565448>
+
+### 샤오홍슈 (小红书 / RED)
+
+- 운영 주체: **行吟信息科技（上海）有限公司** 및 그 관계사.
+- 소재지: 상하이시 황푸구 마당로 368호 SOHO 푸싱광장 C동 C201–C207실.
+- 참고: 중국 본토판 샤오홍슈와 해외판 **rednote** 는 운영 주체가 다릅니다.
+  이 페이지는 샤오홍슈만 다룹니다.
+- 개인정보 처리방침: <https://www.xiaohongshu.com/protocols/privacy>
+
+### 빌리빌리 (bilibili)
+
+- 운영 주체: **上海宽娱数码科技有限公司** (bilibili.com 운영사, Bilibili Inc.의 관계사).
+- 소재지: 상하이시 양푸구 정리로 485호.
+- 개인정보 처리방침: <https://www.bilibili.com/blackboard/privacy-pc.html>
+
+### 위챗 채널 (微信视频号)
+
+- 운영 주체: **深圳市腾讯计算机系统有限公司**. 위챗 채널은 위챗 내부 기능이며
+  별도 운영 주체가 없습니다.
+- 소재지: 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층.
+- 정보 수집·이용은 《위챗 개인정보 보호 지침》에 규정되어 있으며 별도 정책 페이지는 없습니다.
+- 개인정보 처리방침: <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56>
+
+### YouTube
+
+- 운영 주체: **Google LLC** (델라웨어주 법인, Alphabet 계열).
+- 소재지: 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA.
+- 서비스 약관 원문: "The entity providing the Service is Google LLC, a company operating under
+  the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043".
+- 개인정보 처리방침: <https://policies.google.com/privacy>
+
+## 언어 버전
+
+이 페이지는 4개 언어로 제공됩니다. URL 접두사는 메인 사이트의 `config-contract.json`
+`supported_langs` 값과 동일합니다.
+
+| 언어 | 페이지 |
+| --- | --- |
+| 중국어 간체 (기본) | `/video-platform` |
+| English | `/en-us/video-platform` |
+| 日本語 | `/ja-jp/video-platform` |
+| 한국어 | `/ko-kr/video-platform` |
+
+## 메인 사이트와 쿠키 공유
+
+문서 사이트 `docs.limooo.cn` 와 메인 사이트 `limooo.cn` 는 같은 `limooo.cn` 도메인에 속하므로
+언어와 테마가 `Domain=.limooo.cn` 쿠키로 양방향 동기화됩니다.
+
+| 쿠키 | 값 | 역할 |
+| --- | --- | --- |
+| `user_lang_preference` | `zh-cn` / `en-us` / `ja-jp` / `ko-kr` | 문서 언어 전환 시 기록되며 메인 사이트가 해당 언어로 렌더링 |
+| `limooo_theme` | `light` / `dark` | 테마 전환 시 기록되며 메인 사이트 첫 렌더링 깜빡임 방지 |
+
+동작:
+
+- `docs.limooo.cn` 루트에 접속했을 때 메인 사이트 쿠키가 중국어가 아닌 언어를 지정하면
+  **세션당 한 번** 해당 언어로 리디렉션합니다. 언어 접두사가 있는 딥링크는 변경하지 않습니다.
+- 문서 사이트 내부에서는 localStorage가 쿠키보다 우선합니다. 문서 사이트에서 테마를
+  명시적으로 전환한 적이 없으면 메인 사이트의 `limooo_theme` 을 따릅니다.
+- 문서 사이트는 로그인이 없으며 어떤 인증 정보도 기록하지 않습니다.
+  공유하는 것은 위 두 개의 설정 쿠키뿐입니다.
