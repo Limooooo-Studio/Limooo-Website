@@ -16,8 +16,8 @@
     故仅作历史兜底。
 
 用法：
-    python3 ops/check_ip_rays.py 176.122.161.108
-    python3 ops/check_ip_rays.py 176.122.161.108 --limit 5
+    python3 ops/check_ip_rays.py 176.122.161.108          # 默认最近 5 条
+    python3 ops/check_ip_rays.py 176.122.161.108 --limit 10
     python3 ops/check_ip_rays.py --hash d51153cb767fc758   # 已知 ip_hash 时跳过解密
     python3 ops/check_ip_rays.py 8.8.8.8 --json
 
@@ -42,7 +42,7 @@ sys.path.insert(0, str(ROOT))
 
 from ops import d1_client  # noqa: E402
 
-DEFAULT_LIMIT = 3
+DEFAULT_LIMIT = 5
 
 # ip_enc 需要 cryptography；缺失时只降级掉「IP → hash」这半步，不影响 --hash。
 try:
@@ -104,18 +104,18 @@ def resolve_hashes(cfg: dict[str, str], env: dict[str, str], ip: str) -> tuple[l
     """
     key = visitor_key(env)
     if not key:
-        return [], "缺少 VISITOR_IP_KEY，无法解密 ip_enc（只能用 --hash 或旧表 ray_log）"
+        return [], "VISITOR_IP_KEY is missing; cannot decrypt ip_enc (use --hash, or the legacy ray_log table)"
     if Fernet is None:
-        return [], "当前 python 没有 cryptography，无法解密 ip_enc（改用带该依赖的解释器）"
+        return [], "this python has no cryptography module; cannot decrypt ip_enc (use an interpreter that has it)"
 
     rows = d1_query_retry(cfg, "SELECT ip_hash, ip_enc, last_ts FROM visitor_rollups WHERE ip_enc IS NOT NULL AND ip_enc != ''")
     if rows is None:
-        return [], "visitor_rollups 查询失败（网络/API 抖动，不代表无记录）"
+        return [], "visitor_rollups query failed (network/API flake; this does not mean there is no record)"
 
     try:
         fernet = Fernet(key.encode())
     except Exception:  # noqa: BLE001
-        return [], "VISITOR_IP_KEY 不是合法 Fernet 密钥"
+        return [], "VISITOR_IP_KEY is not a valid Fernet key"
 
     target = ipaddress.ip_address(ip)
     hashes: list[str] = []
@@ -138,7 +138,7 @@ def resolve_hashes(cfg: dict[str, str], env: dict[str, str], ip: str) -> tuple[l
 
     if not hashes:
         # ip_enc 只覆盖启用该功能之后的行，空结果不等于「该 IP 没来过」。
-        return [], "ip_enc 中没有该 IP（该列只覆盖启用加密之后的记录，可能是更早的历史访问）"
+        return [], "this IP is not present in ip_enc (that column only covers records written after encryption was enabled; it may be an older visit)"
     return hashes, None
 
 
@@ -153,7 +153,7 @@ def rays_by_hash(cfg: dict[str, str], hashes: list[str], limit: int) -> tuple[li
     )
     rows = d1_query_retry(cfg, sql)
     if rows is None:
-        return [], "ray_log_v2 查询失败（网络/API 抖动，不代表无记录）"
+        return [], "ray_log_v2 query failed (network/API flake; this does not mean there is no record)"
     return rows, None
 
 
@@ -165,7 +165,7 @@ def rays_legacy(cfg: dict[str, str], ip: str, limit: int) -> tuple[list[dict], s
     )
     rows = d1_query_retry(cfg, sql)
     if rows is None:
-        return [], "ray_log 查询失败（网络/API 抖动，不代表无记录）"
+        return [], "ray_log query failed (network/API flake; this does not mean there is no record)"
     return rows, None
 
 
@@ -192,11 +192,11 @@ def render_legacy(row: dict) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="按客户端 IP 反查最近的 Ray ID")
-    parser.add_argument("target", nargs="?", help="客户端 IP，如 176.122.161.108 / 240e:404::1")
-    parser.add_argument("--hash", dest="hash_value", help="已知 ip_hash（16 位 hex），跳过 IP 解密")
-    parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT, help=f"返回条数（默认 {DEFAULT_LIMIT}）")
-    parser.add_argument("--json", action="store_true", help="以 JSON 输出，便于脚本消费")
+    parser = argparse.ArgumentParser(description="Look up the most recent Ray IDs for a client IP")
+    parser.add_argument("target", nargs="?", help="client IP, e.g. 176.122.161.108 / 240e:404::1")
+    parser.add_argument("--hash", dest="hash_value", help="known ip_hash (16 hex chars); skips IP decryption")
+    parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT, help=f"number of rows to return (default {DEFAULT_LIMIT})")
+    parser.add_argument("--json", action="store_true", help="emit JSON instead of text")
     args = parser.parse_args()
 
     limit = max(1, args.limit)
@@ -251,7 +251,7 @@ def main() -> int:
         return 0 if (rows or legacy) else 1
 
     label = ip or f"hash:{hashes[0]}"
-    print(f"== {label} 最近 {limit} 条 Ray ==", flush=True)
+    print(f"== {label} latest {limit} Ray ID(s) ==", flush=True)
     if hashes:
         print(f"   ip_hash: {', '.join(hashes)}")
     for row in rows:
@@ -263,7 +263,7 @@ def main() -> int:
         print(f"   note: {warn}", file=sys.stderr)
 
     if not rows and not legacy:
-        print(f"\n未找到记录：{label}", file=sys.stderr)
+        print(f"\nno records found: {label}", file=sys.stderr)
         return 1
     return 0
 

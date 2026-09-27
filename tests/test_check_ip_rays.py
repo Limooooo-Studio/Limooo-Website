@@ -1,8 +1,41 @@
 """ops/check_ip_rays.py 的纯函数测试（IP 归一化 / hash 识别 / 渲染）。"""
 
+import ast
+import re
+from pathlib import Path
+
 import pytest
 
 import ops.check_ip_rays as cir
+
+HAN = re.compile(r"[\u4e00-\u9fff]")
+
+
+def test_terminal_output_is_english():
+    """命令行输出必须全英文（AGENTS.md「命令行脚本的输出一律全英文」）。
+
+    只允许注释与 docstring 用中文；任何 print/help/报错文本出现中文即失败。
+    用 AST 取出真正的字符串字面量，避免把注释和 docstring 误判成输出文本。
+    """
+    tree = ast.parse(Path(cir.__file__).read_text(encoding="utf-8"))
+
+    # docstring（模块/函数/类）不面向终端，豁免。
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            doc = ast.get_docstring(node, clean=False)
+            if doc is not None:
+                docstrings.add(doc)
+
+    offenders = [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and node.value not in docstrings
+        and HAN.search(node.value)
+    ]
+    assert not offenders, "terminal-facing text must be English:\n" + "\n".join(offenders)
 
 
 @pytest.mark.parametrize(

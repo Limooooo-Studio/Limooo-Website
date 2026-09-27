@@ -83,6 +83,35 @@ describe("visitors API", () => {
     expect(data.max_markers).toBe(500);
   });
 
+  // 回归：国家必须取「最近一次访问」的值。曾经写的是 MAX(country)，那是按
+  // 字母序选（'CN' > 'CH'），与时间无关，导致 CN/CH 混合的访客恒显示 CN。
+  it("selects the country of the most recent visit, not the alphabetical max", async () => {
+    vi.mocked(queryAll)
+      .mockResolvedValueOnce([
+        { ips: 1, requests: 2, countries: 2, status_series: "200:2" },
+      ])
+      .mockResolvedValueOnce([
+        // 同一访客：较早一次在 CN，最近一次在 CH。
+        { ip_hash: "cnch0001", country: "CH", status: 200, n: 1, last_ts: 1767312000 },
+        { ip_hash: "cnch0001", country: "CN", status: 200, n: 1, last_ts: 1767225600 },
+      ]);
+
+    const resp = await onRequestGet(
+      context(new Request("https://visitor.limooo.cn/api/visitors")) as never,
+    );
+    const data = await resp.json();
+
+    // 'CN' > 'CH' 字母序更大，旧实现会在这里返回 CN。
+    expect(data.markers[0].country).toBe("CH");
+
+    // SQL 侧必须用窗口函数取最新行，不得再出现 MAX(country) 这种字母序选法。
+    const markerSql = vi.mocked(queryAll).mock.calls[1][1] as string;
+    expect(markerSql).toContain("ROW_NUMBER() OVER (PARTITION BY");
+    expect(markerSql).not.toContain("MAX(v.country)");
+    // 禁止相关子查询：实测会把行读取从 ~17 万抬到 ~1370 万（免费版 5M 行/天）。
+    expect(markerSql).not.toMatch(/SELECT\s+s2\.country/);
+  });
+
   it("keeps the status filter compatible and applies the same 30-day window", async () => {
     const expectedCutoff = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
     vi.mocked(queryAll)
