@@ -40,7 +40,7 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 
 ### 哔哩哔哩
 
-- 运营主体：**上海宽娱数码科技有限公司**（B 站主办单位，与 Bilibili Inc. 为关联公司）。
+- 运营主体：**上海宽娱数码科技有限公司**（哔哩哔哩主办单位，与 Bilibili Inc. 为关联公司）。
 - 公司所在地：上海市杨浦区政立路 485 号（国正中心）。
 - 隐私政策：<https://www.bilibili.com/blackboard/privacy-pc.html>
 
