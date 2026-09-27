@@ -13,13 +13,13 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 
 ## 平台清单
 
-| 平台 | 运营主体（法人全称） | 公司所在地 | 隐私政策 |
-| --- | --- | --- | --- |
-| 抖音 | 北京抖音科技有限公司（曾用名：北京微播视界科技有限公司） | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> |
-| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | <https://www.xiaohongshu.com/protocols/privacy> |
-| 哔哩哔哩 | 上海宽娱数码科技有限公司 | 中国上海市杨浦区政立路 485 号 | <https://www.bilibili.com/blackboard/privacy-pc.html> |
-| 微信视频号 | 深圳市腾讯计算机系统有限公司 | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> |
-| YouTube | Google LLC | 美国加利福尼亚州山景城 Amphitheatre Parkway 1600 号，CA 94043 | <https://policies.google.com/privacy> |
+| 平台 | 运营主体（法人全称） | 公司所在地 | 隐私政策 | 未成年人 / 儿童政策 |
+| --- | --- | --- | --- | --- |
+| 抖音 | 北京抖音科技有限公司（曾用名：北京微播视界科技有限公司） | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> | [《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | <https://www.xiaohongshu.com/protocols/privacy> | [隐私政策第八章「未成年人保护」](https://www.xiaohongshu.com/protocols/privacy) |
+| 哔哩哔哩 | 上海宽娱数码科技有限公司 | 中国上海市杨浦区政立路 485 号 | <https://www.bilibili.com/blackboard/privacy-pc.html> | [《哔哩哔哩未成年人个人信息保护指引》](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| 微信视频号 | 深圳市腾讯计算机系统有限公司 | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> | [《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm) |
+| YouTube | Google LLC | 美国加利福尼亚州山景城 Amphitheatre Parkway 1600 号，CA 94043 | <https://policies.google.com/privacy> | [YouTube Kids Privacy Notice](https://kids.youtube.com/t/privacynotice) |
 
 ## 逐条说明
 
@@ -58,15 +58,3 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 - 服务条款原文：「The entity providing the Service is Google LLC, a company operating under
   the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043」。
 - 隐私政策：<https://policies.google.com/privacy>
-
-## 未成年人 / 儿童个人信息保护
-
-各平台针对未成年人（尤其是不满 14 周岁的儿童）另行发布的专门文件：
-
-| 平台 | 专门文件 | 链接 |
-| --- | --- | --- |
-| 抖音 | 《抖音儿童个人信息保护规则》（2025-09-29） | <https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html> |
-| 小红书 | 无独立文件，见《小红书用户隐私政策》第八章「未成年人保护」 | <https://www.xiaohongshu.com/protocols/privacy> |
-| 哔哩哔哩 | 《哔哩哔哩未成年人个人信息保护指引》 | <https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html> |
-| 微信视频号 | 《儿童隐私保护声明》（腾讯） | <https://privacy.qq.com/yszc-children.htm> |
-| YouTube | 《YouTube Kids Privacy Notice》 | <https://kids.youtube.com/t/privacynotice> |

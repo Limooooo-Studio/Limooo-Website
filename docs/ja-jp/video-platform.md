@@ -14,13 +14,13 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 
 ## プラットフォーム一覧
 
-| プラットフォーム | 運営主体（法人名） | 所在地 | プライバシーポリシー |
-| --- | --- | --- | --- |
-| 抖音（Douyin） | 北京抖音科技有限公司（旧称：北京微播视界科技有限公司） | 中国 北京市海淀区北三環西路甲 18 号院 4 号楼 2 層 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> |
-| 小紅書（Xiaohongshu） | 行吟信息科技（上海）有限公司 | 中国 上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室 | <https://www.xiaohongshu.com/protocols/privacy> |
-| bilibili | 上海宽娱数码科技有限公司 | 中国 上海市楊浦区政立路 485 号 | <https://www.bilibili.com/blackboard/privacy-pc.html> |
-| 微信視頻号（WeChat Channels） | 深圳市騰訊計算機系統有限公司 | 中国 広東省深圳市南山区粤海街道麻嶺社区科技中一路騰訊大廈 35 階 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> |
-| YouTube | Google LLC | アメリカ合衆国 カリフォルニア州マウンテンビュー Amphitheatre Parkway 1600、CA 94043 | <https://policies.google.com/privacy> |
+| プラットフォーム | 運営主体（法人名） | 所在地 | プライバシーポリシー | 未成年者・児童 |
+| --- | --- | --- | --- | --- |
+| 抖音（Douyin） | 北京抖音科技有限公司（旧称：北京微播视界科技有限公司） | 中国 北京市海淀区北三環西路甲 18 号院 4 号楼 2 層 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> | [抖音 児童個人情報保護規則](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| 小紅書（Xiaohongshu） | 行吟信息科技（上海）有限公司 | 中国 上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室 | <https://www.xiaohongshu.com/protocols/privacy> | [プライバシーポリシー第 8 章](https://www.xiaohongshu.com/protocols/privacy) |
+| bilibili | 上海宽娱数码科技有限公司 | 中国 上海市楊浦区政立路 485 号 | <https://www.bilibili.com/blackboard/privacy-pc.html> | [bilibili 未成年者個人情報保護指引](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| 微信視頻号（WeChat Channels） | 深圳市騰訊計算機系統有限公司 | 中国 広東省深圳市南山区粤海街道麻嶺社区科技中一路騰訊大廈 35 階 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> | [テンセント児童プライバシー声明](https://privacy.qq.com/yszc-children.htm) |
+| YouTube | Google LLC | アメリカ合衆国 カリフォルニア州マウンテンビュー Amphitheatre Parkway 1600、CA 94043 | <https://policies.google.com/privacy> | [YouTube Kids プライバシー通知](https://kids.youtube.com/t/privacynotice) |
 
 ## 各プラットフォームの補足
 
@@ -61,15 +61,3 @@ description: 抖音（Douyin）、小紅書（Xiaohongshu）、bilibili、微信
 - 利用規約の原文：「The entity providing the Service is Google LLC, a company operating under
   the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043」。
 - プライバシーポリシー：<https://policies.google.com/privacy>
-
-## 未成年者・児童の個人情報保護
-
-各プラットフォームが 18 歳未満（とくに 14 歳未満の児童）向けに別途公開している文書：
-
-| プラットフォーム | 文書 | リンク |
-| --- | --- | --- |
-| 抖音（Douyin） | 《抖音儿童个人信息保护规则》（抖音 児童個人情報保護規則、2025-09-29） | <https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html> |
-| 小紅書（Xiaohongshu） | 単独の文書なし。プライバシーポリシー第 8 章「未成年人保護」を参照 | <https://www.xiaohongshu.com/protocols/privacy> |
-| bilibili | 《哔哩哔哩未成年人个人信息保护指引》（bilibili 未成年者個人情報保護指引） | <https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html> |
-| 微信視頻号（WeChat Channels） | 《儿童隐私保护声明》（テンセント児童プライバシー声明） | <https://privacy.qq.com/yszc-children.htm> |
-| YouTube | YouTube Kids プライバシー通知 | <https://kids.youtube.com/t/privacynotice> |

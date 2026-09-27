@@ -14,13 +14,13 @@ description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili
 
 ## 플랫폼 목록
 
-| 플랫폼 | 운영 주체(법인명) | 소재지 | 개인정보 처리방침 |
-| --- | --- | --- | --- |
-| 더우인 (抖音) | 北京抖音科技有限公司 (구 北京微播视界科技有限公司) | 중국 베이징시 하이뎬구 북삼환서로 갑 18호원 4호동 2층 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> |
-| 샤오홍슈 (小红书) | 行吟信息科技（上海）有限公司 | 중국 상하이시 황푸구 마당로 368호 SOHO 푸싱광장 C동 C201–C207실 | <https://www.xiaohongshu.com/protocols/privacy> |
-| 빌리빌리 (bilibili) | 上海宽娱数码科技有限公司 | 중국 상하이시 양푸구 정리로 485호 | <https://www.bilibili.com/blackboard/privacy-pc.html> |
-| 위챗 채널 (微信视频号) | 深圳市腾讯计算机系统有限公司 | 중국 광둥성 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> |
-| YouTube | Google LLC | 미국 캘리포니아주 마운틴뷰 Amphitheatre Parkway 1600, CA 94043 | <https://policies.google.com/privacy> |
+| 플랫폼 | 운영 주체(법인명) | 소재지 | 개인정보 처리방침 | 미성년자·아동 |
+| --- | --- | --- | --- | --- |
+| 더우인 (抖音) | 北京抖音科技有限公司 (구 北京微播视界科技有限公司) | 중국 베이징시 하이뎬구 북삼환서로 갑 18호원 4호동 2층 2022 | <https://www.douyin.com/agreements/?id=6773906068725565448> | [더우인 아동 개인정보 보호 규칙](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| 샤오홍슈 (小红书) | 行吟信息科技（上海）有限公司 | 중국 상하이시 황푸구 마당로 368호 SOHO 푸싱광장 C동 C201–C207실 | <https://www.xiaohongshu.com/protocols/privacy> | [개인정보 처리방침 제8장](https://www.xiaohongshu.com/protocols/privacy) |
+| 빌리빌리 (bilibili) | 上海宽娱数码科技有限公司 | 중국 상하이시 양푸구 정리로 485호 | <https://www.bilibili.com/blackboard/privacy-pc.html> | [빌리빌리 미성년자 개인정보 보호 지침](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| 위챗 채널 (微信视频号) | 深圳市腾讯计算机系统有限公司 | 중국 광둥성 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층 | <https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56> | [텐센트 아동 개인정보 보호 성명](https://privacy.qq.com/yszc-children.htm) |
+| YouTube | Google LLC | 미국 캘리포니아주 마운틴뷰 Amphitheatre Parkway 1600, CA 94043 | <https://policies.google.com/privacy> | [YouTube Kids 개인정보 안내](https://kids.youtube.com/t/privacynotice) |
 
 ## 플랫폼별 설명
 
@@ -61,15 +61,3 @@ description: 더우인(Douyin), 샤오홍슈(Xiaohongshu), 빌리빌리(bilibili
 - 서비스 약관 원문: "The entity providing the Service is Google LLC, a company operating under
   the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043".
 - 개인정보 처리방침: <https://policies.google.com/privacy>
-
-## 미성년자·아동 개인정보 보호
-
-각 플랫폼이 18세 미만(특히 14세 미만 아동)을 위해 별도로 공개한 문서:
-
-| 플랫폼 | 문서 | 링크 |
-| --- | --- | --- |
-| 더우인 (抖音) | 《抖音儿童个人信息保护规则》(더우인 아동 개인정보 보호 규칙, 2025-09-29) | <https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html> |
-| 샤오홍슈 (小红书) | 별도 문서 없음. 개인정보 처리방침 제8장 「未成年人保护」 참조 | <https://www.xiaohongshu.com/protocols/privacy> |
-| 빌리빌리 (bilibili) | 《哔哩哔哩未成年人个人信息保护指引》(빌리빌리 미성년자 개인정보 보호 지침) | <https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html> |
-| 위챗 채널 (微信视频号) | 《儿童隐私保护声明》(텐센트 아동 개인정보 보호 성명) | <https://privacy.qq.com/yszc-children.htm> |
-| YouTube | YouTube Kids 개인정보 처리방침 안내 | <https://kids.youtube.com/t/privacynotice> |
