@@ -63,6 +63,8 @@ A fully serverless personal website and admin system running at [limooo.cn](http
 │   ├── upload.sh          # compatibility entry point → deploy.sh
 │   ├── build.sh           # Pages build: venv, contract checks, public/manifest.json
 │   ├── pages_deploy.sh    # Cloudflare Pages build + Wrangler deploy
+│   ├── docs_deploy.sh     # docs.limooo.cn build + deploy (VitePress → Pages project limooo-docs)
+│   ├── docs_headers.py    # generates the docs site `_headers` (CSP hashes + cache)
 │   ├── ci_check.sh        # local replica of .github/workflows/tests.yml
 │   ├── security-headers.json      # single source of the response-header baseline
 │   ├── check_config_contract.py / check_gate_trust.py / check_security_headers.py
@@ -187,13 +189,29 @@ standalone Workers. From the repository root:
 
 ```bash
 cd Flask
-bash ops/deploy.sh --all        # commit + push + deploy Pages
-bash ops/deploy.sh              # deploy Pages only (no commit / no push)
+bash ops/deploy.sh --all        # commit + push + deploy Pages + docs
+bash ops/deploy.sh              # deploy Pages + docs (no commit / no push)
+bash ops/deploy.sh --docs       # deploy docs.limooo.cn only
 bash ops/deploy.sh --worker=status-worker   # deploy one standalone Worker
 ```
 
 Credentials are read from the local `secrets/webauthn.env`; there are no ssh, rsync,
 systemd or Nginx steps. See `../AGENTS.md` for the full deploy contract.
+
+### Docs site (docs.limooo.cn)
+
+`Flask/docs/*.md` is the content source: every markdown file becomes
+`https://docs.limooo.cn/<path>` and the site ships in four languages
+(root = `zh-cn`, plus `en-us` / `ja-jp` / `ko-kr`). It is built with VitePress from the
+fork `Limooooo-Studio/vitepress` — edit header/footer there, and the next deploy picks
+it up (the fork is rebuilt only when its commit changes). The site is a separate
+Cloudflare Pages project (`limooo-docs`) so it never touches the main `limooo` artifact,
+and it shares the `user_lang_preference` / `limooo_theme` cookies with the main site.
+
+```bash
+bash ops/docs_deploy.sh --build-only   # build + validate only
+bash ops/docs_deploy.sh --dev          # local VitePress dev server
+```
 
 ## Security design
 
