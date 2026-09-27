@@ -17,10 +17,10 @@ due diligence.
 
 | Platform | Operating entity (legal name) | Location | Privacy policy | Minors' policy |
 | --- | --- | --- | --- | --- |
-| Douyin | Beijing Douyin Technology Co., Ltd. (北京抖音科技有限公司, formerly Beijing Microlive Vision Technology Co., Ltd.) | Room 2022, 2/F, Building 4, Courtyard A18, North Third Ring West Road, Haidian District, Beijing, China | [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773906068725565448) | [Douyin Children's PI Protection Rules](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| Xiaohongshu (RED) | Xingin Information Technology (Shanghai) Co., Ltd. (行吟信息科技（上海）有限公司) | Rooms C201–C207, Building C, SOHO Fuxing Plaza, 368 Madang Road, Huangpu District, Shanghai, China | [Xiaohongshu User Privacy Policy](https://www.xiaohongshu.com/protocols/privacy) | [Privacy policy §8 (minors)](https://www.xiaohongshu.com/protocols/privacy) |
+| Douyin | Beijing Douyin Technology Co., Ltd. (北京抖音科技有限公司, formerly Beijing Microlive Vision Technology Co., Ltd.) | Room 2022, 2/F, Building 4, Courtyard A18, North Third Ring West Road, Haidian District, Beijing, China | [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773901168964798477) | [Douyin Children's PI Protection Rules](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| Xiaohongshu (RED) | Xingin Information Technology (Shanghai) Co., Ltd. (行吟信息科技（上海）有限公司) | Rooms C201–C207, Building C, SOHO Fuxing Plaza, 368 Madang Road, Huangpu District, Shanghai, China | [Xiaohongshu User Privacy Policy](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [Privacy policy §8 (minors)](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) |
 | Bilibili | Shanghai Kuanyu Digital Technology Co., Ltd. (上海宽娱数码科技有限公司) | 485 Zhengli Road, Yangpu District, Shanghai, China | [Bilibili Privacy Policy](https://www.bilibili.com/blackboard/privacy-pc.html) | [Bilibili Minors' PI Protection Guidelines](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
-| WeChat Channels (视频号) | Shenzhen Tencent Computer Systems Company Limited (深圳市腾讯计算机系统有限公司) | 35/F, Tencent Building, Kejizhong 1st Road, Maling Community, Yuehai Street, Nanshan District, Shenzhen, Guangdong, China | [WeChat Privacy Protection Guidelines](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56) | [Tencent Children's Privacy Statement](https://privacy.qq.com/yszc-children.htm) |
+| WeChat Channels (视频号) | Shenzhen Tencent Computer Systems Company Limited (深圳市腾讯计算机系统有限公司) | 35/F, Tencent Building, Kejizhong 1st Road, Maling Community, Yuehai Street, Nanshan District, Shenzhen, Guangdong, China | [WeChat Privacy Protection Guidelines](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [Tencent Children's Privacy Statement](https://privacy.qq.com/yszc-children.htm) |
 | YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google Privacy Policy](https://policies.google.com/privacy) | [YouTube Kids Privacy Notice](https://kids.youtube.com/t/privacynotice) |
 
 ## Notes per platform
@@ -33,7 +33,7 @@ due diligence.
   Haidian District, Beijing.
 - The privacy policy also lists a separate postal contact: Legal Department, Data Security and
   Privacy Protection Center, Building A, Rong Center, Chaoyang District, Beijing.
-- Privacy policy: [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773906068725565448)
+- Privacy policy: [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773901168964798477)
 - Minors' policy: [Douyin Children's PI Protection Rules](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html)
 
 ### Xiaohongshu / RED
@@ -43,8 +43,8 @@ due diligence.
   Huangpu District, Shanghai.
 - Note: mainland-China Xiaohongshu and its overseas version **rednote** are operated by
   different entities; this page covers Xiaohongshu only.
-- Privacy policy: [Xiaohongshu User Privacy Policy](https://www.xiaohongshu.com/protocols/privacy)
-- Minors' policy: no standalone document — see [section 8 (未成年人保护) of the Xiaohongshu privacy policy](https://www.xiaohongshu.com/protocols/privacy)
+- Privacy policy: [Xiaohongshu User Privacy Policy](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
+- Minors' policy: no standalone document — see [section 8 (未成年人保护) of the Xiaohongshu privacy policy](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
 
 ### Bilibili
 
@@ -62,7 +62,7 @@ due diligence.
   Nanshan District, Shenzhen.
 - Collection and use of Channels data is governed by the WeChat Privacy Protection Guidelines;
   there is no separate policy page.
-- Privacy policy: [WeChat Privacy Protection Guidelines](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56)
+- Privacy policy: [WeChat Privacy Protection Guidelines](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy)
 - Minors' policy: [Tencent Children's Privacy Statement](https://privacy.qq.com/yszc-children.htm)
 
 ### YouTube

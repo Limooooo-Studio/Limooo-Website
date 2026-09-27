@@ -16,10 +16,10 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 
 | 平台 | 运营主体（法人全称） | 公司所在地 | 隐私政策 | 未成年人 / 儿童政策 |
 | --- | --- | --- | --- | --- |
-| 抖音 | 北京抖音科技有限公司（曾用名：北京微播视界科技有限公司） | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | [《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773906068725565448) | [《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | [《小红书用户隐私政策》](https://www.xiaohongshu.com/protocols/privacy) | [隐私政策第八章「未成年人保护」](https://www.xiaohongshu.com/protocols/privacy) |
+| 抖音 | 北京抖音科技有限公司（曾用名：北京微播视界科技有限公司） | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | [《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773901168964798477) | [《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | [《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [隐私政策第八章「未成年人保护」](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) |
 | 哔哩哔哩 | 上海宽娱数码科技有限公司 | 中国上海市杨浦区政立路 485 号 | [《哔哩哔哩隐私政策》](https://www.bilibili.com/blackboard/privacy-pc.html) | [《哔哩哔哩未成年人个人信息保护指引》](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
-| 微信视频号 | 深圳市腾讯计算机系统有限公司 | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | [《微信隐私保护指引》](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56) | [《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm) |
+| 微信视频号 | 深圳市腾讯计算机系统有限公司 | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | [《微信隐私保护指引》](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm) |
 | YouTube | Google LLC | 美国加利福尼亚州山景城 Amphitheatre Parkway 1600 号，CA 94043 | [《Google 隐私政策》](https://policies.google.com/privacy) | [YouTube Kids Privacy Notice](https://kids.youtube.com/t/privacynotice) |
 
 ## 逐条说明
@@ -30,7 +30,7 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 - 公司所在地：北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022。
 - 隐私政策中另行载明的联系邮寄地址为「北京市朝阳区融中心 A 座 法务部 数据安全与隐私保护中心」，
   与工商注册地址不同，隐私权利请求走后者更快。
-- 隐私政策：[《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773906068725565448)
+- 隐私政策：[《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773901168964798477)
 - 未成年人 / 儿童政策：[《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html)
 
 ### 小红书
@@ -38,8 +38,8 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 - 运营主体：**行吟信息科技（上海）有限公司**及其关联公司。
 - 公司所在地：上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室。
 - 注意：小红书（中国大陆版）与其海外版 **rednote** 由不同主体运营，本页只覆盖小红书。
-- 隐私政策：[《小红书用户隐私政策》](https://www.xiaohongshu.com/protocols/privacy)
-- 未成年人 / 儿童政策：无独立文件，见[《小红书用户隐私政策》第八章「未成年人保护」](https://www.xiaohongshu.com/protocols/privacy)
+- 隐私政策：[《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
+- 未成年人 / 儿童政策：无独立文件，见[《小红书用户隐私政策》第八章「未成年人保护」](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1)
 
 ### 哔哩哔哩
 
@@ -53,7 +53,7 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 - 运营主体：**深圳市腾讯计算机系统有限公司**（视频号是微信内的功能，不单独设运营主体）。
 - 公司所在地：深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层。
 - 视频号相关的信息收集与使用规则写在《微信隐私保护指引》里，没有独立政策页面。
-- 隐私政策（微信隐私保护指引）：[《微信隐私保护指引》](https://privacy.qq.com/document/preview/fc748b3d96224fdb825ea79e132c1a56)
+- 隐私政策（微信隐私保护指引）：[《微信隐私保护指引》](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy)
 - 未成年人 / 儿童政策：[《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm)
 
 ### YouTube
