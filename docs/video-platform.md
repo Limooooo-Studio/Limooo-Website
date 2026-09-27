@@ -58,3 +58,15 @@ description: 抖音、小红书、哔哩哔哩、微信视频号、YouTube 的�
 - 服务条款原文：「The entity providing the Service is Google LLC, a company operating under
   the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View, CA 94043」。
 - 隐私政策：<https://policies.google.com/privacy>
+
+## 未成年人 / 儿童个人信息保护
+
+各平台针对未成年人（尤其是不满 14 周岁的儿童）另行发布的专门文件：
+
+| 平台 | 专门文件 | 链接 |
+| --- | --- | --- |
+| 抖音 | 《抖音儿童个人信息保护规则》（2025-09-29） | <https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html> |
+| 小红书 | 无独立文件，见《小红书用户隐私政策》第八章「未成年人保护」 | <https://www.xiaohongshu.com/protocols/privacy> |
+| 哔哩哔哩 | 《哔哩哔哩未成年人个人信息保护指引》 | <https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html> |
+| 微信视频号 | 《儿童隐私保护声明》（腾讯） | <https://privacy.qq.com/yszc-children.htm> |
+| YouTube | 《YouTube Kids Privacy Notice》 | <https://kids.youtube.com/t/privacynotice> |

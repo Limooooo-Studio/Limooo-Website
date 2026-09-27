@@ -68,3 +68,16 @@ due diligence.
   operating under the laws of Delaware, located at 1600 Amphitheatre Parkway, Mountain View,
   CA 94043".
 - Privacy policy: <https://policies.google.com/privacy>
+
+## Minors' and children's privacy
+
+Dedicated documents each platform publishes for users under 18 (and especially
+children under 14):
+
+| Platform | Document | Link |
+| --- | --- | --- |
+| Douyin | 《抖音儿童个人信息保护规则》 (Douyin Children's Personal Information Protection Rules, 2025-09-29) | <https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html> |
+| Xiaohongshu (RED) | No standalone document — see section 8 (未成年人保护 / minors' protection) of the Xiaohongshu privacy policy | <https://www.xiaohongshu.com/protocols/privacy> |
+| Bilibili | 《哔哩哔哩未成年人个人信息保护指引》 (Bilibili Minors' Personal Information Protection Guidelines) | <https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html> |
+| WeChat Channels | 《儿童隐私保护声明》 (Tencent Children's Privacy Statement) | <https://privacy.qq.com/yszc-children.htm> |
+| YouTube | YouTube Kids Privacy Notice | <https://kids.youtube.com/t/privacynotice> |
