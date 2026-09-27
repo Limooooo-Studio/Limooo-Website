@@ -12,11 +12,4 @@ hero:
     - theme: alt
       text: メインサイト
       link: https://limooo.cn
-
-features:
-  - icon: 🌐
-    title: 動画プラットフォーム一覧
-    details: 主要プラットフォームの運営会社、所在地、プライバシーポリシーへの入口。
-    link: /video-platform/ja-jp
-    linkText: 一覧を見る
 ---

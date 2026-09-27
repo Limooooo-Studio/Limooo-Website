@@ -197,7 +197,7 @@ function themeFor(code: string): DefaultTheme.Config {
       items: [
         { text: L.footerRights },
         { text: 'AGPL-3.0' },
-        { text: L.footerSource, link: `${REPO}/blob/main/LICENSE.md` }
+        { text: L.footerSource, link: REPO }
       ]
     },
     limooo: { languages: LANGS }
