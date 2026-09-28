@@ -32,7 +32,7 @@
 ## 健康检查告警
 
 - `health-alert.i18n.json`：告警邮件四语种文案（subject / title / intro / alerts / metrics / CTA / hint）。
-- 告警渲染现在由 `ops/status-worker` 负责（零 VPS 后 `check_health.py` 已随 VPS 退役）；
+- 告警渲染现在由 `ops/status-worker` 负责（零 VPS 后 `check_health.py` 已删除）；
   仍是同一套 `render_email()` 版式，邮件主题和正文无需重复维护。
 
 ## 发送要点

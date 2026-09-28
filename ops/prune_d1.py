@@ -32,7 +32,6 @@ sys.path.insert(0, str(ROOT / "src"))
 from config import ENV_FILE  # noqa: E402
 
 from d1_client import cloudflare_config, d1_query, load_env  # noqa: E402
-from check_health import ensure_schema  # noqa: E402
 
 DAY_SECONDS = 86400
 BUCKETS: dict[str, int] = {
@@ -185,7 +184,6 @@ def main() -> int:
         if not cfg["token"] or not cfg["account_id"] or not cfg["database_id"]:
             raise RuntimeError("Cloudflare / D1 config missing")
         if args.apply:
-            ensure_schema(cfg)
             if args.mode in ("all", "aggregate"):
                 print(json.dumps(aggregate_daily(cfg), ensure_ascii=False, indent=2))
             if args.mode in ("all", "prune"):

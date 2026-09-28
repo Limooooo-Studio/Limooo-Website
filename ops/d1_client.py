@@ -2,8 +2,8 @@
 
 """Limooo 与 Cloudflare D1 API 的共享客户端。
 
-只负责环境变量读取与 HTTP 查询；不回显 token/value。供 check_health.py、
-prune_d1.py 等运维脚本复用。
+只负责环境变量读取与 HTTP 查询；不回显 token/value。供 prune_d1.py 与
+check_visitor_id.py / check_ray_id.py / check_ip_rays.py 等运维脚本复用。
 """
 
 from __future__ import annotations
