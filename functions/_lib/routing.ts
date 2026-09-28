@@ -9,7 +9,6 @@ import {
   LANG_COOKIE_MAX_AGE,
   PAGE_ROUTES,
   PUBLIC_HOSTS,
-  REDIRECT_HOST,
   ROOT_DOMAIN,
   SUPPORTED_LANGS,
 } from "./config";
@@ -94,11 +93,6 @@ export function isPublicHost(host: string): boolean {
     if (entry.startsWith("*.") && host.endsWith(entry.slice(1))) return true;
   }
   return false;
-}
-
-/** 把站内路径包装成经 redirect.<root_domain> 的中转跳转。 */
-export function viaRedirect(host: string, path: string): string {
-  return `${REDIRECT_HOST}?to=${encodeURIComponent(`https://${host}${path}`)}`;
 }
 
 /** 门禁回跳目标主机只允许公开白名单，其余一律回主站。 */

@@ -7,13 +7,10 @@ import {
   AuthSessionUnavailableError,
   configErrorResponse,
   createAuthSession,
-  createPendingCookie,
   createSessionCookie,
-  readPending,
   readSession,
   requireAuth,
   revokeAuthSession,
-  revokeAuthSessionsBySub,
   runtimeConfigError,
 } from "./session";
 
@@ -87,24 +84,6 @@ describe("session cookie", () => {
   });
 });
 
-describe("pending cookie", () => {
-  it("round-trips state, nonce, code verifier and next", async () => {
-    const header = await createPendingCookie(env, {
-      state: "state-1",
-      nonce: "nonce-1",
-      codeVerifier: "verifier-1",
-      next: "/visitor",
-    });
-    const pending = await readPending(env, header);
-    expect(pending).toEqual({
-      state: "state-1",
-      nonce: "nonce-1",
-      codeVerifier: "verifier-1",
-      next: "/visitor",
-    });
-  });
-});
-
 describe("auth_sessions revoke table", () => {
   it("checks the D1 record before allowing requireAuth", async () => {
     const header = await createSessionCookie(env, sessionData());
@@ -148,10 +127,6 @@ describe("auth_sessions revoke table", () => {
     vi.mocked(execute).mockClear();
     expect(await revokeAuthSession(env, "sid-1")).toBe(true);
     expect(vi.mocked(execute).mock.calls[0][1]).toContain("SET revoked_at = unixepoch()");
-
-    vi.mocked(execute).mockClear();
-    expect(await revokeAuthSessionsBySub(env, "user-1")).toBe(true);
-    expect(vi.mocked(execute).mock.calls[0][1]).toContain("WHERE sub = ?");
   });
 });
 

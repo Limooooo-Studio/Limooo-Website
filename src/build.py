@@ -37,12 +37,8 @@ except (ImportError, OSError):
 
 from config import (
     BASE_DIR,
-    BASE_URL,
-    BUILD_MODE,
     GATE_HOST,
     LOCALES_DIR,
-    MANAGED_HOSTS,
-    PAGE_ROUTES,
     PREVIEW_DIR,
     PUBLIC_DIR,
     REDIRECT_PRELOAD_IMAGES,
@@ -293,7 +289,6 @@ def write_config_functions() -> None:
     """从 config-contract.json 生成 Pages 侧常量模块（唯一事实源）。"""
     with open(CONTRACT_PATH, encoding="utf-8") as f:
         contract = json.load(f)
-    root = contract["root_domain"]
 
     lines = [
         "/** 由 build.py 自动生成，勿手改；修改配置请编辑 config-contract.json。 */",

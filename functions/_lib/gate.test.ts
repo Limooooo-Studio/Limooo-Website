@@ -8,7 +8,6 @@ import {
   handleGateDiag,
   handleVerify,
   isBlocked,
-  isValidGateCookie,
   mintGateCookie,
   readGateCookie,
 } from "./gate";
@@ -142,15 +141,17 @@ describe("__gate cookie: signature, expiry and renewal", () => {
     const forged = `${issued}.${Number(expiry) + 86400}.${signature}`;
     vi.useFakeTimers();
     vi.setSystemTime(1_700_000_100 * 1000);
-    await expect(isValidGateCookie(forged, KEY)).resolves.toBe(false);
-    await expect(isValidGateCookie(value, KEY)).resolves.toBe(true);
+    await expect(readGateCookie(forged, KEY)).resolves.toMatchObject({ valid: false });
+    await expect(readGateCookie(value, KEY)).resolves.toMatchObject({ valid: true });
     vi.useRealTimers();
   });
 
   it("rejects the legacy two-field cookie format", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_700_000_000 * 1000);
-    await expect(isValidGateCookie("1700003600.deadbeef", KEY)).resolves.toBe(false);
+    await expect(readGateCookie("1700003600.deadbeef", KEY)).resolves.toMatchObject({
+      valid: false,
+    });
     vi.useRealTimers();
   });
 
@@ -158,9 +159,9 @@ describe("__gate cookie: signature, expiry and renewal", () => {
     const value = await mintAt(1_700_000_000);
     vi.useFakeTimers();
     vi.setSystemTime((1_700_000_000 + 3600 - 5) * 1000);
-    await expect(isValidGateCookie(value, KEY)).resolves.toBe(true);
+    await expect(readGateCookie(value, KEY)).resolves.toMatchObject({ valid: true });
     vi.setSystemTime((1_700_000_000 + 3600 + 1) * 1000);
-    await expect(isValidGateCookie(value, KEY)).resolves.toBe(false);
+    await expect(readGateCookie(value, KEY)).resolves.toMatchObject({ valid: false });
     vi.useRealTimers();
   });
 

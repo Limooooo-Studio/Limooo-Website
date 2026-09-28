@@ -16,7 +16,6 @@
 import {
   accessAssertion,
   accessConfigError,
-  accessLogoutUrl,
   verifyAccessJwt,
 } from "./_lib/access";
 import {
@@ -82,8 +81,3 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   resp.headers.append("Set-Cookie", await createSessionCookie(env, session));
   return resp;
 };
-
-/** 供 /logout 使用：把用户也带出 Access 会话。 */
-export function accessLogout(env: Env, nextUrl: string): string {
-  return accessLogoutUrl(env, nextUrl);
-}

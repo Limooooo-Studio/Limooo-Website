@@ -4,7 +4,6 @@ import { execute, queryAll } from "./d1";
 import type { Env } from "./env";
 import {
   PENDING_COOKIE,
-  PENDING_TTL_SECONDS,
   ROOT_DOMAIN,
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
@@ -30,17 +29,6 @@ export interface SessionData {
 }
 
 interface SignedSession extends SessionData {
-  exp: number;
-}
-
-export interface PendingData {
-  state: string;
-  nonce: string;
-  codeVerifier: string;
-  next: string;
-}
-
-interface SignedPending extends PendingData {
   exp: number;
 }
 
@@ -256,54 +244,6 @@ export async function revokeAuthSession(env: Env, sid: string): Promise<boolean>
   } catch {
     return false;
   }
-}
-
-export async function revokeAuthSessionsBySub(env: Env, sub: string): Promise<boolean> {
-  if (!env.DB || !sub) return false;
-  try {
-    return await execute(
-      env.DB,
-      `UPDATE ${AUTH_SESSION_TABLE}
-       SET revoked_at = unixepoch()
-       WHERE sub = ? AND revoked_at IS NULL AND exp > unixepoch()`,
-      sub,
-    );
-  } catch {
-    return false;
-  }
-}
-
-export async function createPendingCookie(env: Env, pending: PendingData): Promise<string> {
-  const payload: SignedPending = {
-    ...pending,
-    exp: Math.floor(Date.now() / 1000) + PENDING_TTL_SECONDS,
-  };
-  return cookieHeader(PENDING_COOKIE, await signPayload(env.SESSION_HMAC_KEY ?? "", JSON.stringify(payload)), PENDING_TTL_SECONDS);
-}
-
-export async function readPending(
-  env: Env,
-  cookieHeaderValue: string | null,
-): Promise<PendingData | null> {
-  const token = getCookie(PENDING_COOKIE, cookieHeaderValue);
-  const data = await verifyPayload<SignedPending>(env.SESSION_HMAC_KEY ?? "", token);
-  if (!data) return null;
-  if (
-    typeof data.exp !== "number" ||
-    data.exp < Math.floor(Date.now() / 1000) ||
-    !data.state ||
-    !data.nonce ||
-    !data.codeVerifier ||
-    !data.next
-  ) {
-    return null;
-  }
-  return {
-    state: data.state,
-    nonce: data.nonce,
-    codeVerifier: data.codeVerifier,
-    next: data.next,
-  };
 }
 
 export function clearPendingCookie(): string {

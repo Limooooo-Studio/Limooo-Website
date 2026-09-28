@@ -274,7 +274,7 @@ def main() -> int:
             rows, note = edge_lookup(cfg, zone, ray, colo, args.minutes)
             if note:
                 degraded = True
-                edge_note, edge_rows = note, rows
+                edge_rows = rows
                 print(f"  {note}")
                 # 候选不是该 Ray ID 的记录，不计入 found；默认不刷屏，
                 # 只有 D1 也没命中时才展开（或用 --edge-candidates 强制）。
@@ -283,13 +283,13 @@ def main() -> int:
                         print("  " + line)
                     edge_rows = []
             else:
-                edge_note, edge_rows = "", rows
+                edge_rows = rows
                 for line in rows:
                     print("  " + line)
                 found = found or bool(rows)
     except Exception as exc:  # noqa: BLE001 - 运维脚本统一收口
         warn(f"  edge query failed: {exc}")
-        degraded, edge_note, edge_rows = False, "", []
+        degraded, edge_rows = False, []
 
     # 2) D1（补充）
     print("D1 site logs", flush=True)

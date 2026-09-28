@@ -34,7 +34,6 @@ import os
 import sys
 import time
 import urllib.error
-import urllib.request
 from pathlib import Path
 
 ROOT = Path(os.environ.get("LIMOOO_ROOT") or Path(__file__).resolve().parents[1])

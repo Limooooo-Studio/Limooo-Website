@@ -157,14 +157,6 @@ export async function readGateCookie(
   };
 }
 
-/** 兼容旧调用点：只关心有效性的场景。 */
-export async function isValidGateCookie(
-  value: string | undefined,
-  key: string,
-): Promise<boolean> {
-  return (await readGateCookie(value, key)).valid;
-}
-
 /** 签发 __gate cookie（Domain=. <root_domain>，TTL 来自契约，默认 1 小时）。 */
 export async function mintGateCookie(key: string): Promise<string> {
   const ttlSeconds = GATE_TTL_SECONDS;

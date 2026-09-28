@@ -1,7 +1,5 @@
 """ops/export_d1.py 的 blocklist 导出测试（docs/10）。"""
 
-from pathlib import Path
-
 import ops.export_d1 as export_d1
 
 
