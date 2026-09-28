@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 import build
-import app
+from render_app import RENDER_APP
 
 
 def test_preview_i18n_patch_contains_all_languages():
@@ -18,15 +18,15 @@ def test_preview_i18n_patch_contains_all_languages():
 
 
 def test_render_page_switches_language():
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
     assert '<html lang="zh-cn">' in html
     assert "/static/" in html
-    html_en = build.render_page(app, "index.html", "/", "en-us")
+    html_en = build.render_page(RENDER_APP, "index.html", "/", "en-us")
     assert '<html lang="en-us">' in html_en
 
 
 def test_body_translation_dict_does_not_collide_with_i18n_markers():
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
     body_start = html.index("<body")
     body_open = html[body_start:html.index(">", body_start) + 1]
 
@@ -38,13 +38,13 @@ def test_body_translation_dict_does_not_collide_with_i18n_markers():
 
 
 def test_home_image_urls_use_edge_cached_asset_host():
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
     assert "https://images.limooo.cn/static/portfolio/thumbs/" in html
     assert "https://image.limooo.cn/portfolio/thumbs/" not in html
 
 
 def test_contact_prerenders_all_qr_images():
-    html = build.render_page(app, "contact.html", "/contact", "zh-cn")
+    html = build.render_page(RENDER_APP, "contact.html", "/contact", "zh-cn")
     preloads = re.findall(
         r'<link rel="preload" as="image" type="image/webp"[^>]*href="([^"]+)"',
         html,
@@ -61,14 +61,14 @@ def test_contact_prerenders_all_qr_images():
 
 
 def test_theme_challenge_uses_gate_url_and_skips_gate_page():
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
     assert 'data-gate-url="https://auth.limooo.cn/__gate"' in html
-    gate_html = build.render_gate(app, "zh-cn")
+    gate_html = build.render_gate(RENDER_APP, "zh-cn")
     assert 'data-gate-url=' not in gate_html
 
 
 def test_visitor_inherits_base_nav_logo():
-    html = build.render_page(app, "visitor.html", "/visitor", "zh-cn")
+    html = build.render_page(RENDER_APP, "visitor.html", "/visitor", "zh-cn")
     logo_start = html.index('id="nav-logo"')
     logo_open_end = html.index(">", logo_start) + 1
 

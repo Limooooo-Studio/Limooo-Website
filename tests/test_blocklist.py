@@ -103,7 +103,6 @@ def test_run_scan_default_does_not_call_cloudflare(monkeypatch, tmp_path):
         "analyze",
         lambda files: {"1.2.3.4": {"total": 1, "ok": 0, "scan": False}},
     )
-    monkeypatch.setattr(auto_block, "sync_ipset", lambda: None)
     monkeypatch.setattr(auto_block, "sync_d1", lambda dry_run=False: 0)
     monkeypatch.setattr(
         auto_block,

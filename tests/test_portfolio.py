@@ -7,6 +7,7 @@ from PIL import features
 import build
 import portfolio
 import pytest
+from render_app import RENDER_APP
 
 
 def test_list_portfolio_images_sorted_and_filtered(tmp_path):
@@ -39,9 +40,7 @@ def test_portfolio_items_falls_back_when_source_missing(tmp_path):
 
 
 def test_home_renders_one_card_per_portfolio_image():
-    import app
-
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
     items = portfolio.portfolio_items()
 
     assert html.count('class="work-box"') == len(items)
@@ -52,9 +51,7 @@ def test_home_renders_one_card_per_portfolio_image():
 
 
 def test_body_exposes_portfolio_thumbs_for_prefetch():
-    import app
-
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
     match = re.search(r'data-portfolio-thumbs="([^"]*)"', html)
 
     assert match is not None
@@ -86,9 +83,7 @@ def test_portfolio_items_expose_ratio_and_orientation(tmp_path):
 
 
 def test_home_cards_carry_per_image_aspect_ratio():
-    import app
-
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
 
     # 每张卡片写出自己的画幅与固有尺寸，避免被统一裁成 3:4、也避免 CLS
     for item in portfolio.portfolio_items():
@@ -167,9 +162,7 @@ def test_generate_portfolio_thumbs_skips_when_source_dir_missing(tmp_path):
 
 def test_home_avif_and_webp_srcsets_cover_every_image():
     """首页每张图都要有 AVIF + WebP 两套 srcset，且档位一致。"""
-    import app
-
-    html = build.render_page(app, "index.html", "/", "zh-cn")
+    html = build.render_page(RENDER_APP, "index.html", "/", "zh-cn")
 
     for item in portfolio.portfolio_items():
         stem = item["stem"]

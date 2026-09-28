@@ -41,9 +41,8 @@ A fully serverless personal website and admin system running at [limooo.cn](http
 
 ```
 ├── src/
-│   ├── app.py             # legacy VPS runtime (backchannel logout, __gate_check, security headers); no longer deployed
 │   ├── config.py          # unified config: paths, languages, domains, DB/IP utils (consumes config-contract.json)
-│   ├── auto_block.py      # legacy log scan + blocklist sync (no origin host to scan any more; kept for reference)
+│   ├── auto_block.py      # legacy log scan + blocklist → D1 sync (no origin host to scan any more; kept for reference)
 │   ├── render_app.py      # build-time read-only renderer used by src/build.py
 │   ├── build.py           # Pages static build (python3 src/build.py)
 │   ├── static/            # static css/js/fonts + icons/portfolio/QR codes
@@ -56,7 +55,6 @@ A fully serverless personal website and admin system running at [limooo.cn](http
 │   └── gate_trust.json    # generated gate trust config
 ├── secrets/               # secrets & certificates, git-ignored
 │   ├── webauthn.env       # env file read by the deploy scripts
-│   ├── flask_secret.key   # legacy session signing key
 │   └── apple_account_encryption.key     # Apple Account password encryption key
 ├── ops/                   # deployment & ops tooling
 │   ├── deploy.sh          # full deploy entry point (git commit/push + Pages + Worker)
@@ -312,9 +310,7 @@ Configured under **Pages project settings → Environment variables → Encrypt 
 | `ACCESS_ADMIN_AUDS` / `ACCESS_VIEWER_AUDS` | Comma-separated Access application AUD tags mapped to the admin / viewer role (admin wins) |
 | `VISITOR_IP_KEY` | Fernet key for the encrypted full visitor IP column (`visitor_rollups.ip_enc`) |
 | `SESSION_HMAC_KEY` | Pages session-cookie signing key (separate from `GATE_HMAC_KEY`) |
-| `AUTHENTIK_JWKS_URL` | Optional JWKS URL for ID Token / logout token verification |
-| `AUTHENTIK_PKCE_ENABLED` | Optional PKCE toggle (default enabled) |
-| `APPLE_ACCOUNT_ENCRYPTION_KEY` | Fernet key (from `secrets/apple_account_encryption.key`, shared with the Flask side) |
+| `APPLE_ACCOUNT_ENCRYPTION_KEY` | Fernet key (from `secrets/apple_account_encryption.key`) |
 
 Local development: copy `.dev.vars.example` to `.dev.vars` and fill in real values (git-ignored). Configure `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` for `ops/sync-worker` via `wrangler secret put`.
 

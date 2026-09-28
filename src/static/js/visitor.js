@@ -93,7 +93,7 @@ async function refresh() {
     updateStats(data.stats);
     refreshed = true;
   } catch (error) {
-    console.error('加载失败:', error);
+    console.error('Failed to load:', error);
     showError();
   } finally {
     inFlight = false;

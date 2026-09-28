@@ -116,8 +116,6 @@ APPLE_ACCOUNT_DB = os.path.join(DATA_DIR, "apple_account.db")
 AUTH_DB = os.path.join(DATA_DIR, "auth.db")
 BLOCKLIST_FILE = os.path.join(DATA_DIR, "blocklist.txt")
 
-# VPS 侧依赖的系统路径
-NGINX_LOG = "/var/log/nginx/access.log"
 SECRET_DIR = os.path.join(BASE_DIR, "secrets")
 ENV_FILE = os.path.join(SECRET_DIR, "webauthn.env")
 
@@ -140,8 +138,6 @@ APPLE_ACCOUNT_HOST = f"account.{ROOT_DOMAIN}"
 REDIRECT_HOST = f"redirect.{ROOT_DOMAIN}"
 REDIRECT_URL = f"https://{REDIRECT_HOST}/"
 GATE_HOST = f"auth.{ROOT_DOMAIN}"
-AUTHENTIK_HOST = _contract_str("authentik_host")
-IDENTITY_HOST = AUTHENTIK_HOST
 IMAGES_HOST = f"images.{ROOT_DOMAIN}"
 IMAGE_BASE_URL = f"https://{IMAGES_HOST}"
 IMAGE_ASSET_HOST = _contract_str("image_asset_host")
@@ -200,21 +196,9 @@ REDIRECT_PRELOAD_IMAGES = [
     f"{IMAGE_ASSET_BASE_URL}/static/portfolio/thumbs/IMG_0179-800.webp",
 ]
 
-# ── 登录使用的 authentik 信息 ─────────────────────────────
-AUTHENTIK_URL = f"https://{AUTHENTIK_HOST}"
-AUTHENTIK_INTERNAL_URL = "http://127.0.0.1:9000"
-AUTHENTIK_PROVIDER_SLUG = _contract_str("authentik_provider_slug")
-AUTHENTIK_ADMIN_GROUPS = tuple(_contract_str_list("authentik_admin_groups"))
-
-# ── Nginx combined 日志格式正则（用于从 access.log 中提取 IP、时间、请求行） ──
-LOG_PATTERN = re.compile(
-    r'^(\S+)\s+\S+\s+\S+\s+\[([^\]]+)\]\s+"([^"]*)"\s+(\d+)\s+(\S+)\s+"([^"]*)"\s+"([^"]*)"'
-)
-
-
-# ── 数据库连接工厂（解决 gunicorn 多 worker 写冲突） ──────
+# ── 数据库连接工厂 ────────────────────────────────────────
 def get_geo_db() -> sqlite3.Connection:
-    """创建带 WAL 模式和超时的 SQLite 连接，支持多 worker 并发"""
+    """创建带 WAL 模式和超时的 SQLite 连接，支持并发访问"""
     conn = sqlite3.connect(DATABASE, timeout=10)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")

@@ -294,7 +294,6 @@ def write_config_functions() -> None:
     with open(CONTRACT_PATH, encoding="utf-8") as f:
         contract = json.load(f)
     root = contract["root_domain"]
-    authentik_host = contract.get("authentik_host") or f"identity.{root}"
 
     lines = [
         "/** 由 build.py 自动生成，勿手改；修改配置请编辑 config-contract.json。 */",
@@ -309,13 +308,9 @@ def write_config_functions() -> None:
         "export const APPLE_ACCOUNT_HOSTNAME = `account.${ROOT_DOMAIN}`;",
         "export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;",
         "export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;",
-        f"export const AUTHENTIK_HOSTNAME = {json.dumps(authentik_host)};",
-        "export const IDENTITY_HOSTNAME = AUTHENTIK_HOSTNAME;",
         "export const IMAGES_HOSTNAME = `images.${ROOT_DOMAIN}`;",
         "export const GATE_HOST = GATE_HOSTNAME;",
         "export const REDIRECT_HOST = `https://${REDIRECT_HOSTNAME}/`;",
-        "export const IDENTITY_URL = `https://${IDENTITY_HOSTNAME}`;",
-        "export const AUTHENTIK_URL = `https://${AUTHENTIK_HOSTNAME}`;",
         "export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;",
         "export const APPLE_ACCOUNT_DOMAIN = `@${APPLE_ACCOUNT_HOSTNAME}`;",
         "export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);",
@@ -343,8 +338,6 @@ def write_config_functions() -> None:
         "export const GATE_TTL_SECONDS = CONTRACT.gate_ttl_seconds;",
         "export const SESSION_TTL_SECONDS = CONTRACT.session_ttl_seconds;",
         "export const PENDING_TTL_SECONDS = CONTRACT.pending_ttl_seconds;",
-        "export const AUTHENTIK_PROVIDER_SLUG = CONTRACT.authentik_provider_slug;",
-        "export const AUTHENTIK_ADMIN_GROUPS_DEFAULT = CONTRACT.authentik_admin_groups.join(\", \");",
         "",
     ]
     ts_path = os.path.join(FUNCTIONS_DIR, "_lib", "config.ts")

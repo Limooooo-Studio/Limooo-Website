@@ -19,24 +19,22 @@
 
 """
 Auto-block script: scan Nginx access.log for IPs that never returned 200 or hit
-known scan paths, append their /24 to blocklist.txt, then sync to ipset and D1.
+known scan paths, append their /24 to blocklist.txt, then sync to D1.
 
 权威链路：D1 `blocked_ips` -> 每日 sync-worker -> Cloudflare IP List。
-`blocklist.txt` 是 VPS 本地的导入种子/可审计快照；CF List 只有在显式维护命令
+`blocklist.txt` 是本地导入种子/可审计快照；CF List 只有在显式维护命令
 `auto_block.py cf` 才直接同步，默认运行路径不会写 Cloudflare。
 
 Usage:
-    python3 auto_block.py                 # full: scan + write blocklist + ipset + D1
-    python3 auto_block.py ipset           # sync blocklist.txt to ipset/iptables only
+    python3 auto_block.py                 # full: scan + write blocklist + D1
     python3 auto_block.py d1 [--dry-run]  # sync blocklist.txt to D1 (full diff)
     python3 auto_block.py cf              # maintenance: sync blocklist.txt to CF only
-    python3 auto_block.py sync [--dry-run]  # sync to ipset + D1 (不再直写 CF)
+    python3 auto_block.py sync [--dry-run]  # alias of `d1` (不再直写 CF)
 """
 
 import json
 import os
 import re
-import subprocess
 import sys
 import time
 import urllib.error
@@ -150,36 +148,6 @@ def read_blocklist_txt(path: str) -> tuple[list[str], set[str]]:
         pass
 
     return static_lines, existing_prefixes
-
-
-# ── ipset / iptables 同步（原 sync_blocklist.py） ──────
-def sync_ipset() -> None:
-    """把 blocklist.txt 同步到内核 ipset(ban24) + iptables DROP 规则"""
-    entries = read_blocklist(BLOCKLIST_TXT)
-    if not entries:
-        print("[!] blocklist.txt not found")
-        return
-
-    # 不要因为重复调用而回写默认退出码；创建失败由后续 add 暴露。
-    subprocess.run(["ipset", "create", "ban24", "hash:net", "-exist"], capture_output=True)
-
-    count = 0
-    for entry in entries:
-        r = subprocess.run(["ipset", "add", "ban24", entry, "-exist"], capture_output=True)
-        if r.returncode == 0:
-            count += 1
-
-    print(f"[ipset] {count} entries ready, desired total {len(entries)}")
-
-    r = subprocess.run(
-        ["iptables", "-C", "INPUT", "-m", "set", "--match-set", "ban24", "src", "-j", "DROP"],
-        capture_output=True,
-    )
-    if r.returncode != 0:
-        subprocess.run(
-            ["iptables", "-I", "INPUT", "-m", "set", "--match-set", "ban24", "src", "-j", "DROP"],
-        )
-        print("iptables rule added")
 
 
 # ── Cloudflare IP List 同步（原 sync_blocklist_cf.py） ──
@@ -508,7 +476,7 @@ def run_scan() -> None:
     else:
         print(f"  No new prefixes, {len(existing_prefixes)} existing /24", flush=True)
 
-    sync_ipset()
+    sync_d1()
     print(f"  Active source sync done: +{len(new_ones)} new /24 (total {len(all_prefixes)})", flush=True)
 
     # 即使当天没有新增，也执行 D1 全量 diff，让手工删除的种子条目真正消失。
@@ -519,12 +487,7 @@ def run_scan() -> None:
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     dry_run = "--dry-run" in sys.argv[2:]
-    if cmd == "ipset":
-        sync_ipset()
-    elif cmd == "d1":
-        sys.exit(sync_d1(dry_run=dry_run))
-    elif cmd == "sync":
-        sync_ipset()
+    if cmd in ("d1", "sync"):
         sys.exit(sync_d1(dry_run=dry_run))
     elif cmd == "cf":
         sys.exit(sync_cloudflare())

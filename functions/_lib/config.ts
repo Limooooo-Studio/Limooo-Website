@@ -41,7 +41,6 @@ export const CONTRACT = {
     "image.limooo.cn",
     "images.limooo.cn",
     "status.limooo.cn",
-    "identity.limooo.cn",
     "*.limooo.cn"
   ],
   "managed_hosts": [
@@ -54,8 +53,7 @@ export const CONTRACT = {
     "auth.limooo.cn",
     "redirect.limooo.cn",
     "images.limooo.cn",
-    "image.limooo.cn",
-    "identity.limooo.cn"
+    "image.limooo.cn"
   ],
   "page_routes": {
     "limooo.cn": {
@@ -112,12 +110,7 @@ export const CONTRACT = {
     "ua_allowlist_enabled": false
   },
   "observability_hmac_env": "OBSERVABILITY_HMAC_KEY",
-  "whitelist_file": "data/whitelist.txt",
-  "authentik_host": "identity.limooo.cn",
-  "authentik_provider_slug": "visitor",
-  "authentik_admin_groups": [
-    "authentik Admins"
-  ]
+  "whitelist_file": "data/whitelist.txt"
 } as const;
 
 export const ROOT_DOMAIN = CONTRACT.root_domain;
@@ -129,13 +122,9 @@ export const VISITOR_HOSTNAME = `visitor.${ROOT_DOMAIN}`;
 export const APPLE_ACCOUNT_HOSTNAME = `account.${ROOT_DOMAIN}`;
 export const REDIRECT_HOSTNAME = `redirect.${ROOT_DOMAIN}`;
 export const GATE_HOSTNAME = `auth.${ROOT_DOMAIN}`;
-export const AUTHENTIK_HOSTNAME = "identity.limooo.cn";
-export const IDENTITY_HOSTNAME = AUTHENTIK_HOSTNAME;
 export const IMAGES_HOSTNAME = `images.${ROOT_DOMAIN}`;
 export const GATE_HOST = GATE_HOSTNAME;
 export const REDIRECT_HOST = `https://${REDIRECT_HOSTNAME}/`;
-export const IDENTITY_URL = `https://${IDENTITY_HOSTNAME}`;
-export const AUTHENTIK_URL = `https://${AUTHENTIK_HOSTNAME}`;
 export const IMAGE_BASE = `https://${IMAGES_HOSTNAME}`;
 export const APPLE_ACCOUNT_DOMAIN = `@${APPLE_ACCOUNT_HOSTNAME}`;
 export const PUBLIC_HOSTS: Set<string> = new Set(CONTRACT.public_hosts);
@@ -163,5 +152,3 @@ export const CSRF_COOKIE = CONTRACT.csrf_cookie;
 export const GATE_TTL_SECONDS = CONTRACT.gate_ttl_seconds;
 export const SESSION_TTL_SECONDS = CONTRACT.session_ttl_seconds;
 export const PENDING_TTL_SECONDS = CONTRACT.pending_ttl_seconds;
-export const AUTHENTIK_PROVIDER_SLUG = CONTRACT.authentik_provider_slug;
-export const AUTHENTIK_ADMIN_GROUPS_DEFAULT = CONTRACT.authentik_admin_groups.join(", ");
