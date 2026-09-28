@@ -12,7 +12,22 @@ vi.mock("../_lib/d1", () => ({
   executeBatch: vi.fn(),
 }));
 vi.mock("../_lib/logging", () => ({ logEvent: vi.fn() }));
-vi.mock("../_lib/session", () => ({ requireAuth: vi.fn() }));
+vi.mock("../_lib/session", () => ({
+  requireAuth: vi.fn(),
+  authUnavailableResponse: vi.fn(() => new Response("unavailable", { status: 503 })),
+  // 与生产同策略：委托给桩化的 requireAuth，未登录 401、非 admin 403。
+  requireAdminSession: vi.fn(async (env: unknown, request: Request, forbidden = "只读账户，无写入权限") => {
+    const { requireAuth: mocked } = await import("../_lib/session");
+    const session = await (mocked as (...a: unknown[]) => Promise<unknown>)(env, request);
+    if (!session) {
+      return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    }
+    if ((session as { role?: string }).role !== "admin") {
+      return Response.json({ error: forbidden }, { status: 403, headers: { "Cache-Control": "no-store" } });
+    }
+    return { session };
+  }),
+}));
 vi.mock("../_lib/csrf", () => ({ verifyCsrf: vi.fn() }));
 import { verifyCsrf } from "../_lib/csrf";
 

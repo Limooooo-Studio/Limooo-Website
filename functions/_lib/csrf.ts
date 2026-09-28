@@ -15,65 +15,20 @@ import {
   VISITOR_HOSTNAME,
 } from "./config";
 import type { Env } from "./env";
+import { getCookie } from "./routing";
+import { hmacSha256Hex, timingSafeEqual, toB64Url } from "./crypto";
 
 export const CSRF_HEADER_NAME = "X-CSRF-Token";
 export const CSRF_COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
 
-const textEncoder = new TextEncoder();
 const PROD_ORIGINS = new Set([
   `https://${VISITOR_HOSTNAME}`,
   `https://${APPLE_ACCOUNT_HOSTNAME}`,
 ]);
 const LOCAL_ORIGIN_RE = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i;
 
-function toHex(bytes: Uint8Array): string {
-  let out = "";
-  for (const b of bytes) out += b.toString(16).padStart(2, "0");
-  return out;
-}
-
-function toB64Url(bytes: Uint8Array): string {
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-async function hmacHex(key: string, value: string): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(key),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  return toHex(new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, textEncoder.encode(value))));
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
 function csrfSecret(env: Env): string {
   return env.SESSION_HMAC_KEY || env.GATE_HMAC_KEY || "";
-}
-
-function getCookie(name: string, header: string | null): string | undefined {
-  if (!header) return undefined;
-  for (const part of header.split(";")) {
-    const eq = part.indexOf("=");
-    if (eq < 0) continue;
-    if (part.slice(0, eq).trim() === name) {
-      try {
-        return decodeURIComponent(part.slice(eq + 1).trim());
-      } catch {
-        return part.slice(eq + 1).trim();
-      }
-    }
-  }
-  return undefined;
 }
 
 async function validToken(token: string, secret: string): Promise<boolean> {
@@ -83,8 +38,7 @@ async function validToken(token: string, secret: string): Promise<boolean> {
   const payload = token.slice(0, dot);
   const signature = token.slice(dot + 1);
   if (!/^[0-9a-f]{64}$/.test(signature)) return false;
-  const expected = await hmacHex(secret, payload);
-  return timingSafeEqual(signature, expected);
+  return timingSafeEqual(signature, await hmacSha256Hex(secret, payload));
 }
 
 function isAllowedOrigin(origin: string): boolean {
@@ -98,7 +52,7 @@ export async function createCsrfToken(env: Env): Promise<{ token: string }> {
   const secret = csrfSecret(env);
   if (!secret) throw new Error("CSRF secret is not configured");
   const payload = toB64Url(crypto.getRandomValues(new Uint8Array(32)));
-  return { token: `${payload}.${await hmacHex(secret, payload)}` };
+  return { token: `${payload}.${await hmacSha256Hex(secret, payload)}` };
 }
 
 export function csrfCookieHeader(token: string, secure = true): string {

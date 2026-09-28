@@ -28,7 +28,6 @@ import datetime as dt
 import os
 import re
 import sys
-import time
 from pathlib import Path
 
 ROOT = Path(os.environ.get("LIMOOO_ROOT") or Path(__file__).resolve().parents[1])
@@ -57,16 +56,8 @@ def fmt_ts(value: object) -> str:
 
 
 def d1_query_retry(cfg: dict[str, str], sql: str, tries: int = 4) -> list[dict]:
-    """本机到 Cloudflare 偶发连接重置，统一退避重试；持续失败直接抛出。"""
-    last: Exception | None = None
-    for attempt in range(tries):
-        try:
-            return d1_client.d1_query(cfg, sql)
-        except Exception as exc:  # noqa: BLE001
-            last = exc
-            if attempt < tries - 1:
-                time.sleep(1.5 * (attempt + 1))
-    raise RuntimeError(str(last))
+    """持续失败时直接抛出（与其它 check_* 脚本的返回 None 语义不同）。"""
+    return d1_client.d1_query_retry(cfg, sql, tries, raise_on_failure=True) or []
 
 
 def decrypt_ip(token: str, key: str) -> str:

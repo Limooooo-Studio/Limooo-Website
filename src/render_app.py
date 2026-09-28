@@ -7,9 +7,6 @@ SQLite 数据库或初始化路由。这里提供一个最小 Flask 应用，只
 
 from __future__ import annotations
 
-import json
-import os
-
 from flask import Flask, g
 
 from config import (
@@ -18,29 +15,12 @@ from config import (
     IMAGE_ASSET_BASE_URL,
     IMAGE_WATERMARK_BASE_URL,
     KEY_FALLBACK_LANG,
-    LOCALES_DIR,
     SOURCE_REPO_URL,
     STATIC_DIR,
-    SUPPORTED_LANGS,
     TEMPLATES_DIR,
+    load_translations,
 )
 from portfolio import portfolio_items
-
-
-def load_translations() -> dict[str, dict[str, str]]:
-    """读取全部语言 JSON；构建期缺少翻译文件必须失败，不能静默降级。"""
-    translations: dict[str, dict[str, str]] = {}
-    for lang in SUPPORTED_LANGS:
-        path = os.path.join(LOCALES_DIR, f"{lang}.json")
-        try:
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"无法读取翻译文件 {path}: {exc}") from exc
-        if not isinstance(data, dict) or not all(isinstance(v, str) for v in data.values()):
-            raise RuntimeError(f"翻译文件格式错误（应为字符串字典）: {path}")
-        translations[lang] = data
-    return translations
 
 
 def create_render_app() -> Flask:

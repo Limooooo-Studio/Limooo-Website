@@ -2,7 +2,7 @@
 
 import { queryAll, execute } from "../../../_lib/d1";
 import { fernetEncrypt } from "../../../_lib/fernet";
-import { authUnavailableResponse, requireAuth } from "../../../_lib/session";
+import { requireAdminSession } from "../../../_lib/session";
 import { verifyCsrf } from "../../../_lib/csrf";
 import { parseAccountId, validateUpdatePayload } from "../../../_lib/apple-account";
 import type { Env } from "../../../_lib/env";
@@ -10,16 +10,8 @@ import type { Env } from "../../../_lib/env";
 const NO_STORE = { "Cache-Control": "no-store" };
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
-  let session: Awaited<ReturnType<typeof requireAuth>>;
-  try {
-    session = await requireAuth(context.env, context.request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: NO_STORE });
-  if (session.role !== "admin") {
-    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: NO_STORE });
-  }
+  const auth = await requireAdminSession(context.env, context.request);
+  if (auth instanceof Response) return auth;
   const id = parseAccountId((context.params as { id?: string }).id);
   if (!id) return Response.json({ error: "无效请求" }, { status: 400, headers: NO_STORE });
   if (!(await verifyCsrf(context.env, context.request))) {
@@ -68,16 +60,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 };
 
 export const onRequestDelete: PagesFunction<Env> = async (context) => {
-  let session: Awaited<ReturnType<typeof requireAuth>>;
-  try {
-    session = await requireAuth(context.env, context.request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: NO_STORE });
-  if (session.role !== "admin") {
-    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: NO_STORE });
-  }
+  const auth = await requireAdminSession(context.env, context.request);
+  if (auth instanceof Response) return auth;
   const id = parseAccountId((context.params as { id?: string }).id);
   if (!id) return Response.json({ error: "无效请求" }, { status: 400, headers: NO_STORE });
   if (!(await verifyCsrf(context.env, context.request))) {

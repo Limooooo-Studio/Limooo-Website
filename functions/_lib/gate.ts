@@ -8,6 +8,7 @@ import {
   clientCountryForLogs,
   clientIpForLogs,
   detectLang,
+  escapeHtml,
   isGateTrustedIp,
   preserveSetCookie,
   safeNextPath,
@@ -22,10 +23,10 @@ import {
   ROOT_DOMAIN,
 } from "./config";
 import { GATE_I18N } from "../_data/runtime";
+import { hmacSha256Hex, timingSafeEqual } from "./crypto";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SITEVERIFY_TIMEOUT_MS = 3000;
-const textEncoder = new TextEncoder();
 
 /** 门禁事件日志异步写入，不阻塞验证结果的返回。 */
 function deferLog(context: RequestContext, promise: Promise<unknown>): void {
@@ -36,30 +37,6 @@ function deferLog(context: RequestContext, promise: Promise<unknown>): void {
   }
 }
 
-function toHex(bytes: Uint8Array): string {
-  let out = "";
-  for (const b of bytes) out += b.toString(16).padStart(2, "0");
-  return out;
-}
-
-async function hmacSha256Hex(key: string, data: string): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(key),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, textEncoder.encode(data)));
-  return toHex(sig);
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 /**
  * cookie 格式：`<签发时间戳>.<过期时间戳>.<HMAC-SHA256 hex 签名>`。
@@ -325,23 +302,6 @@ export function handleGateDiag(context: RequestContext): Response {
     },
     { headers: { "Cache-Control": "no-store" } },
   );
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (ch) => {
-    switch (ch) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      default:
-        return "&#39;";
-    }
-  });
 }
 
 export interface GateRenderOptions {

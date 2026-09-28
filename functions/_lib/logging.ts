@@ -8,8 +8,8 @@
 import { execute } from "./d1";
 import type { Env } from "./env";
 import { clientCountryForLogs, clientIpForLogs } from "./routing";
+import { hmacSha256Hex } from "./crypto";
 
-const textEncoder = new TextEncoder();
 let eventSchemaReady = false;
 const MAX_LOG_MESSAGE_LENGTH = 500;
 
@@ -31,24 +31,6 @@ export interface LogEventFields {
   country?: string;
   accountId?: number;
   actorSub?: string;
-}
-
-function toHex(bytes: Uint8Array): string {
-  let out = "";
-  for (const b of bytes) out += b.toString(16).padStart(2, "0");
-  return out;
-}
-
-async function hmacSha256Hex(key: string, value: string): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(key),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, textEncoder.encode(value)));
-  return toHex(sig);
 }
 
 /** 每个 isolate 首次写入前幂等建表，避免依赖人工先执行迁移。 */

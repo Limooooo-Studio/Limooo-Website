@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -92,3 +93,31 @@ def d1_query(cfg: dict[str, str], sql: str) -> list[dict[str, Any]]:
     if not first.get("success"):
         raise RuntimeError(f"D1 query failed: {str(first)[:300]}")
     return first.get("results") or []
+
+
+def d1_query_retry(
+    cfg: dict[str, str],
+    sql: str,
+    tries: int = 4,
+    *,
+    raise_on_failure: bool = False,
+) -> list[dict[str, Any]] | None:
+    """d1_query 的退避重试包装（本机到 Cloudflare 偶发连接重置）。
+
+    原先在 check_ip_rays.py / check_ray_id.py / check_visitor_id.py 里各抄了一份，
+    其中前两者返回 None、后者抛 RuntimeError；这里用 raise_on_failure 统一。
+
+    失败语义很重要：返回 None 表示「查询失败」，与「确实没有记录」必须区分开，
+    调用方不能把网络抖动说成没有数据。
+    """
+    last: Exception | None = None
+    for attempt in range(tries):
+        try:
+            return d1_query(cfg, sql)
+        except Exception as exc:  # noqa: BLE001 - 网络抖动统一收口
+            last = exc
+            if attempt < tries - 1:
+                time.sleep(1.5 * (attempt + 1))
+    if raise_on_failure:
+        raise RuntimeError(str(last))
+    return None

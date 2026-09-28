@@ -12,7 +12,7 @@
  */
 
 import { queryAll } from "../_lib/d1";
-import { authUnavailableResponse, requireAuth } from "../_lib/session";
+import { requireAdminSession } from "../_lib/session";
 import type { Env } from "../_lib/env";
 
 const VISITOR_WINDOW_DAYS = 30;
@@ -104,18 +104,8 @@ function buildMarkers(rows: MarkerRow[]): Array<{
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  let session;
-  try {
-    session = await requireAuth(context.env, context.request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) {
-    return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  }
-  if (session.role !== "admin") {
-    return Response.json({ error: "无权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
+  const auth = await requireAdminSession(context.env, context.request, "无权限");
+  if (auth instanceof Response) return auth;
 
   const url = new URL(context.request.url);
   const statusParam = url.searchParams.get("status");
@@ -159,15 +149,29 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   // 查询 2：最近 500 个 IP 哈希的列表及每个 IP 的状态分布。
   // 先取 top 500，再按 ip_hash+status 分组，一次拿到构建 markers 所需的全部行。
-  const markerSql = statusNum === null
-    ? `WITH scoped AS (
+  //
+  // 带不带 status 过滤只差 `AND status = ?` 这一处，因此用插值拼一份 SQL；
+  // statusFilter 由 statusNum 是否为空推导（非用户输入），与上面 `${MAX_VISITOR_MARKERS}`
+  // 同一套写法，不引入注入面。
+  //
+  // 国家取**最近一次**访问的值。不能写 MAX(country)：那按字母序选，与
+  // 「最近」无关（CN/CH 混合的访客会恒显示 CN）。同 IP 跨国是常态——
+  // 代理/中转网段上 Cloudflare 在不同时间本就可能判出不同国家。
+  // 实现要点（都拿线上 D1 实测过，别凭直觉改）：
+  //   · top 已经带每 IP 的 last_ts，直接 JOIN 回 scoped 取那一行的国家，
+  //     实测 13.1 万行读取；
+  //   · 不要用相关子查询（SELECT s2.country ... ORDER BY ts DESC LIMIT 1）
+  //     ——1370 万行；不要用 NOT EXISTS ——753 万行；不要用
+  //     ROW_NUMBER() 全分区排序 ——17.5 万行。免费版上限 5M 行/天。
+  const statusFilter = statusNum === null ? "" : " AND status = ?";
+  const markerSql = `WITH scoped AS (
          SELECT ip_hash, country, status, ts, 1 AS requests
          FROM visitors_v2
-         WHERE ts >= ?
+         WHERE ts >= ?${statusFilter}
          UNION ALL
          SELECT ip_hash, country, status, last_ts AS ts, requests
          FROM visitor_rollups
-         WHERE last_ts >= ?
+         WHERE last_ts >= ?${statusFilter}
        ),
        top AS (
          SELECT ip_hash, MAX(ts) AS last_ts
@@ -176,54 +180,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
          ORDER BY last_ts DESC
          LIMIT ${MAX_VISITOR_MARKERS}
        ),
-       -- 国家取**最近一次**访问的值。不能写 MAX(country)：那按字母序选，与
-       -- 「最近」无关（CN/CH 混合的访客会恒显示 CN）。同 IP 跨国是常态——
-       -- 代理/中转网段上 Cloudflare 在不同时间本就可能判出不同国家。
-       -- 实现要点（都拿线上 D1 实测过，别凭直觉改）：
-       --   · top 已经带每 IP 的 last_ts，直接 JOIN 回 scoped 取那一行的国家，
-       --     实测 13.1 万行读取；
-       --   · 不要用相关子查询（SELECT s2.country ... ORDER BY ts DESC LIMIT 1）
-       --     ——1370 万行；不要用 NOT EXISTS ——753 万行；不要用
-       --     ROW_NUMBER() 全分区排序 ——17.5 万行。免费版上限 5M 行/天。
-       latest AS (
-         SELECT t.ip_hash, MAX(s.country) AS country
-         FROM top t
-         JOIN scoped s ON s.ip_hash = t.ip_hash AND s.ts = t.last_ts
-         GROUP BY t.ip_hash
-       )
-       SELECT v.ip_hash, l.country, v.status,
-              SUM(v.requests) AS n,
-              MAX(v.ts) AS last_ts
-       FROM scoped v
-       JOIN top t ON t.ip_hash = v.ip_hash
-       JOIN latest l ON l.ip_hash = v.ip_hash
-       GROUP BY v.ip_hash, v.status
-       ORDER BY MAX(v.ts) DESC, v.status`
-    : `WITH scoped AS (
-         SELECT ip_hash, country, status, ts, 1 AS requests
-         FROM visitors_v2
-         WHERE ts >= ? AND status = ?
-         UNION ALL
-         SELECT ip_hash, country, status, last_ts AS ts, requests
-         FROM visitor_rollups
-         WHERE last_ts >= ? AND status = ?
-       ),
-       top AS (
-         SELECT ip_hash, MAX(ts) AS last_ts
-         FROM scoped
-         GROUP BY ip_hash
-         ORDER BY last_ts DESC
-         LIMIT ${MAX_VISITOR_MARKERS}
-       ),
-       -- 国家取**最近一次**访问的值。不能写 MAX(country)：那按字母序选，与
-       -- 「最近」无关（CN/CH 混合的访客会恒显示 CN）。同 IP 跨国是常态——
-       -- 代理/中转网段上 Cloudflare 在不同时间本就可能判出不同国家。
-       -- 实现要点（都拿线上 D1 实测过，别凭直觉改）：
-       --   · top 已经带每 IP 的 last_ts，直接 JOIN 回 scoped 取那一行的国家，
-       --     实测 13.1 万行读取；
-       --   · 不要用相关子查询（SELECT s2.country ... ORDER BY ts DESC LIMIT 1）
-       --     ——1370 万行；不要用 NOT EXISTS ——753 万行；不要用
-       --     ROW_NUMBER() 全分区排序 ——17.5 万行。免费版上限 5M 行/天。
        latest AS (
          SELECT t.ip_hash, MAX(s.country) AS country
          FROM top t

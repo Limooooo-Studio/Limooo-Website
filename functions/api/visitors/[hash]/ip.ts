@@ -13,7 +13,7 @@
  */
 
 import { queryAll } from "../../../_lib/d1";
-import { authUnavailableResponse, requireAuth } from "../../../_lib/session";
+import { requireAdminSession } from "../../../_lib/session";
 import { decryptVisitorIp, visitorIpKey } from "../../../_lib/visitor-ip";
 import type { Env } from "../../../_lib/env";
 
@@ -25,14 +25,8 @@ function json(body: unknown, status = 200): Response {
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  let session;
-  try {
-    session = await requireAuth(context.env, context.request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) return json({ error: "未登录" }, 401);
-  if (session.role !== "admin") return json({ error: "无权限" }, 403);
+  const auth = await requireAdminSession(context.env, context.request, "无权限");
+  if (auth instanceof Response) return auth;
 
   const hash = String(context.params?.hash ?? "");
   if (!IP_HASH_RE.test(hash)) return json({ error: "无效的访客标识" }, 400);

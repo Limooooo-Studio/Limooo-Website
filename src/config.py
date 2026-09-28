@@ -264,3 +264,24 @@ def get_cached_geo(conn: sqlite3.Connection, ip: str) -> dict | None:
         "isp": row[4],
         "asn": row[5],
     }
+
+
+def load_translations() -> dict[str, dict[str, str]]:
+    """读取全部语言 JSON，并校验成「字符串 -> 字符串」字典。
+
+    这是唯一的 locale 读取入口：构建期缺少翻译文件必须直接失败，不能静默降级
+    成空字典（否则页面会整片丢文案）。原先 build.py 的四处循环与
+    render_app.py 各写了一份，其中 build.py 有两条路径连类型都不校验。
+    """
+    translations: dict[str, dict[str, str]] = {}
+    for lang in SUPPORTED_LANGS:
+        path = os.path.join(LOCALES_DIR, f"{lang}.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"无法读取翻译文件 {path}: {exc}") from exc
+        if not isinstance(data, dict) or not all(isinstance(v, str) for v in data.values()):
+            raise RuntimeError(f"翻译文件格式错误（应为字符串字典）: {path}")
+        translations[lang] = data
+    return translations

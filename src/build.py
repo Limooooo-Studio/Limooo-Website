@@ -45,6 +45,7 @@ from config import (
     ROOT_DOMAIN,
     STATIC_DIR,
     SUPPORTED_LANGS as LANGS,
+    load_translations,
 )
 
 FUNCTIONS_DIR = os.path.join(BASE_DIR, "functions")
@@ -186,14 +187,11 @@ GATE_I18N_KEYS = (
 
 def _load_gate_i18n() -> dict[str, dict[str, str]]:
     """从 locales/*.json 读取门禁文案，替代 build.py 中的硬编码字典。"""
+    translations = load_translations()
     result: dict[str, dict[str, str]] = {}
     for lang in LANGS:
+        data = translations[lang]
         path = os.path.join(LOCALES_DIR, f"{lang}.json")
-        try:
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"cannot read gate texts {path}: {exc}") from exc
         texts = {}
         for output_key, locale_key in GATE_I18N_KEYS:
             value = data.get(locale_key)
@@ -266,10 +264,7 @@ def render_gate(appmod, lang: str) -> str:
 
 def preview_i18n_patch() -> str:
     """预览版语言切换补丁：内联 4 语言字典，切换语言不依赖 /api/i18n"""
-    data: dict[str, dict[str, str]] = {}
-    for lang in LANGS:
-        with open(os.path.join(LOCALES_DIR, f"{lang}.json"), encoding="utf-8") as f:
-            data[lang] = json.load(f)
+    data: dict[str, dict[str, str]] = load_translations()
     # 内联到 <script> 前转义 </script> 闭合序列，防止翻译文案意外闭合脚本
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     return (
@@ -344,10 +339,7 @@ def write_config_functions() -> None:
 
 def write_i18n_functions() -> None:
     """把 locales/*.json 内联进 functions/_data/i18n.ts，并生成 /api/i18n/<lang>"""
-    data: dict[str, dict[str, str]] = {}
-    for lang in LANGS:
-        with open(os.path.join(LOCALES_DIR, f"{lang}.json"), encoding="utf-8") as f:
-            data[lang] = json.load(f)
+    data: dict[str, dict[str, str]] = load_translations()
 
     ts_path = os.path.join(FUNCTIONS_DIR, "_data", "i18n.ts")
     os.makedirs(os.path.dirname(ts_path), exist_ok=True)
@@ -386,9 +378,9 @@ def write_i18n_functions() -> None:
 def write_runtime_functions() -> None:
     """把门禁/跳转页共享文案与预热图片生成 Pages 端独立模块，消除 middleware 重复维护。"""
     redirect_i18n: dict[str, dict[str, str]] = {}
+    translations = load_translations()
     for lang in LANGS:
-        with open(os.path.join(LOCALES_DIR, f"{lang}.json"), encoding="utf-8") as f:
-            d = json.load(f)
+        d = translations[lang]
         redirect_i18n[lang] = {
             "title": d.get("redirect_title", "正在跳转"),
             "text": d.get("redirect_text", "正在跳转..."),

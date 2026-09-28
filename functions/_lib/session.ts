@@ -8,6 +8,7 @@ import {
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
 } from "./config";
+import { fromB64Url, hmacSha256Hex, timingSafeEqual, toB64Url } from "./crypto";
 
 const textEncoder = new TextEncoder();
 const COOKIE_DOMAIN = `.${ROOT_DOMAIN}`;
@@ -48,46 +49,16 @@ export class AuthSessionUnavailableError extends Error {
   }
 }
 
-function toB64Url(bytes: Uint8Array): string {
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function fromB64Url(input: string): Uint8Array {
+/**
+ * 严格版 base64url 解码：比共用实现多一道字符集与长度校验。
+ *
+ * session token 由请求方提供，先挡掉畸形输入再解码，避免把异常当控制流。
+ */
+function fromB64UrlStrict(input: string): Uint8Array {
   if (!input || !/^[A-Za-z0-9_-]+$/.test(input) || input.length % 4 === 1) {
     throw new Error("invalid_base64url");
   }
-  const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-  const bin = atob(padded);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-function toHex(bytes: Uint8Array): string {
-  let out = "";
-  for (const b of bytes) out += b.toString(16).padStart(2, "0");
-  return out;
-}
-
-async function hmacHex(key: string, data: string): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(key),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  return toHex(new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, textEncoder.encode(data))));
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
+  return fromB64Url(input);
 }
 
 function getCookie(name: string, header: string | null): string | undefined {
@@ -101,7 +72,7 @@ function getCookie(name: string, header: string | null): string | undefined {
 }
 
 async function signPayload(key: string, payload: string): Promise<string> {
-  return `${toB64Url(textEncoder.encode(payload))}.${await hmacHex(key, payload)}`;
+  return `${toB64Url(textEncoder.encode(payload))}.${await hmacSha256Hex(key, payload)}`;
 }
 
 async function verifyPayload<T>(key: string, token: string | undefined): Promise<T | null> {
@@ -112,8 +83,8 @@ async function verifyPayload<T>(key: string, token: string | undefined): Promise
     const b64 = token.slice(0, dot);
     const sig = token.slice(dot + 1);
     if (!/^[0-9a-f]{64}$/.test(sig)) return null;
-    const payload = new TextDecoder().decode(fromB64Url(b64));
-    const expected = await hmacHex(key, payload);
+    const payload = new TextDecoder().decode(fromB64UrlStrict(b64));
+    const expected = await hmacSha256Hex(key, payload);
     if (!timingSafeEqual(sig, expected)) return null;
     return JSON.parse(payload) as T;
   } catch {
@@ -283,4 +254,40 @@ export function authUnavailableResponse(): Response {
     { error: "auth_sessions_unavailable" },
     { status: 503, headers: { "Cache-Control": "no-store" } },
   );
+}
+
+/** 只读账户 / 非管理员的默认拒绝文案。 */
+export const ADMIN_REQUIRED_MESSAGE = "只读账户，无写入权限";
+
+/**
+ * 管理接口统一鉴权：读会话 → 401 / 403 的收口。
+ *
+ * 这段 try/catch + 401 + 403 原先在 7 个 admin handler 里各抄了一份
+ * （accounts、accounts/[id]、reveal、reorder、visitors、visitors/[hash]/ip、ray/[id]），
+ * 收敛到这里，避免某处漏掉 no-store 或改了状态码而不自知。
+ *
+ * 返回 Response 表示拒绝（调用方直接 return），返回对象表示放行。
+ * `forbiddenMessage` 给需要不同文案的调用方（如 blocklist 用「需要管理员权限」）。
+ */
+export async function requireAdminSession(
+  env: Env,
+  request: Request,
+  forbiddenMessage: string = ADMIN_REQUIRED_MESSAGE,
+): Promise<{ session: NonNullable<SessionData> } | Response> {
+  let session: SessionData | null;
+  try {
+    session = await requireAuth(env, request);
+  } catch {
+    return authUnavailableResponse();
+  }
+  if (!session) {
+    return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
+  if (session.role !== "admin") {
+    return Response.json(
+      { error: forbiddenMessage },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  return { session };
 }

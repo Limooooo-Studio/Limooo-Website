@@ -1,7 +1,7 @@
 /** GET /api/ray/:id — 仅 admin 按 Ray ID 查询最小化请求记录 */
 
 import { queryAll } from "../../_lib/d1";
-import { authUnavailableResponse, requireAuth } from "../../_lib/session";
+import { requireAdminSession } from "../../_lib/session";
 import type { Env } from "../../_lib/env";
 
 interface RayRow {
@@ -16,16 +16,8 @@ interface RayRow {
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, params, request }) => {
-  let session;
-  try {
-    session = await requireAuth(env, request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  if (session.role !== "admin") {
-    return Response.json({ error: "无权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
+  const auth = await requireAdminSession(env, request, "无权限");
+  if (auth instanceof Response) return auth;
 
   const id = String((params as { id?: string }).id ?? "").toLowerCase().split("-")[0];
   if (!/^[0-9a-f]{16}$/.test(id)) {

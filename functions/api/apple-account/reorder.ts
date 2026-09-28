@@ -1,22 +1,14 @@
 /** PUT /api/apple-account/reorder（需 admin + CSRF；D1 batch 事务，失败不部分生效） */
 
 import { executeBatch, queryAll } from "../../_lib/d1";
-import { authUnavailableResponse, requireAuth } from "../../_lib/session";
+import { requireAdminSession } from "../../_lib/session";
 import { verifyCsrf } from "../../_lib/csrf";
 import { validateOrder } from "../../_lib/apple-account";
 import type { Env } from "../../_lib/env";
 
 export const onRequestPut: PagesFunction<Env> = async (context) => {
-  let session: Awaited<ReturnType<typeof requireAuth>>;
-  try {
-    session = await requireAuth(context.env, context.request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  if (session.role !== "admin") {
-    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
+  const auth = await requireAdminSession(context.env, context.request);
+  if (auth instanceof Response) return auth;
   if (!(await verifyCsrf(context.env, context.request))) {
     return Response.json({ error: "无权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }

@@ -9,7 +9,7 @@
 import { execute, executeBatch, queryAll } from "../_lib/d1";
 import { logEvent } from "../_lib/logging";
 import { parseCidr } from "../_lib/cidr";
-import { authUnavailableResponse, requireAuth } from "../_lib/session";
+import { requireAdminSession } from "../_lib/session";
 import { verifyCsrf } from "../_lib/csrf";
 import type { Env } from "../_lib/env";
 
@@ -37,23 +37,9 @@ function pageParams(url: URL): { page: number; pageSize: number; offset: number 
   return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
-async function adminSession(
-  env: Env,
-  request: Request,
-): Promise<{ session: NonNullable<Awaited<ReturnType<typeof requireAuth>>> } | Response> {
-  let session;
-  try {
-    session = await requireAuth(env, request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) {
-    return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  }
-  if (session.role !== "admin") {
-    return Response.json({ error: "需要管理员权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
-  return { session };
+/** 本文件的管理员文案与默认值不同（对外更直白），故显式传入。 */
+function adminSession(env: Env, request: Request) {
+  return requireAdminSession(env, request, "需要管理员权限");
 }
 
 async function actorOf(session: { user: { email?: string; name?: string } }): Promise<string> {

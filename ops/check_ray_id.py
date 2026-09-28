@@ -131,16 +131,7 @@ def d1_lookup(cfg: dict[str, str], ray: str) -> tuple[list[str], str | None]:
     return lines, error
 
 
-def d1_query_retry(cfg: dict[str, str], sql: str, tries: int = 4) -> list[dict] | None:
-    """D1 查询带退避重试；持续失败返回 None。"""
-    for attempt in range(tries):
-        try:
-            return d1_client.d1_query(cfg, sql)
-        except Exception:  # noqa: BLE001 - 本机到 CF 偶发连接重置
-            if attempt == tries - 1:
-                return None
-            time.sleep(1.5 * (attempt + 1))
-    return None
+d1_query_retry = d1_client.d1_query_retry
 
 
 def render_d1_row(source: str, row: dict[str, object]) -> str:

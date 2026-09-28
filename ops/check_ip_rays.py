@@ -32,8 +32,6 @@ import ipaddress
 import json
 import os
 import sys
-import time
-import urllib.error
 from pathlib import Path
 
 ROOT = Path(os.environ.get("LIMOOO_ROOT") or Path(__file__).resolve().parents[1])
@@ -79,16 +77,7 @@ def looks_like_hash(raw: str) -> bool:
     return len(value) == 16 and all(ch in "0123456789abcdef" for ch in value)
 
 
-def d1_query_retry(cfg: dict[str, str], sql: str, tries: int = 4) -> list[dict] | None:
-    """D1 查询带退避重试；持续失败返回 None（与「确实没记录」区分开）。"""
-    for attempt in range(tries):
-        try:
-            return d1_client.d1_query(cfg, sql)
-        except Exception:  # noqa: BLE001 - 本机到 CF 偶发连接重置
-            if attempt == tries - 1:
-                return None
-            time.sleep(1.5 * (attempt + 1))
-    return None
+d1_query_retry = d1_client.d1_query_retry
 
 
 def visitor_key(env: dict[str, str]) -> str:

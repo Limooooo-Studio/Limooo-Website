@@ -4,11 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "./env";
 import { execute, queryAll } from "./d1";
 import {
+  ADMIN_REQUIRED_MESSAGE,
   AuthSessionUnavailableError,
   configErrorResponse,
   createAuthSession,
   createSessionCookie,
   readSession,
+  requireAdminSession,
   requireAuth,
   revokeAuthSession,
   runtimeConfigError,
@@ -142,6 +144,63 @@ describe("runtime config", () => {
 
   it("renders a no-store 503 config page", () => {
     const resp = configErrorResponse("missing_SESSION_HMAC_KEY");
+    expect(resp.status).toBe(503);
+    expect(resp.headers.get("Cache-Control")).toBe("no-store");
+  });
+});
+
+/**
+ * requireAdminSession 是所有管理端点的鉴权收口（原先 8 处各抄一份），
+ * 401 / 403 / 503 三种拒绝语义与 no-store 头在此集中验证。
+ *
+ * requireAdminSession 走的是模块内 requireAuth 绑定，无法用 spyOn 替换，
+ * 因此这里签发真实 cookie + 桩化 D1 撤销表，跑的是完整校验链路。
+ */
+describe("requireAdminSession", () => {
+  async function cookieFor(role: "admin" | "viewer"): Promise<Request> {
+    const cookie = await createSessionCookie(env, { ...sessionData(), role });
+    return requestWith(cookie.split(";")[0]);
+  }
+
+  /** requireAuth 需在 D1 撤销表里确认会话仍有效。 */
+  function grantRow(role: "admin" | "viewer"): void {
+    vi.mocked(queryAll).mockResolvedValue([
+      { sid: "sid-1", sub: "user-1", role, auth_at: 1, exp: 9_999_999_999, revoked_at: null },
+    ]);
+  }
+
+  it("returns the session for an admin", async () => {
+    grantRow("admin");
+    const result = await requireAdminSession(env, await cookieFor("admin"));
+    expect(result).not.toBeInstanceOf(Response);
+    expect((result as { session: { role: string } }).session.role).toBe("admin");
+  });
+
+  it("returns 401 with no-store when there is no session", async () => {
+    const resp = (await requireAdminSession(env, requestWith(""))) as Response;
+    expect(resp.status).toBe(401);
+    expect(resp.headers.get("Cache-Control")).toBe("no-store");
+    expect((await resp.json() as { error: string }).error).toBe("未登录");
+  });
+
+  it("returns 403 with the default message for a non-admin", async () => {
+    grantRow("viewer");
+    const resp = (await requireAdminSession(env, await cookieFor("viewer"))) as Response;
+    expect(resp.status).toBe(403);
+    expect(resp.headers.get("Cache-Control")).toBe("no-store");
+    expect((await resp.json() as { error: string }).error).toBe(ADMIN_REQUIRED_MESSAGE);
+  });
+
+  it("honours a caller-supplied forbidden message", async () => {
+    grantRow("viewer");
+    const resp = (await requireAdminSession(env, await cookieFor("viewer"), "需要管理员权限")) as Response;
+    expect(resp.status).toBe(403);
+    expect((await resp.json() as { error: string }).error).toBe("需要管理员权限");
+  });
+
+  it("returns 503 when the session store is unavailable", async () => {
+    vi.mocked(queryAll).mockRejectedValue(new Error("d1 down"));
+    const resp = (await requireAdminSession(env, await cookieFor("admin"))) as Response;
     expect(resp.status).toBe(503);
     expect(resp.headers.get("Cache-Control")).toBe("no-store");
   });

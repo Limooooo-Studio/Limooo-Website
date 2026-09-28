@@ -101,6 +101,29 @@ export function sanitizeHost(raw: string | null | undefined): string {
 }
 
 /**
+ * 把要注入生成 HTML 的值转义（gate 页注入 host/next、redirect 页注入 to）。
+ *
+ * 原先 gate.ts 与 redirect.ts 各有一份逐字符相同的实现，收敛到这里；
+ * 两处注入的都是**请求方可控**的值，漏转义即 XSS，因此只留一份。
+ */
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
+/**
  * nginx 反代门禁页时（status.limooo.cn 等 VPS 站），由 VPS 带上的真实访客 IP/国家。
  *
  * 这些头只用于「展示、埋点、Turnstile remoteip」，**绝不能**喂给

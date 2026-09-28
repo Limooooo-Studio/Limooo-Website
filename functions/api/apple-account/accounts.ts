@@ -2,7 +2,7 @@
 
 import { queryAll, execute } from "../../_lib/d1";
 import { fernetEncrypt } from "../../_lib/fernet";
-import { authUnavailableResponse, requireAuth } from "../../_lib/session";
+import { authUnavailableResponse, requireAdminSession, requireAuth } from "../../_lib/session";
 import { verifyCsrf } from "../../_lib/csrf";
 import { maskPassword, validateCreatePayload } from "../../_lib/apple-account";
 import type { Env } from "../../_lib/env";
@@ -42,16 +42,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  let session: Awaited<ReturnType<typeof requireAuth>>;
-  try {
-    session = await requireAuth(context.env, context.request);
-  } catch {
-    return authUnavailableResponse();
-  }
-  if (!session) return Response.json({ error: "未登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  if (session.role !== "admin") {
-    return Response.json({ error: "只读账户，无写入权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-  }
+  const auth = await requireAdminSession(context.env, context.request);
+  if (auth instanceof Response) return auth;
   if (!(await verifyCsrf(context.env, context.request))) {
     return Response.json({ error: "无权限" }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }

@@ -1,26 +1,9 @@
 /** 统一跳转页（redirect.<root_domain>）：纯中转，不经过人机验证。 */
 
-import { detectLang, withLangCookie } from "./routing";
+import { detectLang, escapeHtml, withLangCookie } from "./routing";
 import type { RequestContext } from "./routing";
 import { BASE_URL, REDIRECT_HOSTNAME } from "./config";
 import { REDIRECT_I18N, REDIRECT_PRELOAD_IMAGES } from "../_data/runtime";
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (ch) => {
-    switch (ch) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      default:
-        return "&#39;";
-    }
-  });
-}
 
 /** 读取生成好的 <lang>/redirect.html，注入 to / preload / preload_links。 */
 export async function renderRedirectPage(context: RequestContext): Promise<Response> {
