@@ -33,8 +33,9 @@
 # With no arguments: deploy Pages only (no commit / no push), matching the old script.
 # Credentials are read from local secrets/webauthn.env; never written to disk or echoed.
 #
-# 提交/推送前会先跑 ops/ci_check.sh（本地复刻 .github/workflows/tests.yml）：
-# 「先 build 再 typecheck/测试」，红了就中止，不提交也不推送。应急跳过：
+# Before commit / push this runs ops/ci_check.sh (a local replica of
+# .github/workflows/tests.yml): build first, then typecheck / tests. Any failure
+# aborts, so nothing is committed or pushed. Emergency skip:
 #   LIMOOO_SKIP_CHECKS=1 bash ops/deploy.sh --all
 
 set -euo pipefail
@@ -58,7 +59,7 @@ while [ $# -gt 0 ]; do
         --docs) DO_DOCS=1 ;;
         --all) DO_COMMIT=1; DO_PUSH=1; DO_PAGES=1; DO_DOCS=1 ;;
         --worker=*) WORKER="${1#--worker=}" ;;
-        --help|-h) sed -n '20,37p' "$0"; exit 0 ;;
+        --help|-h) sed -n '20,39p' "$0"; exit 0 ;;
         *)
             echo "FATAL: unknown argument $1" >&2
             echo "       supported: --dry-run / --commit / --push / --pages / --docs / --all / --worker=<name>" >&2

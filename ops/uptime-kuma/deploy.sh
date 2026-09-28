@@ -30,14 +30,14 @@ for arg in "$@"; do
             DRY_RUN=1
             ;;
         *)
-            echo "FATAL: 未知参数 $arg（支持 --dry-run）" >&2
+            echo "FATAL: unknown argument $arg (supported: --dry-run)" >&2
             exit 2
             ;;
     esac
 done
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[uptime-kuma] DRY-RUN：不连接服务器、不创建容器、不改 Nginx。"
+    echo "[uptime-kuma] DRY-RUN: no server connection, no container, no Nginx change."
     echo "[uptime-kuma] will-run: ssh $REMOTE_HOST mkdir -p $REMOTE_ROOT/data"
     echo "[uptime-kuma] will-run: scp compose.yaml -> $REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
     echo "[uptime-kuma] will-run: scp kuma-admin-skin.css -> $REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
@@ -51,31 +51,31 @@ if [ "$DRY_RUN" = 1 ]; then
 fi
 
 if [ ! -f "$LOCAL_COMPOSE" ]; then
-    echo "FATAL: 找不到 compose.yaml: $LOCAL_COMPOSE" >&2
+    echo "FATAL: compose.yaml not found: $LOCAL_COMPOSE" >&2
     exit 2
 fi
 if [ ! -f "$LOCAL_SKIN" ]; then
-    echo "FATAL: 找不到 kuma-admin-skin.css: $LOCAL_SKIN" >&2
+    echo "FATAL: kuma-admin-skin.css not found: $LOCAL_SKIN" >&2
     exit 2
 fi
 if [ ! -d "$LOCAL_DIST" ] || [ ! -f "$LOCAL_DIST/index.html" ]; then
-    echo "FATAL: 找不到构建产物 kuma-dist/index.html: $LOCAL_DIST" >&2
+    echo "FATAL: build artifact kuma-dist/index.html not found: $LOCAL_DIST" >&2
     exit 2
 fi
 if [ ! -f "$LOCAL_NGINX" ]; then
-    echo "FATAL: 找不到 nginx 配置: $LOCAL_NGINX" >&2
+    echo "FATAL: nginx config not found: $LOCAL_NGINX" >&2
     exit 2
 fi
 if [ ! -f "$LOCAL_ADMIN_TEMPLATE" ]; then
-    echo "FATAL: 找不到 Authentik 管理模板: $LOCAL_ADMIN_TEMPLATE" >&2
+    echo "FATAL: Authentik admin template not found: $LOCAL_ADMIN_TEMPLATE" >&2
     exit 2
 fi
 
-echo "[uptime-kuma] 1/6 创建远端数据目录"
+echo "[uptime-kuma] 1/6 create remote data directory"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/data'"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_AUTHENTIK_TEMPLATE_DIR'"
 
-echo "[uptime-kuma] 2/6 同步 compose.yaml、品牌皮肤与 fork dist"
+echo "[uptime-kuma] 2/6 sync compose.yaml, brand skin and fork dist"
 scp "${SSH_OPTS[@]}" "$LOCAL_COMPOSE" "$REMOTE_HOST:$REMOTE_ROOT/compose.yaml"
 scp "${SSH_OPTS[@]}" "$LOCAL_SKIN" "$REMOTE_HOST:$REMOTE_ROOT/kuma-admin-skin.css"
 scp "${SSH_OPTS[@]}" "$LOCAL_ADMIN_TEMPLATE" "$REMOTE_HOST:$REMOTE_AUTHENTIK_TEMPLATE_DIR/admin.html"
@@ -83,10 +83,10 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "chmod 0644 '$REMOTE_ROOT/kuma-admin-skin.cs
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "install -d -m 0755 '$REMOTE_ROOT/dist'"
 rsync -a --delete "$LOCAL_DIST/" "$REMOTE_HOST:$REMOTE_ROOT/dist/"
 
-echo "[uptime-kuma] 3/6 拉取固定镜像 $IMAGE"
+echo "[uptime-kuma] 3/6 pull pinned image $IMAGE"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "docker pull '$IMAGE'"
 
-echo "[uptime-kuma] 4/6 重新创建容器（不重建镜像，数据目录保持不变）"
+echo "[uptime-kuma] 4/6 recreate container (no image rebuild, data directory kept)"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     docker network inspect authentik_default >/dev/null 2>&1 || docker network create authentik_default
@@ -110,7 +110,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         '$IMAGE'
 "
 
-echo "[uptime-kuma] 5/6 更新 admin.limooo.cn Nginx 配置"
+echo "[uptime-kuma] 5/6 update admin.limooo.cn Nginx config"
 scp "${SSH_OPTS[@]}" "$LOCAL_NGINX" "$REMOTE_HOST:/tmp/limooo.conf.$NOW"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
@@ -120,7 +120,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     systemctl reload nginx
 "
 
-echo "[uptime-kuma] 6/6 等待服务就绪并检查"
+echo "[uptime-kuma] 6/6 wait for readiness and check"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Safari/605.1.15'
     for i in \$(seq 1 20); do
@@ -140,7 +140,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     fi
 "
 
-echo "[uptime-kuma] 7/7 刷新 Authentik 管理模板"
+echo "[uptime-kuma] 7/7 refresh Authentik admin template"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     docker restart authentik_server_1 >/dev/null

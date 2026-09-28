@@ -30,11 +30,11 @@ CHECK_SCHEMA=0
 
 usage() {
     cat <<'EOF'
-用法：bash ops/migrate_d1.sh [--dry-run] [--remote] [--check-schema]
+Usage: bash ops/migrate_d1.sh [--dry-run] [--remote] [--check-schema]
 
-  --dry-run      只打印迁移状态，不连接 D1、不写任何数据。
-  --remote       对远程 D1 执行/校验（默认用于生产）。
-  --check-schema 只检查当前 D1 是否包含预期表，不执行迁移。
+  --dry-run      print the pending migration plan only; no D1 connection, no writes.
+  --remote       execute / verify against remote D1 (the production default).
+  --check-schema check that the current D1 has all expected tables; no migration.
 EOF
 }
 

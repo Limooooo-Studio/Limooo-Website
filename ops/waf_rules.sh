@@ -83,7 +83,7 @@ for r in res.get("rules", []):
     if len(e) > 48:
         e = e[:45] + "..."
     print(f"  {r.get('action'):13} enabled={str(r.get('enabled')):6} {e}")
-print(f"  合计 {len(res.get('rules', []))}/5 条自定义规则名额")
+print(f"  custom rule quota used: {len(res.get('rules', []))}/5")
 PY
 }
 
@@ -133,9 +133,9 @@ for r in rules:
     m = re.fullmatch(r"ip\.src eq ([0-9a-fA-F\.:]+)", (r.get("expression") or "").strip())
     if r.get("action") == "skip" and m:
         ips.append(m.group(1))
-        deletable.append((r.get("id"), r.get("action"), "skip(单IP) → IP Access Rule whitelist"))
+        deletable.append((r.get("id"), r.get("action"), "skip(single IP) -> IP Access Rule whitelist"))
     elif drop_disabled and r.get("enabled") is False:
-        deletable.append((r.get("id"), r.get("action"), "删除（已禁用）"))
+        deletable.append((r.get("id"), r.get("action"), "delete (disabled)"))
 print("IPS=" + " ".join(ips))
 json.dump(deletable, sys.stdout)
 PY
@@ -148,7 +148,7 @@ python3 -c "
 import json,sys
 p=json.loads('''$PLAN_DEL''')
 for i,a,why in p: print(f'  - {a:13} {why}')
-print(f'  新增 IP Access Rule: {len(\"$PLAN_IPS\".split())} 条')
+print(f'  new IP Access Rules: {len(\"$PLAN_IPS\".split())}')
 "
 echo
 

@@ -17,24 +17,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# 本地复刻 .github/workflows/tests.yml。
+# Local replica of .github/workflows/tests.yml.
 #
-# 为什么要这个脚本：CI 是「先 build 再 typecheck / 测试」，本地如果只跑
-# vitest/pytest，就会出现「本地全绿、push 后 CI 红」。典型翻车是生成的
-# functions/_lib/config.ts 与 src/build.py 不同步（改名只改了一半），
-# 本地工作区恰好是自洽的，而提交进去的那棵树不是。
+# Why: CI runs "build first, then typecheck / tests"; running only vitest/pytest
+# locally can be all green while CI turns red -- typically when the generated
+# functions/_lib/config.ts and src/build.py drift apart (a rename applied on one
+# side only), because the local tree happens to be self-consistent while the
+# committed tree is not.
 #
-# 所以：push 之前用这个脚本跑一遍，CI 会跑什么，这里就跑什么。
+# So: run this before pushing. Whatever CI runs, this runs.
 #
-# 用法：
-#   bash ops/ci_check.sh                # 检查当前工作区
-#   bash ops/ci_check.sh --ref=<rev>    # 把 <rev> 检出到临时 worktree 再检查
-#                                       # （校验「将要 push 的那个提交」，即使工作区很脏）
-#   bash ops/ci_check.sh --typescript   # 只跑 typescript job
-#   bash ops/ci_check.sh --python       # 只跑 python job
-#   bash ops/ci_check.sh --no-build     # 跳过 build（假定产物已是新的）
+# Usage:
+#   bash ops/ci_check.sh                # check the current working tree
+#   bash ops/ci_check.sh --ref=<rev>    # check <rev> in a temporary worktree
+#                                       # (validates the commit about to be pushed,
+#                                       #  even when the working tree is dirty)
+#   bash ops/ci_check.sh --typescript   # typescript job only
+#   bash ops/ci_check.sh --python       # python job only
+#   bash ops/ci_check.sh --no-build     # skip build (assume artifacts are fresh)
 #
-# 退出码 0 = CI 会绿；非 0 = CI 会红，别 push。
+# Exit code 0 = CI would pass; non-zero = CI would fail, do not push.
 
 set -euo pipefail
 
@@ -52,7 +54,7 @@ while [ $# -gt 0 ]; do
         --typescript) RUN_PY=0 ;;
         --python) RUN_TS=0 ;;
         --no-build) DO_BUILD=0 ;;
-        --help|-h) sed -n '20,38p' "$0"; exit 0 ;;
+        --help|-h) sed -n '20,39p' "$0"; exit 0 ;;
         *)
             echo "FATAL: unknown argument $1" >&2
             echo "       supported: --ref=<rev> / --typescript / --python / --no-build" >&2

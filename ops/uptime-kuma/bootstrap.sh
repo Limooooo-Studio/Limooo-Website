@@ -12,7 +12,7 @@ SSH_OPTS=(-o LogLevel=ERROR -o ConnectTimeout=10)
 LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_INIT="$LOCAL_DIR/init.js"
 
-echo "[kuma-init] 1/3 准备管理账号凭据（仅服务器 secrets，不进 git）"
+echo "[kuma-init] 1/3 prepare admin credentials (server secrets only, never in git)"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     install -d -m 0700 \$(dirname '$REMOTE_SECRET')
@@ -28,11 +28,11 @@ REMOTE_USERNAME="$(ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "sed -n 's/^KUMA_ADMIN_US
 REMOTE_PASSWORD="$(ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "sed -n 's/^KUMA_ADMIN_PASSWORD=//p' '$REMOTE_SECRET' | tail -1 | tr -d '\r'")"
 
 if [ -z "$REMOTE_USERNAME" ] || [ -z "$REMOTE_PASSWORD" ]; then
-    echo "FATAL: 未能读取 $REMOTE_SECRET 中的管理账号" >&2
+    echo "FATAL: could not read the admin account from $REMOTE_SECRET" >&2
     exit 2
 fi
 
-echo "[kuma-init] 2/3 送 init.js 进容器并执行"
+echo "[kuma-init] 2/3 copy init.js into the container and run it"
 scp "${SSH_OPTS[@]}" "$LOCAL_INIT" "$REMOTE_HOST:$REMOTE_ROOT/init.js"
 INIT_OUTPUT="$(ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
@@ -45,9 +45,9 @@ INIT_OUTPUT="$(ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
 printf '%s\n' "$INIT_OUTPUT"
 PUSH_URL="$(printf '%s\n' "$INIT_OUTPUT" | sed -n 's/^KUMA_PUSH_URL=//p' | tail -1 | tr -d '\r')"
 
-echo "[kuma-init] 3/3 保存 push URL"
+echo "[kuma-init] 3/3 save push URL"
 if [ -z "$PUSH_URL" ]; then
-    echo "FATAL: init.js 未输出 KUMA_PUSH_URL" >&2
+    echo "FATAL: init.js did not print KUMA_PUSH_URL" >&2
     exit 2
 fi
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "

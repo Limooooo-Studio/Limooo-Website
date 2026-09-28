@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""统一导出 VPS SQLite 数据 → Cloudflare D1 导入 SQL/JSON。
+"""Export legacy VPS SQLite data into Cloudflare D1 import SQL/JSON.
 
-用法：
-    python3 ops/export_d1.py apple-account [apple_account.db 路径]
+Usage:
+    python3 ops/export_d1.py apple-account [path/to/apple_account.db]
     python3 ops/export_d1.py blocklist
-输出：ops/out/{apple-account,blocklist}.sql/json（git 忽略）
+Output: ops/out/{apple-account,blocklist}.sql/json (git-ignored)
 
-旧的 ops/export_apple_account.py / ops/export_blocklist.py 已并入此脚本。
+The old ops/export_apple_account.py / ops/export_blocklist.py are merged here.
 """
 
 from __future__ import annotations

@@ -29,16 +29,16 @@ for arg in "$@"; do
             DRY_RUN=1
             ;;
         *)
-            echo "FATAL: 未知参数 $arg（支持 --dry-run）" >&2
+            echo "FATAL: unknown argument $arg (supported: --dry-run)" >&2
             exit 2
             ;;
     esac
 done
 
 if [ "$DRY_RUN" = 1 ]; then
-    echo "[authentik] DRY-RUN：不会连接服务器。"
-    echo "[authentik] will-run: 备份 remote docker-compose.yml / custom-templates"
-    echo "[authentik] will-run: 更新 AUTHENTIK_URL -> https://admin.limooo.cn"
+    echo "[authentik] DRY-RUN: not connecting to any server."
+    echo "[authentik] will-run: back up remote docker-compose.yml / custom-templates"
+    echo "[authentik] will-run: update AUTHENTIK_URL -> https://admin.limooo.cn"
     echo "[authentik] will-run: PATCH Proxy Provider -> forward_single"
     echo "[authentik] will-run: PATCH Embedded Outpost authentik_host -> https://admin.limooo.cn"
     echo "[authentik] will-run: scp admin.html/flow.html -> $REMOTE_TEMPLATE_DIR/"
@@ -48,15 +48,15 @@ if [ "$DRY_RUN" = 1 ]; then
 fi
 
 if [ ! -f "$LOCAL_TEMPLATE" ]; then
-    echo "FATAL: 找不到 Authentik 管理模板: $LOCAL_TEMPLATE" >&2
+    echo "FATAL: Authentik admin template not found: $LOCAL_TEMPLATE" >&2
     exit 2
 fi
 if [ ! -f "$LOCAL_FLOW_TEMPLATE" ]; then
-    echo "FATAL: 找不到 Authentik flow 模板: $LOCAL_FLOW_TEMPLATE" >&2
+    echo "FATAL: Authentik flow template not found: $LOCAL_FLOW_TEMPLATE" >&2
     exit 2
 fi
 
-echo "[authentik] 1/6 备份远端配置"
+echo "[authentik] 1/6 back up remote config"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     cp '$REMOTE_AUTHENTIK_DIR/docker-compose.yml' '$REMOTE_AUTHENTIK_DIR/docker-compose.yml.bak.single-admin-\$(date +%Y%m%d-%H%M%S)'
@@ -65,7 +65,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     fi
 "
 
-echo "[authentik] 2/6 更新 Authentik URL"
+echo "[authentik] 2/6 update Authentik URL"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "python3 - <<'PY'
 from pathlib import Path
 p = Path('$REMOTE_AUTHENTIK_DIR/docker-compose.yml')
@@ -75,7 +75,7 @@ text = text.replace('AUTHENTIK_URL: https://identity.limooo.cn/', 'AUTHENTIK_URL
 p.write_text(text)
 PY"
 
-echo "[authentik] 3/6 更新 Proxy Provider / Embedded Outpost"
+echo "[authentik] 3/6 update Proxy Provider / Embedded Outpost"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     TOKEN=\$(cat '$REMOTE_AUTHENTIK_DIR/.bootstrap_token')
@@ -97,11 +97,11 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
         \"http://127.0.0.1:9000/api/v3/outposts/instances/\$OUTPOST_PK/\" >/dev/null
 "
 
-echo "[authentik] 4/6 同步管理模板"
+echo "[authentik] 4/6 sync admin templates"
 scp "${SSH_OPTS[@]}" "$LOCAL_TEMPLATE" "$REMOTE_HOST:$REMOTE_TEMPLATE_DIR/admin.html"
 scp "${SSH_OPTS[@]}" "$LOCAL_FLOW_TEMPLATE" "$REMOTE_HOST:$REMOTE_TEMPLATE_DIR/flow.html"
 
-echo "[authentik] 5/6 重启 Authentik"
+echo "[authentik] 5/6 restart Authentik"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     cd '$REMOTE_AUTHENTIK_DIR'
     if command -v docker-compose >/dev/null 2>&1; then
@@ -111,7 +111,7 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     fi
 "
 
-echo "[authentik] 6/6 校验服务与 Nginx"
+echo "[authentik] 6/6 verify service and Nginx"
 ssh "${SSH_OPTS[@]}" "$REMOTE_HOST" "
     set -e
     for i in \$(seq 1 30); do
