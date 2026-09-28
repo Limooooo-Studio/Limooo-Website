@@ -50,8 +50,20 @@ def collect(dist: Path) -> tuple[list[str], list[str]]:
 
 
 def csp(scripts: list[str], styles: list[str]) -> str:
-    script_src = " ".join(["'self'", *scripts])
+    # script-src 额外放行 Cloudflare Web Analytics 的 beacon 脚本
+    # （static.cloudflareinsights.com），它把 RUM 数据回传到
+    # cloudflareinsights.com，因此 connect-src 也要放行后者。
+    insight_scripts = [
+        "http://static.cloudflareinsights.com",
+        "https://static.cloudflareinsights.com",
+    ]
+    insight_connect = [
+        "http://cloudflareinsights.com",
+        "https://cloudflareinsights.com",
+    ]
+    script_src = " ".join(["'self'", *scripts, *insight_scripts])
     style_src = " ".join(["'self'", "'unsafe-inline'", *styles])
+    connect_src = " ".join(["'self'", *insight_connect])
     return "; ".join(
         [
             "default-src 'self'",
@@ -61,7 +73,7 @@ def csp(scripts: list[str], styles: list[str]) -> str:
             f"style-src {style_src}",
             "img-src 'self' data: https://image.limooo.cn https://images.limooo.cn",
             "font-src 'self' data:",
-            "connect-src 'self'",
+            f"connect-src {connect_src}",
             "frame-ancestors 'self'",
             "form-action 'self' https://*.limooo.cn",
         ]

@@ -63,7 +63,11 @@ def test_guard_rejects_connect_src_missing_third_party_origin(tmp_path, monkeypa
     这条锁住"无限人机验证"的根因，防止有人再次把 connect-src 收紧。
     """
     original = (ROOT / "ops" / "security-headers.json").read_text(encoding="utf-8")
-    broken = original.replace(f" {TURNSTILE}; frame-src", "; frame-src")
+    # 只从 connect-src 里摘掉 Turnstile（script-src 那份要留着，才能验证守卫
+    # 是靠 connect-src 判定失败的）。
+    broken = original.replace(
+        f" {TURNSTILE} http://cloudflareinsights.com", " http://cloudflareinsights.com"
+    )
     assert broken != original, "测试前提失效：JSON 中未找到预期的 connect-src 片段"
 
     broken_path = tmp_path / "security-headers.json"
@@ -72,3 +76,54 @@ def test_guard_rejects_connect_src_missing_third_party_origin(tmp_path, monkeypa
 
     assert guard.main() == 1
     assert "connect-src" in capsys.readouterr().err
+
+
+def test_cloudflare_insights_origins_allowed():
+    """Cloudflare Web Analytics：脚本走 static.cloudflareinsights.com，RUM 回传走
+    cloudflareinsights.com，两处都需要放行 http/https（同源部署有走 http 的场景）。
+    """
+    csp = _csp_from_json()
+    for section in ("script-src",):
+        origins = _origins(csp, section)
+        for origin in (
+            "http://static.cloudflareinsights.com",
+            "https://static.cloudflareinsights.com",
+        ):
+            assert origin in origins, f"CSP {section} 缺少 {origin}"
+    connect_origins = _origins(csp, "connect-src")
+    for origin in ("http://cloudflareinsights.com", "https://cloudflareinsights.com"):
+        assert origin in connect_origins, f"CSP connect-src 缺少 {origin}"
+
+
+def test_guard_rejects_insight_script_without_connect_pair(tmp_path, monkeypatch, capsys):
+    """beacon 的例外是有条件的：connect-src 丢掉 cloudflareinsights.com 后，
+    script-src 里的 static.cloudflareinsights.com 必须被守卫拦下。
+    """
+    original = (ROOT / "ops" / "security-headers.json").read_text(encoding="utf-8")
+    broken = original.replace(
+        " http://cloudflareinsights.com https://cloudflareinsights.com", ""
+    )
+    assert broken != original, "测试前提失效：JSON 中未找到 insight 的 connect-src 片段"
+
+    broken_path = tmp_path / "security-headers.json"
+    broken_path.write_text(broken, encoding="utf-8")
+    monkeypatch.setattr(guard, "JSON_PATH", broken_path)
+
+    assert guard.main() == 1
+    assert "static.cloudflareinsights.com" in capsys.readouterr().err
+
+
+def test_docs_csp_allows_cloudflare_insights():
+    """docs.limooo.cn 的 CSP 由 ops/docs_headers.py 生成，同样要放行 beacon。"""
+    import docs_headers
+
+    header = docs_headers.csp([], [])
+    script_src = _origins(header, "script-src")
+    connect_src = _origins(header, "connect-src")
+    for origin in (
+        "http://static.cloudflareinsights.com",
+        "https://static.cloudflareinsights.com",
+    ):
+        assert origin in script_src, f"docs CSP script-src 缺少 {origin}"
+    for origin in ("http://cloudflareinsights.com", "https://cloudflareinsights.com"):
+        assert origin in connect_src, f"docs CSP connect-src 缺少 {origin}"

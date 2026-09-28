@@ -67,15 +67,30 @@ def main() -> int:
                 }
 
             connect_origins = origins(actual, "connect-src")
+
+            # 少数第三方组件的"拉脚本"与"回传数据"本来就落在不同主机上，
+            # 不能按"script-src 的来源必须在 connect-src"一刀切。已登记的例外：
+            # Cloudflare Web Analytics 的 beacon —— 脚本来自
+            # static.cloudflareinsights.com（script-src），RUM 数据回传到
+            # cloudflareinsights.com（connect-src）。
+            script_connect_pairs = {
+                "static.cloudflareinsights.com": "cloudflareinsights.com",
+            }
+            connect_hosts = {o.split("://", 1)[-1] for o in connect_origins}
+
             for section in ("script-src", "frame-src"):
                 for origin in origins(actual, section):
-                    if origin not in connect_origins:
-                        errors.append(
-                            f"CSP {section} allows {origin} but connect-src lacks it: "
-                            f"the third-party component will hang forever because CSP blocks "
-                            f"its requests (Turnstile shows an endless challenge); "
-                            f"add {origin} to connect-src"
-                        )
+                    if origin in connect_origins:
+                        continue
+                    paired = script_connect_pairs.get(origin.split("://", 1)[-1])
+                    if paired and paired in connect_hosts:
+                        continue
+                    errors.append(
+                        f"CSP {section} allows {origin} but connect-src lacks it: "
+                        f"the third-party component will hang forever because CSP blocks "
+                        f"its requests (Turnstile shows an endless challenge); "
+                        f"add {origin} to connect-src"
+                    )
 
     if errors:
         print("FATAL: security headers validation failed", file=sys.stderr)
