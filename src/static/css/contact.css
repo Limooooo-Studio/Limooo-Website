@@ -40,7 +40,12 @@
         transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out), filter 0.3s var(--ease-out), visibility 0.3s;
         pointer-events: none;
         border-radius: var(--radius-md); border: 1px solid var(--line);
-        background: var(--panel-bg); padding: 12px;
+        /* 浮层外框固定为 226px = 216(图) + 4*2(内边距) + 1*2(描边)，
+           与改动前的 226px（200 + 12*2 + 1*2）完全一致：
+           缩小内边距只是把省下的留白让给二维码，浮层本身尺寸不变。 */
+        width: 226px; box-sizing: border-box;
+        padding: 4px;
+        background: var(--panel-bg);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
     .qr-display.show { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
@@ -48,11 +53,9 @@
         .qr-display { background: var(--bg); }
     }
     .qr-display img {
-        /* 浮层尺寸：视口宽度的 21%，钳制在 200–340px。
-           浮层固定在 left:75%，右侧可用宽度约 25vw，21vw 留出边距不溢出；
-           小桌面退到 200px 下限，大屏最大 340px 避免喧宾夺主。 */
-        display: block; width: clamp(200px, 21vw, 340px); max-width: 100%;
-        height: auto; border-radius: var(--radius-sm);
+        /* 在固定尺寸的浮层里占满可用宽度：226 - 4*2 - 1*2 = 216px */
+        display: block; width: 100%; height: auto;
+        border-radius: var(--radius-sm);
         filter: invert(1);
     }
     .light-mode .qr-display img {
