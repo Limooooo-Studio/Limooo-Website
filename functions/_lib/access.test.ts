@@ -106,21 +106,21 @@ afterEach(() => {
 });
 
 describe("access helpers", () => {
-  it("team domain 补全协议并去尾斜杠", () => {
+  it("team domain gains a scheme and loses the trailing slash", () => {
     expect(accessTeamDomain({ ...baseEnv, ACCESS_TEAM_DOMAIN: "limooo.cloudflareaccess.com/" })).toBe(
       TEAM,
     );
     expect(accessTeamDomain({ ...baseEnv, ACCESS_TEAM_DOMAIN: "" })).toBe("");
   });
 
-  it("jwks / logout 端点按 team domain 拼装", () => {
+  it("jwks / logout endpoints are built from the team domain", () => {
     expect(accessJwksUrl(baseEnv)).toBe(`${TEAM}/cdn-cgi/access/certs`);
     expect(accessLogoutUrl(baseEnv, "https://limooo.cn/")).toBe(
       `${TEAM}/cdn-cgi/access/logout?redirect_url=${encodeURIComponent("https://limooo.cn/")}`,
     );
   });
 
-  it("缺 team domain / AUD 时 fail closed 且只报字段名", () => {
+  it("fails closed on missing team domain / AUD, naming only the field", () => {
     expect(accessConfigError({ ...baseEnv, ACCESS_TEAM_DOMAIN: "" })).toBe(
       "missing_ACCESS_TEAM_DOMAIN",
     );
@@ -130,7 +130,7 @@ describe("access helpers", () => {
     expect(accessConfigError(baseEnv)).toBeNull();
   });
 
-  it("读取 Access 注入的身份头", () => {
+  it("reads the identity header injected by Access", () => {
     const req = new Request("https://visitor.limooo.cn/", {
       headers: { "Cf-Access-Jwt-Assertion": "tok" },
     });
@@ -140,13 +140,13 @@ describe("access helpers", () => {
 });
 
 describe("roleForAud", () => {
-  it("admin AUD 优先于 viewer AUD", () => {
+  it("admin AUD takes precedence over viewer AUD", () => {
     expect(roleForAud(baseEnv, [ADMIN_AUD])).toBe("admin");
     expect(roleForAud(baseEnv, [VIEWER_AUD])).toBe("viewer");
     expect(roleForAud(baseEnv, [VIEWER_AUD, ADMIN_AUD])).toBe("admin");
   });
 
-  it("未登记的 AUD / 空值返回 null", () => {
+  it("unregistered AUD / empty value returns null", () => {
     expect(roleForAud(baseEnv, ["someone-else"])).toBeNull();
     expect(roleForAud(baseEnv, [])).toBeNull();
     expect(roleForAud(baseEnv, undefined)).toBeNull();
@@ -154,7 +154,7 @@ describe("roleForAud", () => {
 });
 
 describe("verifyAccessJwt", () => {
-  it("合法令牌通过并映射为 admin", async () => {
+  it("a valid token passes and maps to admin", async () => {
     const identity = await verifyAccessJwt(baseEnv, await signToken(baseClaims()));
     expect(identity).not.toBeNull();
     expect(identity?.role).toBe("admin");
@@ -162,38 +162,38 @@ describe("verifyAccessJwt", () => {
     expect(identity?.sub).toBe("access:user-sub-1");
   });
 
-  it("viewer AUD 映射为 viewer", async () => {
+  it("a viewer AUD maps to viewer", async () => {
     const identity = await verifyAccessJwt(baseEnv, await signToken(baseClaims({ aud: [VIEWER_AUD] })));
     expect(identity?.role).toBe("viewer");
   });
 
-  it("iss 不符被拒", async () => {
+  it("rejects a mismatched iss", async () => {
     const token = await signToken(baseClaims({ iss: "https://evil.cloudflareaccess.com" }));
     expect(await verifyAccessJwt(baseEnv, token)).toBeNull();
   });
 
-  it("aud 未登记被拒", async () => {
+  it("rejects an unregistered aud", async () => {
     const token = await signToken(baseClaims({ aud: ["unregistered-aud"] }));
     expect(await verifyAccessJwt(baseEnv, token)).toBeNull();
   });
 
-  it("过期令牌被拒", async () => {
+  it("rejects an expired token", async () => {
     const token = await signToken(baseClaims({ exp: Math.floor(Date.now() / 1000) - 5 }));
     expect(await verifyAccessJwt(baseEnv, token)).toBeNull();
   });
 
-  it("alg:none 被拒", async () => {
+  it("rejects alg:none", async () => {
     expect(await verifyAccessJwt(baseEnv, await signToken(baseClaims(), "none"))).toBeNull();
   });
 
-  it("篡改 payload 后签名不匹配被拒", async () => {
+  it("rejects a tampered payload whose signature no longer matches", async () => {
     const token = await signToken(baseClaims());
     const [header, , signature] = token.split(".");
     const tampered = b64url(JSON.stringify(baseClaims({ email: "attacker@evil.com" })));
     expect(await verifyAccessJwt(baseEnv, `${header}.${tampered}.${signature}`)).toBeNull();
   });
 
-  it("空 / 畸形令牌被拒", async () => {
+  it("rejects empty / malformed tokens", async () => {
     expect(await verifyAccessJwt(baseEnv, "")).toBeNull();
     expect(await verifyAccessJwt(baseEnv, null)).toBeNull();
     expect(await verifyAccessJwt(baseEnv, undefined)).toBeNull();
@@ -201,17 +201,17 @@ describe("verifyAccessJwt", () => {
     expect(await verifyAccessJwt(baseEnv, "a.b")).toBeNull();
   });
 
-  it("nbf 在未来被拒", async () => {
+  it("rejects a future nbf", async () => {
     const future = Math.floor(Date.now() / 1000) + 600;
     expect(await verifyAccessJwt(baseEnv, await signToken(baseClaims({ nbf: future })))).toBeNull();
   });
 
-  it("缺 sub 被拒", async () => {
+  it("rejects a missing sub", async () => {
     const token = await signToken(baseClaims({ sub: "" }));
     expect(await verifyAccessJwt(baseEnv, token)).toBeNull();
   });
 
-  it("缺 team domain 时 fail closed（不发任何请求）", async () => {
+  it("fails closed with no team domain (issues no request)", async () => {
     const spy = vi.fn();
     vi.stubGlobal("fetch", spy);
     const token = await signToken(baseClaims());
@@ -219,7 +219,7 @@ describe("verifyAccessJwt", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("JWKS 拉取失败且无缓存时拒绝", async () => {
+  it("rejects when JWKS fetch fails and nothing is cached", async () => {
     // 本用例必须跑在冷缓存上，否则会命中前面用例留下的模块级缓存。
     vi.resetModules();
     const cold = await import("./access");
@@ -228,7 +228,7 @@ describe("verifyAccessJwt", () => {
     expect(await cold.verifyAccessJwt(baseEnv, token)).toBeNull();
   });
 
-  it("JWKS 拉取失败但有缓存时沿用缓存（密钥轮换期不能全员登录失败）", async () => {
+  it("reuses the cache when JWKS fetch fails but a cache exists", async () => {
     // 先热一次缓存，再让网络挂掉。
     expect(await verifyAccessJwt(baseEnv, await signToken(baseClaims()))).not.toBeNull();
     vi.stubGlobal("fetch", async () => new Response("boom", { status: 500 }));

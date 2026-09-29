@@ -20,7 +20,7 @@ describe("visitor-ip", () => {
     }
   });
 
-  it("writes nothing without a key (fail-open, 埋点不能被拖垮)", async () => {
+  it("writes nothing without a key (fail-open; tracking must not break)", async () => {
     expect(await encryptVisitorIp("8.8.8.8", env(""))).toBe("");
     expect(await encryptVisitorIp("8.8.8.8", env(undefined))).toBe("");
     expect(await encryptVisitorIp("", env(TEST_KEY))).toBe("");

@@ -184,16 +184,16 @@ describe("__gate cookie: signature, expiry and renewal", () => {
   });
 });
 
-describe("__gate 同名重复与签发清理", () => {
+describe("duplicate __gate names and issue-time cleanup", () => {
   const KEY = "k".repeat(64);
 
-  it("同名 __gate 全部取出，不只看第一枚", () => {
+  it("collects every same-named __gate, not just the first", () => {
     const stale = `__gate=1790000000.1790003600.${"a".repeat(64)}`;
     const values = allCookieValues("__gate", `${stale}; __gate=fresh; other=1`);
     expect(values).toEqual([`1790000000.1790003600.${"a".repeat(64)}`, "fresh"]);
   });
 
-  it("签发时先清 host-only 旧作用域，再写域级 cookie", async () => {
+  it("clears the legacy host-only scope before writing the domain cookie", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_700_000_000 * 1000);
     const headers = await gateCookieHeaders(KEY);
@@ -209,7 +209,7 @@ describe("__gate 同名重复与签发清理", () => {
     expect(headers[1]).toContain("Max-Age=3600");
   });
 
-  it("校验把失败原因分类返回，供诊断使用", async () => {
+  it("validation returns a categorised failure reason for diagnostics", async () => {
     const key = "k".repeat(64);
     await expect(readGateCookie(undefined, key)).resolves.toMatchObject({
       valid: false,
