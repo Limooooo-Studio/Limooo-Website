@@ -48,7 +48,11 @@
         .qr-display { background: var(--bg); }
     }
     .qr-display img {
-        display: block; max-width: 200px; height: auto; border-radius: var(--radius-sm);
+        /* 浮层尺寸：视口宽度的 21%，钳制在 200–340px。
+           浮层固定在 left:75%，右侧可用宽度约 25vw，21vw 留出边距不溢出；
+           小桌面退到 200px 下限，大屏最大 340px 避免喧宾夺主。 */
+        display: block; width: clamp(200px, 21vw, 340px); max-width: 100%;
+        height: auto; border-radius: var(--radius-sm);
         filter: invert(1);
     }
     .light-mode .qr-display img {
