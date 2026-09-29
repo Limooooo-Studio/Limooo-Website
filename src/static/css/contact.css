@@ -40,11 +40,12 @@
         transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out), filter 0.3s var(--ease-out), visibility 0.3s;
         pointer-events: none;
         border-radius: var(--radius-md); border: 1px solid var(--line);
-        /* 浮层外框固定为 226px = 216(图) + 4*2(内边距) + 1*2(描边)，
-           与改动前的 226px（200 + 12*2 + 1*2）完全一致：
-           缩小内边距只是把省下的留白让给二维码，浮层本身尺寸不变。 */
+        /* 浮层外框固定为 226px = 224(图) + 0*2(内边距) + 1*2(描边)，
+           与最初的 226px（200 + 12*2 + 1*2）完全一致：
+           内边距归零，把留白全部让给二维码，浮层本身尺寸不变。
+           二维码四周自带静默区，贴边不影响扫码。 */
         width: 226px; box-sizing: border-box;
-        padding: 4px;
+        padding: 0;
         background: var(--panel-bg);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
@@ -53,7 +54,7 @@
         .qr-display { background: var(--bg); }
     }
     .qr-display img {
-        /* 在固定尺寸的浮层里占满可用宽度：226 - 4*2 - 1*2 = 216px */
+        /* 在固定尺寸的浮层里占满可用宽度：226 - 0*2 - 1*2 = 224px */
         display: block; width: 100%; height: auto;
         border-radius: var(--radius-sm);
         filter: invert(1);
