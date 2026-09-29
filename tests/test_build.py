@@ -50,14 +50,28 @@ def test_contact_prerenders_all_qr_images():
         html,
     )
 
-    assert len(preloads) == 4
+    assert len(preloads) == 5
     assert set(preloads) == {
         "https://image.limooo.cn/qr-codes/bilibili.webp",
         "https://image.limooo.cn/qr-codes/qq.webp",
         "https://image.limooo.cn/qr-codes/wechat.webp",
         "https://image.limooo.cn/qr-codes/mail-services-zh-cn.webp",
+        "https://image.limooo.cn/qr-codes/form-services-zh-cn.webp",
     }
-    assert html.count('(hover: hover) and (pointer: fine)') == 4
+    assert html.count('(hover: hover) and (pointer: fine)') == 5
+
+
+def test_contact_survey_block_uses_limooo_shortlink_and_qr():
+    """问卷块：href 指向 limooo.cn 短链、data-qr 指向本语言二维码，四种语言一致。"""
+    for lang in ("zh-cn", "en-us", "ja-jp", "ko-kr"):
+        html = build.render_page(RENDER_APP, "contact.html", "/contact", lang)
+        block = html[html.index('id="surveyBlock"'):]
+        block = block[:block.index("</a>")]
+
+        assert 'href="https://limooo.cn/link/photograph-form-%s"' % lang in block
+        assert 'data-qr="https://image.limooo.cn/qr-codes/form-services-%s.webp"' % lang in block
+        assert "qr-trigger" in block
+        assert "lime-official.feishu.cn" not in block
 
 
 def test_theme_challenge_uses_gate_url_and_skips_gate_page():

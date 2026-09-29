@@ -65,6 +65,14 @@ window.addEventListener('load', function() {
 });
 
 
+/* 语言切换后浮层若正显示，同步换成本语言的二维码 */
+document.addEventListener('languagechange', function() {
+    if (!qrImage || !qrDisplay || !qrDisplay.classList.contains('show')) return;
+    var hovered = document.querySelector('.qr-trigger:hover');
+    if (hovered && hovered.dataset.qr) qrImage.src = hovered.dataset.qr;
+});
+
+
 /* 问卷位置：英语置底，其他语言置顶（切换语言时由 languagechange 事件同步） */
 positionSurvey();
 

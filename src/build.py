@@ -853,7 +853,7 @@ def main() -> int:
     write_manifest()
 
     total = 0
-    for root, _dirs, files in os.walk(PUBLIC_DIR):
+    for _root, _dirs, files in os.walk(PUBLIC_DIR):
         total += len(files)
     print(f"[build] done, {total} files in public/", flush=True)
     return 0

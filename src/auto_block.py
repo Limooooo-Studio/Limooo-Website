@@ -447,7 +447,7 @@ def run_scan() -> None:
         sync_d1()
         return
 
-    print(f"[auto_block] Analyzing logs...", flush=True)
+    print("[auto_block] Analyzing logs...", flush=True)
     ips = analyze(files)
     print(f"  {len(ips)} unique IPs", flush=True)
 
@@ -472,7 +472,7 @@ def run_scan() -> None:
                 f.write("\n")
             for p in all_prefixes:
                 f.write(f"{p}.0/24\n")
-        print(f"  blocklist.txt updated", flush=True)
+        print("  blocklist.txt updated", flush=True)
     else:
         print(f"  No new prefixes, {len(existing_prefixes)} existing /24", flush=True)
 
