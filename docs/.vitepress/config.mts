@@ -219,12 +219,20 @@ const REWRITES: Record<string, string> = JSON.parse(
   readFileSync(new URL('./rewrites.json', import.meta.url), 'utf-8')
 )
 
+/**
+ * services/ 是 services.limooo.cn 的价目表数据源（convention.csv / outdoor.csv），
+ * 由 Flask 侧构建时读取（src/services_pricing.py）。它不是文档页面，排除掉，
+ * 免得被当成静态资源原样发布到 docs.limooo.cn。
+ */
+const SRC_EXCLUDE = ['services/**']
+
 export default defineConfig({
   lang: langTag(DEFAULT_LANG),
   title: labels[DEFAULT_LANG].title,
   description: labels[DEFAULT_LANG].description,
   cleanUrls: true,
   metaChunk: true,
+  srcExclude: SRC_EXCLUDE,
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['link', { rel: 'apple-touch-icon', href: '/logo.svg' }],

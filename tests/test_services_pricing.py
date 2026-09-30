@@ -1,0 +1,216 @@
+"""services.limooo.cn 价目表：CSV 是唯一数据源，构建时读取。"""
+
+import re
+
+import build
+import pytest
+from render_app import RENDER_APP
+from services_pricing import (
+    CONVENTION_CSV,
+    OUTDOOR_CSV,
+    SERVICES_DIR,
+    load_pricing,
+)
+
+
+def _write(dir_path, name, text):
+    path = dir_path / name
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def services_dir(tmp_path, monkeypatch):
+    """把价目表目录指向临时目录，避免测试依赖仓库里的真实 CSV 内容。"""
+    monkeypatch.setattr("services_pricing.SERVICES_DIR", str(tmp_path))
+    return tmp_path
+
+
+def test_load_pricing_reads_both_csv(services_dir):
+    _write(services_dir, CONVENTION_CSV, "张数,价格\n1,20\n3,55\n6,100\n9,150\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格\n棚拍,单人,100\n棚拍,双人,150\n外景,单人,120\n外景,双人,180\n",
+    )
+
+    pricing = load_pricing()
+
+    assert [plan["price"] for plan in pricing["convention"]] == [20, 55, 100, 150]
+    assert [plan["unit_key"] for plan in pricing["convention"]] == [
+        "unit_per_shot",
+        "unit_per_3",
+        "unit_per_6",
+        "unit_per_9",
+    ]
+    assert [plan["plan_key"] for plan in pricing["outdoor"]] == [
+        "plan_studio_solo",
+        "plan_studio_duo",
+        "plan_outdoor_solo",
+        "plan_outdoor_duo",
+    ]
+    assert [plan["price"] for plan in pricing["outdoor"]] == [100, 150, 120, 180]
+
+
+def test_convention_rows_are_sorted_by_shot_count(services_dir):
+    _write(services_dir, CONVENTION_CSV, "张数,价格\n9,150\n1,20\n6,100\n3,55\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格\n棚拍,单人,100\n棚拍,双人,150\n外景,单人,120\n外景,双人,180\n",
+    )
+
+    pricing = load_pricing()
+
+    assert [plan["shots"] for plan in pricing["convention"]] == [1, 3, 6, 9]
+
+
+def test_outdoor_rows_are_rendered_in_fixed_order(services_dir):
+    """CSV 行序变化不应打乱四张卡片的版式（棚拍在前、外景在后）。"""
+    _write(services_dir, CONVENTION_CSV, "张数,价格\n1,20\n3,55\n6,100\n9,150\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格\n外景,双人,180\n棚拍,单人,100\n外景,单人,120\n棚拍,双人,150\n",
+    )
+
+    pricing = load_pricing()
+
+    assert [plan["price"] for plan in pricing["outdoor"]] == [100, 150, 120, 180]
+
+
+@pytest.mark.parametrize(
+    "bookable,expected",
+    [
+        ("是", [False, False, False, False]),
+        ("否", [True, True, True, True]),
+        ("", [False, False, False, False]),
+        (None, [False, False, False, False]),
+    ],
+)
+def test_bookable_column_drives_the_strikethrough(services_dir, bookable, expected):
+    """「是否接单」= 否 加删除线；= 是 或留空（含整列不存在）都不加。"""
+    column = "" if bookable is None else f",是否接单"
+    cells = [bookable] * 4 if bookable is not None else [None] * 4
+
+    def row(kind, who, price, cell):
+        base = f"{kind},{who},{price}"
+        return base if cell is None else f"{base},{cell}"
+
+    _write(
+        services_dir,
+        CONVENTION_CSV,
+        "张数,价格" + column + "\n"
+        + "\n".join(
+            f"{shots},{price}" + ("" if bookable is None else f",{bookable}")
+            for shots, price in ((1, 20), (3, 55), (6, 100), (9, 150))
+        )
+        + "\n",
+    )
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格" + column + "\n"
+        + "\n".join(
+            row(kind, who, price, cells[i])
+            for i, (kind, who, price) in enumerate(
+                (
+                    ("棚拍", "单人", 100),
+                    ("棚拍", "双人", 150),
+                    ("外景", "单人", 120),
+                    ("外景", "双人", 180),
+                )
+            )
+        )
+        + "\n",
+    )
+
+    pricing = load_pricing()
+
+    assert [plan["strikethrough"] for plan in pricing["outdoor"]] == expected
+    assert [plan["strikethrough"] for plan in pricing["convention"]] == expected
+
+
+def test_invalid_bookable_value_fails_the_build(services_dir):
+    _write(services_dir, CONVENTION_CSV, "张数,价格,是否接单\n1,20,maybe\n3,55,是\n6,100,是\n9,150,是\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格,是否接单\n棚拍,单人,100,是\n棚拍,双人,150,是\n外景,单人,120,是\n外景,双人,180,是\n",
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        load_pricing()
+
+    assert "是否接单" in str(excinfo.value) and "无法识别" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "convention,outdoor,message",
+    [
+        ("张数,价格\n1,20\n3,55\n6,100\n9,150\n", "类型,人数,价格\n棚拍,单人,100\n", "缺少档位"),
+        ("张数,价格\n1,20\n3,55\n6,100\n9,0\n", None, "价格必须为正数"),
+        ("张数,价格\n1,20\n3,55\n6,100\n9,abc\n", None, "价格不是整数"),
+        ("张数\n1\n3\n6\n9\n", None, "缺少列"),
+    ],
+)
+def test_invalid_csv_fails_the_build(services_dir, convention, outdoor, message):
+    _write(services_dir, CONVENTION_CSV, convention)
+    if outdoor is not None:
+        _write(services_dir, OUTDOOR_CSV, outdoor)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        load_pricing()
+
+    assert message in str(excinfo.value)
+
+
+def test_missing_csv_fails_the_build(services_dir):
+    with pytest.raises(RuntimeError) as excinfo:
+        load_pricing()
+
+    assert "无法读取价目表" in str(excinfo.value)
+
+
+def test_services_page_renders_csv_prices(services_dir):
+    """模板里的价格必须来自 CSV，而不是写死的常量。"""
+    _write(services_dir, CONVENTION_CSV, "张数,价格\n1,30\n3,60\n6,110\n9,160\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格,是否接单\n"
+        "棚拍,单人,110,否\n棚拍,双人,160,否\n外景,单人,130,是\n外景,双人,190,\n",
+    )
+    html = build.render_page(RENDER_APP, "services.html", "/services", "zh-cn")
+
+    assert re.findall(r'<span class="price-num">CNY (\d+)', html) == [
+        "30",
+        "60",
+        "110",
+        "160",
+        "110",
+        "160",
+        "130",
+        "190",
+    ]
+    # 档位标签与单位后缀仍然走 i18n
+    assert 'data-i18n="plan_studio_solo"' in html
+    assert 'data-i18n="unit_per_9"' in html
+    # 棚拍两档「是否接单=否」→ 删除线；外景两档不加
+    assert html.count('class="plan-price strikethrough"') == 2
+
+
+def test_services_page_matches_committed_csv():
+    """仓库里真实的 CSV 必须能渲染（防止只改 CSV 改坏格式就提交/部署）。"""
+    pricing = load_pricing()
+
+    assert pricing["convention"], "convention.csv 至少要有一档"
+    assert len(pricing["outdoor"]) == 4
+    # 张数升序且不重复
+    shots = [plan["shots"] for plan in pricing["convention"]]
+    assert shots == sorted(shots) and len(set(shots)) == len(shots)
+
+    html = build.render_page(RENDER_APP, "services.html", "/services", "zh-cn")
+    assert len(re.findall(r'<span class="price-num">CNY (\d+)', html)) == (
+        len(pricing["convention"]) + 4
+    )

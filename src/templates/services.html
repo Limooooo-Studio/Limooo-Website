@@ -84,19 +84,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             <h3 class="modal-title" id="modal-convention-title" data-i18n="service_convention">{{ _('service_convention') }}</h3>
         </div>
         <div class="modal-body">
+        {# 价目表来自 docs/services/convention.csv，构建时读取（见 src/services_pricing.py） #}
         <div class="plan-grid plan-grid-quad">
+            {% for plan in pricing.convention %}
             <div class="plan">
-                <p class="plan-price"><span class="price-num">CNY 20<span class="plan-unit" data-i18n="unit_per_shot">{{ _('unit_per_shot') }}</span></span></p>
+                <p class="plan-price{% if plan.strikethrough %} strikethrough{% endif %}"><span class="price-num">CNY {{ plan.price }}{% if plan.unit_key %}<span class="plan-unit" data-i18n="{{ plan.unit_key }}">{{ _(plan.unit_key) }}</span>{% endif %}</span></p>
             </div>
-            <div class="plan">
-                <p class="plan-price"><span class="price-num">CNY 55<span class="plan-unit" data-i18n="unit_per_3">{{ _('unit_per_3') }}</span></span></p>
-            </div>
-            <div class="plan">
-                <p class="plan-price"><span class="price-num">CNY 100<span class="plan-unit" data-i18n="unit_per_6">{{ _('unit_per_6') }}</span></span></p>
-            </div>
-            <div class="plan">
-                <p class="plan-price"><span class="price-num">CNY 150<span class="plan-unit" data-i18n="unit_per_9">{{ _('unit_per_9') }}</span></span></p>
-            </div>
+            {% endfor %}
         </div>
 
         <div class="extras">
@@ -131,23 +125,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. #}
             <h3 class="modal-title" id="modal-outdoor-title" data-i18n="service_outdoor">{{ _('service_outdoor') }}</h3>
         </div>
         <div class="modal-body">
+        {# 价目表来自 docs/services/outdoor.csv，构建时读取（见 src/services_pricing.py） #}
         <div class="plan-grid plan-grid-quad">
+            {% for plan in pricing.outdoor %}
             <div class="plan">
-                <p class="plan-tag" data-i18n="plan_studio_solo">{{ _('plan_studio_solo') }}</p>
-                <p class="plan-price strikethrough"><span class="price-num">CNY 150<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
+                <p class="plan-tag" data-i18n="{{ plan.plan_key }}">{{ _(plan.plan_key) }}</p>
+                <p class="plan-price{% if plan.strikethrough %} strikethrough{% endif %}"><span class="price-num">CNY {{ plan.price }}<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
             </div>
-            <div class="plan">
-                <p class="plan-tag" data-i18n="plan_studio_duo">{{ _('plan_studio_duo') }}</p>
-                <p class="plan-price strikethrough"><span class="price-num">CNY 200<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
-            </div>
-            <div class="plan">
-                <p class="plan-tag" data-i18n="plan_outdoor_solo">{{ _('plan_outdoor_solo') }}</p>
-                <p class="plan-price"><span class="price-num">CNY 180<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
-            </div>
-            <div class="plan">
-                <p class="plan-tag" data-i18n="plan_outdoor_duo">{{ _('plan_outdoor_duo') }}</p>
-                <p class="plan-price"><span class="price-num">CNY 260<span class="plan-unit" data-i18n="unit_per_hour">{{ _('unit_per_hour') }}</span></span></p>
-            </div>
+            {% endfor %}
         </div>
 
         <div class="extras">

@@ -335,6 +335,51 @@ The middleware also enforces the normalized D1 blocklist and records privacy-min
 - `www.limooo.cn` → 301 to the main site
 - Nav links keep absolute subdomain URLs (`https://services.limooo.cn` etc.); language switching is a pure frontend `applyLang()`, no reload, no URL change
 
+### services.limooo.cn pricing (CSV-driven)
+
+The services price list is **data, not markup**: `src/build.py` reads
+`docs/services/*.csv` on every render (`src/services_pricing.py`) and fills the
+plan grids in `src/templates/services.html`. Changing a price means editing the
+CSV and deploying — no template edit.
+
+| file | columns | fills |
+| --- | --- | --- |
+| `docs/services/convention.csv` | `张数,价格[,是否接单]` | 01 Convention, one card per shot-count tier |
+| `docs/services/outdoor.csv` | `类型,人数,价格[,是否接单]` | 02 Outdoor, studio/outdoor × solo/duo |
+
+Only the numbers, the tier set and the availability come from the CSV; labels,
+unit suffixes and the notes block still come from `locales/*.json`
+(`plan_studio_solo`, `unit_per_shot`, …).
+
+**`是否接单` (optional column)** drives the struck-through price style:
+
+- `否` → that tier's price renders with `class="plan-price strikethrough"`
+- `是`, or the cell left empty, or the whole column absent → normal price
+
+So the "temporarily not booking" look is now data, not a hardcoded per-row
+style: flip 棚拍 from `否` to `是` in `outdoor.csv` and the strikethrough
+disappears on the next deploy (remember to also update the `studio_paused` note
+in `locales/*.json` if the notes block should change). Any other value (e.g.
+`maybe`) fails the build rather than silently guessing.
+
+The rest of the contract is:
+
+- convention rows come from the CSV in **ascending shot-count order**; the number
+  of tiers is not fixed (adding a 12-shot row needs no code change)
+- a convention tier gets a unit suffix only if it is listed in
+  `CONVENTION_UNIT_KEYS`; unlisted tiers render the bare price
+- outdoor rows must cover all four `类型/人数` combinations; they render in a
+  fixed order (studio solo/duo, then outdoor solo/duo) regardless of row order
+
+A missing file, wrong column, non-positive or non-integer price, duplicate tier,
+unknown tier or unrecognized `是否接单` value **fails the build** — a wrong price
+list is worse than a failed build. `tests/test_services_pricing.py` covers all of
+these cases plus a round-trip check against the committed CSVs.
+
+`docs/services/` is excluded from the VitePress build (`srcExclude` in
+`docs/.vitepress/config.mts`), so the CSVs stay a data source and are never
+published to docs.limooo.cn.
+
 ### Performance / edge caching
 
 - `public/_routes.json` excludes `/static/*` and root static assets from Pages
