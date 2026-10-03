@@ -1,8 +1,3 @@
-> **2026-09-17 起：已全部迁至 Cloudflare 边缘并退租 VPS。**
-> VPS 上曾运行的 Flask/nginx/authentik/Uptime Kuma 均已停用；
-> 登录改为 Cloudflare Access；状态页与探针见 `ops/status-worker`。
-> 迁移过程、决策与踩坑见 `../docs/17-zero-vps-migration.md` 与 `../docs/18-resume.md`。
-
 # Limooo
 
 A fully serverless personal website and admin system running at [limooo.cn](https://limooo.cn). Public pages, the human-verification gate, the visitor panel, the Apple Account manager, monitoring and the status page all run on Cloudflare (Pages Functions, Workers, D1, R2).
@@ -124,22 +119,24 @@ and generates `public/manifest.json` (build-artifact hash evidence).
 Deploy only the Pages output with:
 
 ```bash
-# 只构建 + 校验，不碰 Cloudflare
+# build + validate only, no Cloudflare writes
 bash ops/pages_deploy.sh --build-only
 
-# 构建 + 校验 + 部署 Pages + 冒烟（/_health 必须 200）
+# build + validate + deploy Pages + smoke test (/_health must be 200)
 bash ops/pages_deploy.sh
 
-# 完整部署：① commit ② push ③ Pages（AGENTS.md 的"完整部署"语义）
+# full deploy: (1) commit (2) push (3) Pages — the "full deploy" contract in AGENTS.md
 bash ops/deploy.sh --all
 ```
 
-**零 VPS 版脚本（2026-09-17 重写）**：`ops/deploy.sh` 是完整部署入口，
-`ops/pages_deploy.sh` 负责构建与 Pages，`ops/upload.sh` 只是 `deploy.sh` 的
-兼容转发入口（不再各存一份逻辑）。所有脚本的 `--dry-run` 只打印计划、不写任何远端。
+**Zero-VPS scripts (rewritten 2026-09-17)**: `ops/deploy.sh` is the full-deploy entry
+point, `ops/pages_deploy.sh` handles build + Pages, and `ops/upload.sh` is only a
+compatibility forwarder to `deploy.sh` (the logic lives in one place). `--dry-run` on
+any of them prints the plan without writing to any remote.
 
-凭据从本机 `secrets/webauthn.env` 读取（不入库、不回显），已无 ssh / rsync / 远端
-systemd 步骤。`ops/migrate_d1.sh` 与 `ops/workers_deploy.sh` 同样支持 `--dry-run`。
+Credentials are read from the local `secrets/webauthn.env` (never committed, never
+echoed); there are no ssh / rsync / remote systemd steps.
+`ops/migrate_d1.sh` and `ops/workers_deploy.sh` also support `--dry-run`.
 
 Per current workspace rules, do not run deployment without explicit confirmation.
 
@@ -198,20 +195,22 @@ systemd or Nginx steps. See `../AGENTS.md` for the full deploy contract.
 
 ### Docs site (docs.limooo.cn)
 
-`Flask/docs/` is the content source: one markdown file per page per language, and the
-language code is the **last** URL segment (`zh-cn` has no suffix):
+`Flask/docs/` is a **per-subdomain container**: `docs/` holds the docs.limooo.cn
+VitePress root (one markdown file per page per language), `services/` holds the
+services.limooo.cn price-list CSVs. The language code is the **last** URL segment
+(`zh-cn` has no suffix):
 
-| Source | URL |
+| Source (under `Flask/docs/docs/`) | URL |
 | --- | --- |
-| `docs/video-platform.md` | `/video-platform` |
-| `docs/en-us/video-platform.md` | `/video-platform/en-us` |
-| `docs/en-us/index.md` | `/en-us` |
+| `video-platform.md` | `/video-platform` |
+| `en-us/video-platform.md` | `/video-platform/en-us` |
+| `en-us/index.md` | `/en-us` |
 
-`docs/.vitepress/rewrites.json` maps those sources onto the suffixed routes, and
-`docs/.vitepress/config.mts` gives each page its own `lang` / `themeConfig` through
-`additionalConfig`. Add a page by dropping a markdown file in each language directory
-plus a rewrites entry — `ops/docs_check_output.py` fails the build if any markdown file
-has no HTML.
+`.vitepress/rewrites.json` (beside the content) maps those sources onto the suffixed
+routes, and `.vitepress/config.mts` gives each page its own `lang` / `themeConfig`
+through `additionalConfig`. Add a page by dropping a markdown file in each language
+directory plus a rewrites entry — `ops/docs_check_output.py` fails the build if any
+markdown file has no HTML.
 
 The site is built with VitePress from the fork `Limooooo-Studio/vitepress`: the header
 and footer live in the fork (`VPLimoooNav.vue` / `VPLimoooFooter.vue`) and mirror the

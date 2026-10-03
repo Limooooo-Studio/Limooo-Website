@@ -2,8 +2,11 @@
 
 # Limooo - docs.limooo.cn build and deploy (VitePress)
 #
-# Content lives in Flask/docs/*.md; every markdown file becomes
-# https://docs.limooo.cn/<path>. The VitePress implementation is the fork at
+# Content lives in Flask/docs/docs/ (the VitePress root, with its own
+# .vitepress/ beside it); every markdown file becomes
+# https://docs.limooo.cn/<path>. Flask/docs/ is a per-subdomain container:
+# docs/ -> docs.limooo.cn, services/ -> services.limooo.cn (the price-list CSVs
+# read by src/services_pricing.py). The VitePress implementation is the fork at
 # Limooooo-Studio/vitepress, so that header / footer changes in the fork show up
 # on the next deploy.
 #
@@ -31,7 +34,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DOCS_DIR="$ROOT/docs"
+# Flask/docs/ 是按子域分目录的容器：docs/ = docs.limooo.cn，services/ = services.limooo.cn。
+# 本脚本只负责 docs.limooo.cn 那一份内容（含它自己的 .vitepress/）。
+DOCS_DIR="$ROOT/docs/docs"
 SECRETS_FILE="${SECRETS_FILE:-$ROOT/secrets/webauthn.env}"
 
 PAGES_PROJECT="${DOCS_PAGES_PROJECT:-limooo-docs}"

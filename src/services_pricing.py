@@ -18,18 +18,20 @@
 """services.limooo.cn 价目表的 CSV 数据源。
 
 价目表不再写死在 templates/services.html 里，而是每次构建时从
-``Flask/docs/services/*.csv`` 读取，改价只需改 CSV 再部署：
+``Flask/docs/services/*.csv`` 读取，改价只需改 CSV 再部署。
+注意 ``Flask/docs/`` 是**按子域分目录**的容器：``docs/`` 归 docs.limooo.cn
+（VitePress 内容源），``services/`` 归 services.limooo.cn（本模块读的价目表）：
 
-  convention.csv   张数,价格       → 场照拍摄（01）四档张数价
-  outdoor.csv      类型,人数,价格  → 正片拍摄（02）棚拍/外景 × 单人/双人
+  convention.csv   张数,价格[,是否接单]        → 场照拍摄（01）张数价
+  outdoor.csv      类型,人数,价格[,是否接单]   → 正片拍摄（02）棚拍/外景 × 单人/双人
 
 对应的说明文案（单位后缀、档位标签、注意事项）仍然走 locales/*.json，
-只有「数字」与「档位组合」来自 CSV。CSV 缺失、表头不对、价格不是正整数时
-构建直接失败——价目表出错比构建失败严重得多。
+只有「数字」「档位组合」与「是否接单」来自 CSV。CSV 缺失、表头不对、
+价格不是正整数、是否接单取值非法时构建直接失败——价目表出错比构建失败严重得多。
 
 用法：
     from services_pricing import load_pricing
-    pricing = load_pricing()      # {"convention": {...}, "outdoor": {...}}
+    pricing = load_pricing()      # {"convention": [...], "outdoor": [...], "outdoor_note": {...}}
 """
 
 from __future__ import annotations
@@ -40,6 +42,8 @@ import os
 from config import BASE_DIR
 
 SERVICES_DIR = os.path.join(BASE_DIR, "docs", "services")
+# ↑ Flask/docs/ 现已按子域分目录：docs/ 归 docs.limooo.cn（VitePress 内容源，
+#   由 ops/docs_deploy.sh 构建），services/ 归 services.limooo.cn（本模块读的价目表）。
 
 CONVENTION_CSV = "convention.csv"
 OUTDOOR_CSV = "outdoor.csv"

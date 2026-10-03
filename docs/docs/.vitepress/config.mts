@@ -1,10 +1,13 @@
 /**
  * docs.limooo.cn — VitePress 站点配置
  *
- * 内容源：Flask/docs/*.md
- *   docs/video-platform.md            → /video-platform
- *   docs/video-platform/en-us.md      → /video-platform/en-us
- *   docs/en-us.md                     → /en-us
+ * 内容源：Flask/docs/docs/*.md（本目录，即 VitePress 根）
+ *   video-platform.md            → /video-platform
+ *   en-us/video-platform.md      → /video-platform/en-us
+ *   en-us/index.md               → /en-us
+ *
+ * Flask/docs/ 是**按子域分目录**的容器：docs/ 归 docs.limooo.cn（本目录），
+ * services/ 归 services.limooo.cn（价目表 CSV，由 src/services_pricing.py 读取）。
  *
  * 语言码放在**页面路径最后一段**（不是 VitePress 的 locales 前缀），所以不用
  * `locales`，改用 `additionalConfig`（按**源目录**分层）+ `rewrites`：
@@ -220,11 +223,11 @@ const REWRITES: Record<string, string> = JSON.parse(
 )
 
 /**
- * services/ 是 services.limooo.cn 的价目表数据源（convention.csv / outdoor.csv），
- * 由 Flask 侧构建时读取（src/services_pricing.py）。它不是文档页面，排除掉，
- * 免得被当成静态资源原样发布到 docs.limooo.cn。
+ * 价目表 CSV 现在在 Flask/docs/services/，与 VitePress 根（Flask/docs/docs/）
+ * **同级**，本来就不会进入构建工作区，所以不再需要专门排除 services/。
+ * 留一条 csv 兜底：万一以后有人往内容根里塞数据文件，也不会被原样发布出去。
  */
-const SRC_EXCLUDE = ['services/**']
+const SRC_EXCLUDE = ['**/*.csv']
 
 export default defineConfig({
   lang: langTag(DEFAULT_LANG),
