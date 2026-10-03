@@ -351,16 +351,20 @@ Only the numbers, the tier set and the availability come from the CSV; labels,
 unit suffixes and the notes block still come from `locales/*.json`
 (`plan_studio_solo`, `unit_per_shot`, …).
 
-**`是否接单` (optional column)** drives the struck-through price style:
+**`是否接单` (optional column)** drives both the struck-through price style and
+the studio row in the notes block:
 
-- `否` → that tier's price renders with `class="plan-price strikethrough"`
-- `是`, or the cell left empty, or the whole column absent → normal price
+- per tier: `否` → that tier's price renders with
+  `class="plan-price strikethrough"`; `是`, an empty cell, or the whole column
+  absent → normal price
+- notes block: if **every** 棚拍 tier is `否`, the studio row shows the paused
+  wording (`studio_paused`); as soon as one studio tier is bookable it shows
+  `studio_bookable` instead
 
-So the "temporarily not booking" look is now data, not a hardcoded per-row
-style: flip 棚拍 from `否` to `是` in `outdoor.csv` and the strikethrough
-disappears on the next deploy (remember to also update the `studio_paused` note
-in `locales/*.json` if the notes block should change). Any other value (e.g.
-`maybe`) fails the build rather than silently guessing.
+So "temporarily not booking" is data end to end: flip 棚拍 from `否` to `是` in
+`outdoor.csv` and the strikethrough *and* the paused note both disappear on the
+next deploy, with no template or locale edit. The two can never disagree. Any
+other value (e.g. `maybe`) fails the build rather than silently guessing.
 
 The rest of the contract is:
 

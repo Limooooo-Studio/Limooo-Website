@@ -131,6 +131,53 @@ def test_bookable_column_drives_the_strikethrough(services_dir, bookable, expect
     assert [plan["strikethrough"] for plan in pricing["convention"]] == expected
 
 
+@pytest.mark.parametrize(
+    "studio,expected",
+    [
+        # 两档棚拍都不接 → 说明栏显示暂停文案
+        (("否", "否"), "studio_paused"),
+        # 只要有一档还接单 → 说明栏显示可预约，不能和卡片上的删除线自相矛盾
+        (("是", "是"), "studio_bookable"),
+        (("是", "否"), "studio_bookable"),
+        # 留空同样算接单
+        (("", ""), "studio_bookable"),
+    ],
+)
+def test_studio_note_row_follows_the_bookable_column(services_dir, studio, expected):
+    _write(services_dir, CONVENTION_CSV, "张数,价格\n1,20\n3,55\n6,100\n9,150\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格,是否接单\n"
+        f"棚拍,单人,100,{studio[0]}\n棚拍,双人,150,{studio[1]}\n"
+        "外景,单人,120,是\n外景,双人,180,是\n",
+    )
+
+    pricing = load_pricing()
+
+    assert pricing["outdoor_note"] == {
+        "title_key": "extra_studio",
+        "value_key": expected,
+    }
+
+
+def test_studio_note_row_is_rendered(services_dir):
+    """说明栏那一行必须由模板渲染出来；棚拍全不接时显示暂停文案。"""
+    _write(services_dir, CONVENTION_CSV, "张数,价格\n1,20\n3,55\n6,100\n9,150\n")
+    _write(
+        services_dir,
+        OUTDOOR_CSV,
+        "类型,人数,价格,是否接单\n"
+        "棚拍,单人,100,否\n棚拍,双人,150,否\n外景,单人,120,是\n外景,双人,180,是\n",
+    )
+
+    html = build.render_page(RENDER_APP, "services.html", "/services", "zh-cn")
+
+    assert 'data-i18n="extra_studio"' in html
+    assert 'data-i18n="studio_paused"' in html
+    assert 'data-i18n="studio_bookable"' not in html
+
+
 def test_invalid_bookable_value_fails_the_build(services_dir):
     _write(services_dir, CONVENTION_CSV, "张数,价格,是否接单\n1,20,maybe\n3,55,是\n6,100,是\n9,150,是\n")
     _write(

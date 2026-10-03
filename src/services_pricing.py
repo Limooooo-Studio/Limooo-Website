@@ -75,6 +75,11 @@ BOOKABLE_COLUMN = "是否接单"
 BOOKABLE_YES = {"", "是", "y", "yes", "true", "1"}
 BOOKABLE_NO = {"否", "n", "no", "false", "0"}
 
+# 「说明」栏里按类型汇总的那一行：CSV 的类型列 → （说明栏标题键，暂停文案键）
+NOTE_ROW_KEYS = {
+    "棚拍": ("extra_studio", "studio_paused"),
+}
+
 
 def _read_rows(filename: str) -> list[dict[str, str]]:
     """读取单个 CSV，去掉表头与空行。"""
@@ -187,6 +192,21 @@ def load_outdoor() -> dict[tuple[str, str], dict[str, object]]:
     return plans
 
 
+def outdoor_note_row(plans: dict[tuple[str, str], dict[str, object]]) -> dict[str, str]:
+    """「说明」栏里按类型汇总的那一行（棚拍）。
+
+    整类都「是否接单=否」时用暂停文案（「暂时不接」）；只要有一档还接单就显示
+    「可预约」——说明栏和卡片上的删除线永远说同一件事，不会出现「卡片划掉了、
+    说明栏却还写着能约」的矛盾。
+    """
+    title_key, paused_key = NOTE_ROW_KEYS["棚拍"]
+    bookable = any(plans[key]["bookable"] for key in OUTDOOR_ORDER if key[0] == "棚拍")
+    return {
+        "title_key": title_key,
+        "value_key": "studio_bookable" if bookable else paused_key,
+    }
+
+
 def load_pricing() -> dict[str, object]:
     """读取两份 CSV，返回渲染 services.html 所需的价目表结构。"""
     convention = load_convention()
@@ -200,4 +220,8 @@ def load_pricing() -> dict[str, object]:
         }
         for key in OUTDOOR_ORDER
     ]
-    return {"convention": convention, "outdoor": outdoor}
+    return {
+        "convention": convention,
+        "outdoor": outdoor,
+        "outdoor_note": outdoor_note_row(outdoor_plans),
+    }
