@@ -103,6 +103,11 @@ if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
     exit 1
 fi
 
+# wrangler 自己会往输出里塞 emoji；这里只把 emoji 过滤掉，其余输出原样保留。
+strip_emoji() {
+    perl -CSD -pe 's/[\x{1F000}-\x{1FAFF}\x{2705}\x{274C}\x{26A0}\x{26C5}\x{2728}\x{2B50}][\x{FE0F}\x{200D}]*\h?//g'
+}
+
 # ── 部署 ────────────────────────────────────────────────────────────
 # 必须在本目录（Flask/）执行，否则 wrangler 找不到 functions/，会把整个
 # Pages Functions 丢掉（docs/17 §11.6 出过这次事故）。
@@ -111,7 +116,7 @@ export CI=1 WRANGLER_SEND_METRICS=false
 "$WRANGLER_BIN" pages deploy "$PUBLIC_DIR" \
     --project-name "$PAGES_PROJECT" \
     --branch "$PAGES_BRANCH" \
-    --commit-dirty=true
+    --commit-dirty=true 2>&1 | strip_emoji
 
 # ── 部署后冒烟 ──────────────────────────────────────────────────────
 echo "[pages] post-deploy check"

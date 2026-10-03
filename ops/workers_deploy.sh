@@ -53,6 +53,11 @@ if [ -n "$SELECTED" ]; then
     esac
 fi
 
+# wrangler 自己会往输出里塞 emoji；这里只把 emoji 过滤掉，其余输出原样保留。
+strip_emoji() {
+    perl -CSD -pe 's/[\x{1F000}-\x{1FAFF}\x{2705}\x{274C}\x{26A0}\x{26C5}\x{2728}\x{2B50}][\x{FE0F}\x{200D}]*\h?//g'
+}
+
 for dir in "${WORKERS[@]}"; do
     name="$(basename "$dir")"
     config="$dir/wrangler.toml"
@@ -65,7 +70,7 @@ for dir in "${WORKERS[@]}"; do
         echo "  [dry-run] would run: (cd $dir && npx --no-install wrangler deploy)"
         continue
     fi
-    (cd "$dir" && npx --no-install wrangler deploy)
+    (cd "$dir" && npx --no-install wrangler deploy 2>&1 | strip_emoji)
 done
 
 echo "[workers] done"

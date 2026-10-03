@@ -219,6 +219,11 @@ if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
     export CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 fi
 
+# wrangler 自己会往输出里塞 emoji；这里只把 emoji 过滤掉，其余输出原样保留。
+strip_emoji() {
+    perl -CSD -pe 's/[\x{1F000}-\x{1FAFF}\x{2705}\x{274C}\x{26A0}\x{26C5}\x{2728}\x{2B50}][\x{FE0F}\x{200D}]*\h?//g'
+}
+
 # ── ⑥ 部署到 Pages ──────────────────────────────────────────────────
 # 在 BUILD_DIR 下执行：避免 wrangler 向上找到 Flask/wrangler.toml 里主站项目的 name。
 echo "[docs] deploying Pages project: $PAGES_PROJECT"
@@ -228,7 +233,7 @@ export CI=1 WRANGLER_SEND_METRICS=false
     "$WRANGLER_BIN" pages deploy "$DIST_DIR" \
         --project-name "$PAGES_PROJECT" \
         --branch "$PAGES_BRANCH" \
-        --commit-dirty=true
+        --commit-dirty=true 2>&1 | strip_emoji
 )
 
 # ── ⑦ 冒烟 ──────────────────────────────────────────────────────────
