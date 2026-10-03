@@ -23,10 +23,10 @@ description: 『風行迷踪』の許諾範囲に含まれる中国本土内・�
 
 | プラットフォーム | 運営主体（法人名） | 所在地 | プライバシーポリシー | 未成年者・児童 |
 | --- | --- | --- | --- | --- |
-| 抖音（Douyin） | 北京抖音科技有限公司（旧称：北京微播视界科技有限公司） | 中国 北京市海淀区北三環西路甲 18 号院 4 号楼 2 層 2022 | [「抖音」プライバシーポリシー](https://www.douyin.com/agreements/?id=6773901168964798477) | [抖音 児童個人情報保護規則](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| 小紅書（Xiaohongshu） | 行吟信息科技（上海）有限公司 | 中国 上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室 | [小紅書ユーザープライバシーポリシー](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [小紅書未成年者個人情報保護規則](https://www.xiaohongshu.com/privacy/teenager) |
-| bilibili | 上海宽娱数码科技有限公司 | 中国 上海市楊浦区政立路 485 号 | [bilibili プライバシーポリシー](https://www.bilibili.com/blackboard/privacy-pc.html) | [bilibili 未成年者個人情報保護指引](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
-| 微信視頻号（WeChat Channels） | 深圳市騰訊計算機系統有限公司 | 中国 広東省深圳市南山区粤海街道麻嶺社区科技中一路騰訊大廈 35 階 | [WeChat プライバシー保護ガイドライン](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [テンセント児童プライバシー声明](https://privacy.qq.com/yszc-children.htm) |
+| <span style="white-space: nowrap">抖音</span> | <span style="white-space: nowrap">Beijing Douyin Technology Co., Ltd.</span> | 中国 北京市海淀区北三環西路甲 18 号院 4 号楼 2 層 2022 | [「抖音」プライバシーポリシー](https://www.douyin.com/agreements/?id=6773901168964798477) | [抖音 児童個人情報保護規則](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| <span style="white-space: nowrap">小紅書</span> | <span style="white-space: nowrap">Xingin Information Technology (Shanghai) Co., Ltd.</span> | 中国 上海市黄浦区馬当路 368 号 SOHO 復興広場 C 棟 C201–C207 室 | [小紅書ユーザープライバシーポリシー](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [小紅書未成年者個人情報保護規則](https://www.xiaohongshu.com/privacy/teenager) |
+| <span style="white-space: nowrap">bilibili</span> | <span style="white-space: nowrap">Shanghai Kuanyu Digital Technology Co., Ltd.</span> | 中国 上海市楊浦区政立路 485 号 | [bilibili プライバシーポリシー](https://www.bilibili.com/blackboard/privacy-pc.html) | [bilibili 未成年者個人情報保護指引](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| <span style="white-space: nowrap">微信視頻号</span> | <span style="white-space: nowrap">Shenzhen Tencent Computer Systems Company Limited</span> | 中国 広東省深圳市南山区粤海街道麻嶺社区科技中一路騰訊大廈 35 階 | [WeChat プライバシー保護ガイドライン](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [テンセント児童プライバシー声明](https://privacy.qq.com/yszc-children.htm) |
 
 ### 抖音（Douyin）
 
@@ -54,7 +54,7 @@ description: 『風行迷踪』の許諾範囲に含まれる中国本土内・�
 
 ### 微信視頻号（WeChat Channels）
 
-- 運営主体：**深圳市騰訊計算機系統有限公司**。視頻号は WeChat 内の機能であり、単独の運営主体はありません。
+- 運営主体：**深圳市腾讯计算机系统有限公司**。視頻号は WeChat 内の機能であり、単独の運営主体はありません。
 - 所在地：深圳市南山区粤海街道麻嶺社区科技中一路騰訊大廈 35 階。
 - 情報の収集・利用は「WeChat プライバシー保護ガイドライン」に定められており、専用のポリシーページはありません。
 - プライバシーポリシー：[WeChat プライバシー保護ガイドライン](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy)
@@ -64,10 +64,10 @@ description: 『風行迷踪』の許諾範囲に含まれる中国本土内・�
 
 | プラットフォーム | 受領者（運営主体） | 所在地 | プライバシーポリシー | 未成年者・児童 |
 | --- | --- | --- | --- | --- |
-| YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google プライバシーポリシー](https://policies.google.com/privacy) | [Google ティーン向けプライバシーガイド](https://www.google.com/policies/privacy/teens/) |
-| TikTok | TikTok Pte. Ltd.（お住まいの地域によりその関連会社） | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok プライバシーポリシー](https://www.tiktok.com/legal/page/row/privacy-policy/en) | プライバシーポリシーの児童・未成年者に関する部分を参照 |
-| Instagram | Meta Platforms, Inc. | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram プライバシーポリシー](https://privacycenter.instagram.com/policy) | プライバシーポリシーのティーンに関する部分を参照 |
-| X | X Corp. | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X プライバシーポリシー](https://x.com/en/privacy) | プライバシーポリシーの未成年者に関する部分を参照 |
+| <span style="white-space: nowrap">YouTube</span> | <span style="white-space: nowrap">Google LLC</span> | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google プライバシーポリシー](https://policies.google.com/privacy) | [Google ティーン向けプライバシーガイド](https://www.google.com/policies/privacy/teens/) |
+| <span style="white-space: nowrap">TikTok</span> | <span style="white-space: nowrap">TikTok Pte. Ltd.（お住まいの地域によりその関連会社）</span> | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok プライバシーポリシー](https://www.tiktok.com/legal/page/row/privacy-policy/en) | プライバシーポリシーの児童・未成年者に関する部分を参照 |
+| <span style="white-space: nowrap">Instagram</span> | <span style="white-space: nowrap">Meta Platforms, Inc.</span> | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram プライバシーポリシー](https://privacycenter.instagram.com/policy) | プライバシーポリシーのティーンに関する部分を参照 |
+| <span style="white-space: nowrap">X</span> | <span style="white-space: nowrap">X Corp.</span> | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X プライバシーポリシー](https://x.com/en/privacy) | プライバシーポリシーの未成年者に関する部分を参照 |
 
 <!-- TODO(verify): TikTok と X は自動取得が制限されています。TikTok の所在地、各海外プラットフォームの連絡窓口、未成年者に関する条項は、署名前にブラウザで確認してください。 -->
 
