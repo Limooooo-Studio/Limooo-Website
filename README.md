@@ -52,8 +52,7 @@ A fully serverless personal website and admin system running at [limooo.cn](http
 │   ├── webauthn.env       # env file read by the deploy scripts
 │   └── apple_account_encryption.key     # Apple Account password encryption key
 ├── ops/                   # deployment & ops tooling
-│   ├── deploy.sh          # full deploy entry point (git commit/push + Pages + Worker)
-│   ├── upload.sh          # compatibility entry point → deploy.sh
+│   ├── deploy.sh          # the single deploy entry point (commit/push + Pages + docs + Worker)
 │   ├── build.sh           # Pages build: venv, contract checks, public/manifest.json
 │   ├── pages_deploy.sh    # Cloudflare Pages build + Wrangler deploy
 │   ├── docs_deploy.sh     # docs.limooo.cn build + deploy (VitePress → Pages project limooo-docs)
@@ -129,10 +128,15 @@ bash ops/pages_deploy.sh
 bash ops/deploy.sh --all
 ```
 
-**Zero-VPS scripts (rewritten 2026-09-17)**: `ops/deploy.sh` is the full-deploy entry
-point, `ops/pages_deploy.sh` handles build + Pages, and `ops/upload.sh` is only a
-compatibility forwarder to `deploy.sh` (the logic lives in one place). `--dry-run` on
-any of them prints the plan without writing to any remote.
+**Zero-VPS scripts (rewritten 2026-09-17)**: `ops/deploy.sh` is the single deploy
+entry point (the old `ops/upload.sh` forwarder was folded into it — one script, so
+there are no parallel copies to drift apart); `ops/pages_deploy.sh` handles build +
+Pages. `--dry-run` prints the plan without writing to any remote.
+
+By default `deploy.sh` is **quiet**: one status line per step, and a step's full log
+is dumped only if that step fails. Add `--full` to stream everything (build manifest,
+artifact count, wrangler upload progress). The flags and the steps are identical
+either way — `--full` changes verbosity only.
 
 Credentials are read from the local `secrets/webauthn.env` (never committed, never
 echoed); there are no ssh / rsync / remote systemd steps.
@@ -184,11 +188,20 @@ standalone Workers. From the repository root:
 
 ```bash
 cd Flask
+bash ops/deploy.sh              # with no arguments = --all (full deploy, see below)
 bash ops/deploy.sh --all        # commit + push + deploy Pages + docs
-bash ops/deploy.sh              # deploy Pages + docs (no commit / no push)
+bash ops/deploy.sh --pages      # deploy the main Pages project only
 bash ops/deploy.sh --docs       # deploy docs.limooo.cn only
 bash ops/deploy.sh --worker=status-worker   # deploy one standalone Worker
+bash ops/deploy.sh --all --full             # same, but stream every step's output
 ```
+
+Running `ops/deploy.sh` with **no arguments is exactly `--all`**: commit + push +
+Pages + docs, the "full deploy" contract. To ship only what is already committed
+locally, pass `--pages` / `--docs` explicitly.
+
+Output is quiet by default (one status line per step); add `--full` to watch the whole
+process. `--dry-run` works with any combination of the flags above.
 
 Credentials are read from the local `secrets/webauthn.env`; there are no ssh, rsync,
 systemd or Nginx steps. See `../AGENTS.md` for the full deploy contract.
