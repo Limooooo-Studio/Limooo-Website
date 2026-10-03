@@ -97,13 +97,15 @@ if [ "${LIMOOO_SKIP_DOCS:-0}" = 1 ]; then
     DO_DOCS=0
 fi
 
-# 跑一个子步骤：默认（安静）模式把输出收进临时日志，成功只打一行 "<tag>: done"，
-# 失败打 "<tag>: FAILED -- full log follows" 并把完整日志吐到 stderr；
-# --full 模式直接流式输出，不打状态行。
+# 跑一个子步骤。两种模式：
+#   安静（默认）：输出收进临时日志，成功只打一行 "<tag>: done"，
+#                 失败打 "<tag>: FAILED -- full log follows" 并把完整日志吐到 stderr。
+#   --full      ：先回显要跑的命令，再原样透传它的输出，不额外加状态行。
 # 用法：run_step "<标签>" <命令...>
 run_step() {
     local tag="$1"; shift
     if [ "$VERBOSE" = 1 ]; then
+        echo "$*"
         "$@"
         return
     fi
@@ -139,7 +141,7 @@ echo "Deploy start"
 # 于是「本地全绿、push 完 30 秒收到失败通知」。这里把 CI 原样跑一遍。
 if [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; then
     if [ "${LIMOOO_SKIP_CHECKS:-0}" = 1 ]; then
-        echo "Checks: skipped (LIMOOO_SKIP_CHECKS=1)"
+        echo "Check: skipped (LIMOOO_SKIP_CHECKS=1)"
     elif [ "$DO_COMMIT" = 1 ]; then
         run_step "Check" bash ops/ci_check.sh
     else
@@ -147,15 +149,23 @@ if [ "$DO_COMMIT" = 1 ] || [ "$DO_PUSH" = 1 ]; then
     fi
 fi
 
+# --full 下回显要跑的命令；安静模式下不打扰（git 本来就无声）
+show_cmd() {
+    [ "$VERBOSE" = 1 ] && echo "$*"
+    return 0
+}
+
 # ── ① git commit ────────────────────────────────────────────────────
 if [ "$DO_COMMIT" = 1 ]; then
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         echo "Warning: not a git work tree, skipped commit" >&2
     else
+        show_cmd git add -A -- . ':!limooo.cn.png'
         git add -A -- . ':!limooo.cn.png'
         if git diff --cached --quiet; then
             echo "Git: nothing to commit"
         else
+            show_cmd git commit -m "deploy: auto-commit <timestamp>"
             git commit -m "deploy: auto-commit $(date '+%Y-%m-%d %H:%M')" >/dev/null
             echo "Git: committed local changes"
         fi
@@ -176,6 +186,7 @@ if [ "$DO_PUSH" = 1 ]; then
         if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
             echo "Git: GitHub already up to date, skipped push"
         elif git merge-base --is-ancestor "$REMOTE_HEAD" "$LOCAL_HEAD"; then
+            show_cmd git push origin main
             if git push origin main >/dev/null 2>&1; then
                 echo "Git: pushed to GitHub"
             else
