@@ -21,12 +21,16 @@ This is the **exact scope** of the two checkboxes in the *Fengxing Mizong* (《�
 
 ## Platforms in mainland China
 
+<div class="nowrap-table">
+
 | Platform | Operating entity (legal name) | Location | Privacy policy | Minors' policy |
 | --- | --- | --- | --- | --- |
-| <span style="white-space: nowrap">Douyin</span> | <span style="white-space: nowrap">Beijing Douyin Technology Co., Ltd.</span> | Room 2022, 2/F, Building 4, Courtyard A18, North Third Ring West Road, Haidian District, Beijing, China | [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773901168964798477) | [Douyin Children's PI Protection Rules](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| <span style="white-space: nowrap">Xiaohongshu (RED)</span> | <span style="white-space: nowrap">Xingin Information Technology (Shanghai) Co., Ltd.</span> | Rooms C201–C207, Building C, SOHO Fuxing Plaza, 368 Madang Road, Huangpu District, Shanghai, China | [Xiaohongshu User Privacy Policy](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [Xiaohongshu Personal Information Protection Rules for Minors](https://www.xiaohongshu.com/privacy/teenager) |
-| <span style="white-space: nowrap">Bilibili</span> | <span style="white-space: nowrap">Shanghai Kuanyu Digital Technology Co., Ltd.</span> | 485 Zhengli Road, Yangpu District, Shanghai, China | [Bilibili Privacy Policy](https://www.bilibili.com/blackboard/privacy-pc.html) | [Bilibili Minors' PI Protection Guidelines](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
-| <span style="white-space: nowrap">WeChat Channels</span> | <span style="white-space: nowrap">Shenzhen Tencent Computer Systems Company Limited</span> | 35/F, Tencent Building, Kejizhong 1st Road, Maling Community, Yuehai Street, Nanshan District, Shenzhen, Guangdong, China | [WeChat Privacy Protection Guidelines](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [Tencent Children's Privacy Statement](https://privacy.qq.com/yszc-children.htm) |
+| Douyin | Beijing Douyin Technology Co., Ltd. | Room 2022, 2/F, Building 4, Courtyard A18, North Third Ring West Road, Haidian District, Beijing, China | [Douyin Privacy Policy](https://www.douyin.com/agreements/?id=6773901168964798477) | [Douyin Children's PI Protection Rules](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| Xiaohongshu (RED) | Xingin Information Technology (Shanghai) Co., Ltd. | Rooms C201–C207, Building C, SOHO Fuxing Plaza, 368 Madang Road, Huangpu District, Shanghai, China | [Xiaohongshu User Privacy Policy](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [Xiaohongshu Personal Information Protection Rules for Minors](https://www.xiaohongshu.com/privacy/teenager) |
+| Bilibili | Shanghai Kuanyu Digital Technology Co., Ltd. | 485 Zhengli Road, Yangpu District, Shanghai, China | [Bilibili Privacy Policy](https://www.bilibili.com/blackboard/privacy-pc.html) | [Bilibili Minors' PI Protection Guidelines](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| WeChat Channels | Shenzhen Tencent Computer Systems Company Limited | 35/F, Tencent Building, Kejizhong 1st Road, Maling Community, Yuehai Street, Nanshan District, Shenzhen, Guangdong, China | [WeChat Privacy Protection Guidelines](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [Tencent Children's Privacy Statement](https://privacy.qq.com/yszc-children.htm) |
+
+</div>
 
 ### Douyin
 
@@ -62,12 +66,16 @@ This is the **exact scope** of the two checkboxes in the *Fengxing Mizong* (《�
 
 ## Platforms outside mainland China
 
+<div class="nowrap-table">
+
 | Platform | Recipient (operating entity) | Location | Privacy policy | Minors' policy |
 | --- | --- | --- | --- | --- |
-| <span style="white-space: nowrap">YouTube</span> | <span style="white-space: nowrap">Google LLC</span> | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google Privacy Policy](https://policies.google.com/privacy) | [Google Teen Privacy Guide](https://www.google.com/policies/privacy/teens/) |
-| <span style="white-space: nowrap">TikTok</span> | <span style="white-space: nowrap">TikTok Pte. Ltd. (or its affiliates, depending on your region)</span> | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok Privacy Policy](https://www.tiktok.com/legal/page/row/privacy-policy/en) | See the children and minors section of the privacy policy |
-| <span style="white-space: nowrap">Instagram</span> | <span style="white-space: nowrap">Meta Platforms, Inc.</span> | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram Privacy Policy](https://privacycenter.instagram.com/policy) | See the teens section of the privacy policy |
-| <span style="white-space: nowrap">X</span> | <span style="white-space: nowrap">X Corp.</span> | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X Privacy Policy](https://x.com/en/privacy) | See the minors section of the privacy policy |
+| YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google Privacy Policy](https://policies.google.com/privacy) | [Google Teen Privacy Guide](https://www.google.com/policies/privacy/teens/) |
+| TikTok | TikTok Pte. Ltd. (or its affiliates, depending on your region) | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok Privacy Policy](https://www.tiktok.com/legal/page/row/privacy-policy/en) | See the children and minors section of the privacy policy |
+| Instagram | Meta Platforms, Inc. | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram Privacy Policy](https://privacycenter.instagram.com/policy) | See the teens section of the privacy policy |
+| X | X Corp. | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X Privacy Policy](https://x.com/en/privacy) | See the minors section of the privacy policy |
+
+</div>
 
 <!-- TODO(verify): TikTok and X block automated fetching. Please check the TikTok address, each overseas platform's contact channel and the minors' provisions in a browser before signing. -->
 
@@ -110,3 +118,10 @@ Under China's Personal Information Protection Law, before personal information i
 - Address: 865 FM 1209, Building 2, Bastrop, TX 78602, USA.
 - Contact and exercising rights: see the contact and rights sections of the [X Privacy Policy](https://x.com/en/privacy).
 - Privacy policy: [X Privacy Policy](https://x.com/en/privacy)
+
+<style>
+.nowrap-table th,
+.nowrap-table td {
+  white-space: nowrap;
+}
+</style>

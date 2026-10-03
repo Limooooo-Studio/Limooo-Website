@@ -21,12 +21,16 @@ description: 《风行迷踪》授权范围内的境内、境外发布平台：�
 
 ## 中国大陆境内平台
 
+<div class="nowrap-table">
+
 | 平台 | 运营主体（法人全称） | 公司所在地 | 隐私政策 | 未成年人 / 儿童政策 |
 | --- | --- | --- | --- | --- |
-| <span style="white-space: nowrap">抖音</span> | <span style="white-space: nowrap">北京抖音科技有限公司</span> | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | [《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773901168964798477) | [《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| <span style="white-space: nowrap">小红书</span> | <span style="white-space: nowrap">行吟信息科技（上海）有限公司</span> | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | [《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [《小红书未成年人个人信息保护规则》](https://www.xiaohongshu.com/privacy/teenager) |
-| <span style="white-space: nowrap">哔哩哔哩</span> | <span style="white-space: nowrap">上海宽娱数码科技有限公司</span> | 中国上海市杨浦区政立路 485 号 | [《哔哩哔哩隐私政策》](https://www.bilibili.com/blackboard/privacy-pc.html) | [《哔哩哔哩未成年人个人信息保护指引》](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
-| <span style="white-space: nowrap">微信视频号</span> | <span style="white-space: nowrap">深圳市腾讯计算机系统有限公司</span> | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | [《微信隐私保护指引》](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm) |
+| 抖音 | 北京抖音科技有限公司 | 中国北京市海淀区北三环西路甲 18 号院 4 号楼 2 层 2022 | [《“抖音”隐私政策》](https://www.douyin.com/agreements/?id=6773901168964798477) | [《抖音儿童个人信息保护规则》](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| 小红书 | 行吟信息科技（上海）有限公司 | 中国上海市黄浦区马当路 368 号 SOHO 复兴广场 C 楼 C201–C207 室 | [《小红书用户隐私政策》](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [《小红书未成年人个人信息保护规则》](https://www.xiaohongshu.com/privacy/teenager) |
+| 哔哩哔哩 | 上海宽娱数码科技有限公司 | 中国上海市杨浦区政立路 485 号 | [《哔哩哔哩隐私政策》](https://www.bilibili.com/blackboard/privacy-pc.html) | [《哔哩哔哩未成年人个人信息保护指引》](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| 微信视频号 | 深圳市腾讯计算机系统有限公司 | 中国广东省深圳市南山区粤海街道麻岭社区科技中一路腾讯大厦 35 层 | [《微信隐私保护指引》](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [《儿童隐私保护声明》](https://privacy.qq.com/yszc-children.htm) |
+
+</div>
 
 ### 抖音
 
@@ -62,12 +66,16 @@ description: 《风行迷踪》授权范围内的境内、境外发布平台：�
 
 ## 中国大陆境外平台
 
+<div class="nowrap-table">
+
 | 平台 | 接收方（运营主体） | 所在地 | 隐私政策 | 未成年人 / 儿童政策 |
 | --- | --- | --- | --- | --- |
-| <span style="white-space: nowrap">YouTube</span> | <span style="white-space: nowrap">Google LLC</span> | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [《Google 隐私政策》](https://policies.google.com/privacy) | [Google 青少年隐私指南](https://www.google.com/policies/privacy/teens/) |
-| <span style="white-space: nowrap">TikTok</span> | <span style="white-space: nowrap">TikTok Pte. Ltd.（或其关联公司，视你所在地区而定）</span> | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok Privacy Policy](https://www.tiktok.com/legal/page/row/privacy-policy/en) | 见隐私政策中关于儿童和未成年人的部分 |
-| <span style="white-space: nowrap">Instagram</span> | <span style="white-space: nowrap">Meta Platforms, Inc.</span> | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram 隐私政策](https://privacycenter.instagram.com/policy) | 见隐私政策中关于青少年的部分 |
-| <span style="white-space: nowrap">X</span> | <span style="white-space: nowrap">X Corp.</span> | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X Privacy Policy](https://x.com/en/privacy) | 见隐私政策中关于未成年人的部分 |
+| YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [《Google 隐私政策》](https://policies.google.com/privacy) | [Google 青少年隐私指南](https://www.google.com/policies/privacy/teens/) |
+| TikTok | TikTok Pte. Ltd.（或其关联公司，视你所在地区而定） | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok Privacy Policy](https://www.tiktok.com/legal/page/row/privacy-policy/en) | 见隐私政策中关于儿童和未成年人的部分 |
+| Instagram | Meta Platforms, Inc. | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram 隐私政策](https://privacycenter.instagram.com/policy) | 见隐私政策中关于青少年的部分 |
+| X | X Corp. | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X Privacy Policy](https://x.com/en/privacy) | 见隐私政策中关于未成年人的部分 |
+
+</div>
 
 <!-- TODO(verify): TikTok / X 官网对自动抓取限制，TikTok 地址、各境外平台的联系入口与未成年人条款，签署前请在浏览器里人工核对一遍。 -->
 
@@ -110,3 +118,10 @@ description: 《风行迷踪》授权范围内的境内、境外发布平台：�
 - 所在地：865 FM 1209, Building 2, Bastrop, TX 78602, USA。
 - 联系方式与行使权利：见 [X 隐私政策](https://x.com/en/privacy)中的联系方式与权利说明部分。
 - 隐私政策：[X Privacy Policy](https://x.com/en/privacy)
+
+<style>
+.nowrap-table th,
+.nowrap-table td {
+  white-space: nowrap;
+}
+</style>

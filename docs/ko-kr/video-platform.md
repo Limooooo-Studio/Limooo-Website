@@ -21,12 +21,16 @@ description: 《풍행미종》 허락 범위에 포함된 중국 본토 내·�
 
 ## 중국 본토 내 플랫폼
 
+<div class="nowrap-table">
+
 | 플랫폼 | 운영 주체(법인명) | 소재지 | 개인정보 처리방침 | 미성년자·아동 |
 | --- | --- | --- | --- | --- |
-| <span style="white-space: nowrap">더우인</span> | <span style="white-space: nowrap">Beijing Douyin Technology Co., Ltd.</span> | 중국 베이징시 하이뎬구 북삼환서로 갑 18호원 4호동 2층 2022 | [더우인 개인정보 처리방침](https://www.douyin.com/agreements/?id=6773901168964798477) | [더우인 아동 개인정보 보호 규칙](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
-| <span style="white-space: nowrap">샤오홍슈</span> | <span style="white-space: nowrap">Xingin Information Technology (Shanghai) Co., Ltd.</span> | 중국 상하이시 황푸구 마당로 368호 SOHO 푸싱광장 C동 C201–C207실 | [샤오홍슈 사용자 개인정보 처리방침](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [샤오홍슈 미성년자 개인정보 보호 규칙](https://www.xiaohongshu.com/privacy/teenager) |
-| <span style="white-space: nowrap">빌리빌리</span> | <span style="white-space: nowrap">Shanghai Kuanyu Digital Technology Co., Ltd.</span> | 중국 상하이시 양푸구 정리로 485호 | [빌리빌리 개인정보 처리방침](https://www.bilibili.com/blackboard/privacy-pc.html) | [빌리빌리 미성년자 개인정보 보호 지침](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
-| <span style="white-space: nowrap">위챗 채널</span> | <span style="white-space: nowrap">Shenzhen Tencent Computer Systems Company Limited</span> | 중국 광둥성 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층 | [위챗 개인정보 보호 지침](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [텐센트 아동 개인정보 보호 성명](https://privacy.qq.com/yszc-children.htm) |
+| 더우인 | Beijing Douyin Technology Co., Ltd. | 중국 베이징시 하이뎬구 북삼환서로 갑 18호원 4호동 2층 2022 | [더우인 개인정보 처리방침](https://www.douyin.com/agreements/?id=6773901168964798477) | [더우인 아동 개인정보 보호 규칙](https://lf26-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/ucenter/protect_children_info.html) |
+| 샤오홍슈 | Xingin Information Technology (Shanghai) Co., Ltd. | 중국 상하이시 황푸구 마당로 368호 SOHO 푸싱광장 C동 C201–C207실 | [샤오홍슈 사용자 개인정보 처리방침](https://agree.xiaohongshu.com/h5/terms/ZXXY20220509001/-1) | [샤오홍슈 미성년자 개인정보 보호 규칙](https://www.xiaohongshu.com/privacy/teenager) |
+| 빌리빌리 | Shanghai Kuanyu Digital Technology Co., Ltd. | 중국 상하이시 양푸구 정리로 485호 | [빌리빌리 개인정보 처리방침](https://www.bilibili.com/blackboard/privacy-pc.html) | [빌리빌리 미성년자 개인정보 보호 지침](https://www.bilibili.com/blackboard/activity-EiH51rMh3L.html) |
+| 위챗 채널 | Shenzhen Tencent Computer Systems Company Limited | 중국 광둥성 선전시 난산구 웨하이지구 마링커뮤니티 커지중1로 텐센트빌딩 35층 | [위챗 개인정보 보호 지침](https://weixin.qq.com/cgi-bin/readtemplate?t=weixin_agreement&s=privacy) | [텐센트 아동 개인정보 보호 성명](https://privacy.qq.com/yszc-children.htm) |
+
+</div>
 
 ### 더우인 (抖音)
 
@@ -62,12 +66,16 @@ description: 《풍행미종》 허락 범위에 포함된 중국 본토 내·�
 
 ## 중국 본토 외 플랫폼
 
+<div class="nowrap-table">
+
 | 플랫폼 | 수령자(운영 주체) | 소재지 | 개인정보 처리방침 | 미성년자·아동 |
 | --- | --- | --- | --- | --- |
-| <span style="white-space: nowrap">YouTube</span> | <span style="white-space: nowrap">Google LLC</span> | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google 개인정보 처리방침](https://policies.google.com/privacy) | [Google 청소년 개인정보 보호 가이드](https://www.google.com/policies/privacy/teens/) |
-| <span style="white-space: nowrap">TikTok</span> | <span style="white-space: nowrap">TikTok Pte. Ltd. (거주 지역에 따라 그 계열사)</span> | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok 개인정보 처리방침](https://www.tiktok.com/legal/page/row/privacy-policy/en) | 개인정보 처리방침의 아동·미성년자 관련 부분 참조 |
-| <span style="white-space: nowrap">Instagram</span> | <span style="white-space: nowrap">Meta Platforms, Inc.</span> | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram 개인정보 처리방침](https://privacycenter.instagram.com/policy) | 개인정보 처리방침의 청소년 관련 부분 참조 |
-| <span style="white-space: nowrap">X</span> | <span style="white-space: nowrap">X Corp.</span> | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X 개인정보 처리방침](https://x.com/en/privacy) | 개인정보 처리방침의 미성년자 관련 부분 참조 |
+| YouTube | Google LLC | 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA | [Google 개인정보 처리방침](https://policies.google.com/privacy) | [Google 청소년 개인정보 보호 가이드](https://www.google.com/policies/privacy/teens/) |
+| TikTok | TikTok Pte. Ltd. (거주 지역에 따라 그 계열사) | 1 Raffles Quay, #26-10 South Tower, Singapore 048583 | [TikTok 개인정보 처리방침](https://www.tiktok.com/legal/page/row/privacy-policy/en) | 개인정보 처리방침의 아동·미성년자 관련 부분 참조 |
+| Instagram | Meta Platforms, Inc. | 1 Meta Way, Menlo Park, CA 94025, USA | [Instagram 개인정보 처리방침](https://privacycenter.instagram.com/policy) | 개인정보 처리방침의 청소년 관련 부분 참조 |
+| X | X Corp. | 865 FM 1209, Building 2, Bastrop, TX 78602, USA | [X 개인정보 처리방침](https://x.com/en/privacy) | 개인정보 처리방침의 미성년자 관련 부분 참조 |
+
+</div>
 
 <!-- TODO(verify): TikTok 과 X 는 자동 수집이 제한됩니다. TikTok 소재지, 각 해외 플랫폼의 연락 창구, 미성년자 관련 조항은 서명 전에 브라우저에서 직접 확인해 주세요. -->
 
@@ -110,3 +118,10 @@ description: 《풍행미종》 허락 범위에 포함된 중국 본토 내·�
 - 소재지: 865 FM 1209, Building 2, Bastrop, TX 78602, USA.
 - 연락처 및 권리 행사: [X 개인정보 처리방침](https://x.com/en/privacy)의 연락처·권리 관련 항목 참조.
 - 개인정보 처리방침: [X 개인정보 처리방침](https://x.com/en/privacy)
+
+<style>
+.nowrap-table th,
+.nowrap-table td {
+  white-space: nowrap;
+}
+</style>
